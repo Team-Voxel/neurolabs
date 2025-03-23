@@ -15,7 +15,6 @@ async def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
-# CRUD Operations
 @app.post("/")
 async def create_item():
     return "Example"
