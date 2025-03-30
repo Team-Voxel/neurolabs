@@ -1,6 +1,8 @@
 
 from fastapi import FastAPI, HTTPException, status
 from datetime import datetime
+from .parameters import *
+import json
 
 app = FastAPI(
     title="FastAPI Server",
@@ -8,6 +10,13 @@ app = FastAPI(
     version="1.0.0"
 )
 
+@app.get("/")
+async def new_problem(metadata: dict):
+    name = metadata["name"]
+    type = metadata["type"]
+    data_path = metadata["data_path"]
+    GLOBAL_PREDICTION_VECTOR = metadata["prediction_vector"]
+    create_problem(name)
 
 @app.get("/")
 async def health_check():
