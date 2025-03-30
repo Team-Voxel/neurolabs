@@ -3,7 +3,7 @@ import numpy as np
 import sklearn as sk
 from typing import List, Dict, Any, Union
 import re
-from .parameters import *
+from .file_system import *
 
 class DataType:
     NUMERIC = 0
