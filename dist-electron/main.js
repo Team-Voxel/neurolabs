@@ -2,7 +2,7 @@ import { app, BrowserWindow } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-createRequire(import.meta.url);
+const require2 = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
@@ -25,6 +25,10 @@ function createWindow() {
   } else {
     win.loadFile(path.join(RENDERER_DIST, "index.html"));
   }
+  const { contextBridge, ipcRenderer } = require2("electron");
+  contextBridge.exposeInMainWorld("electronAPI", {
+    openFileDialog: () => ipcRenderer.invoke("dialog:openFile")
+  });
 }
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {

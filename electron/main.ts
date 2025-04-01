@@ -29,10 +29,13 @@ let win: BrowserWindow | null
 function createWindow() {
   win = new BrowserWindow({
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
   })
+
+
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
@@ -45,6 +48,11 @@ function createWindow() {
     // win.loadFile('dist/index.html')
     win.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
+  const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  openFileDialog: () => ipcRenderer.invoke('dialog:openFile')
+});
 }
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -64,5 +72,7 @@ app.on('activate', () => {
     createWindow()
   }
 })
+
+
 
 app.whenReady().then(createWindow)

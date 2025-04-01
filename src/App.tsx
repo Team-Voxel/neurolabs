@@ -1,33 +1,42 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/electron-vite.animate.svg'
+
+
+// Extend the Window interface to include electronAPI
+declare global {
+  interface Window {
+    electronAPI: {
+      openFileDialog: () => void;
+    };
+  }
+}
+
+import plusIcon from './assets/plus.svg'
+import open from './assets/folder-input.svg'
 import './App.css'
+import Button from './components/createNewButton'
 
 function App() {
-  const [count, setCount] = useState(0)
+  // const [count, setCount] = useState(0)
+
+  const handleCreateProject = () => {
+    window.electronAPI.openFileDialog()
+  };
+  const handleOpenProject = () => {
+    console.log("Create New Project clicked");
+  };
 
   return (
     <>
-      <div>
-        <a href="https://electron-vite.github.io" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+      <div className='flex flex-col gap-20'>
+
+        <div>
+          <div className='text-black text-6xl'>Select a Project</div>
+        </div>
+        <div className='flex align-middle justify-center gap-24 '>
+          <Button icon={plusIcon} label="Create New Project" onClick={handleCreateProject} />
+          <Button icon={open} label="Open Recent Project" onClick={handleOpenProject} />
+        </div>
+         
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
     </>
   )
 }
