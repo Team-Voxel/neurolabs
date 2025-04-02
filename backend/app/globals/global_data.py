@@ -1,5 +1,5 @@
 
+from ..core.context import Context
 
 
-class CONFIG:
-    pass
+global_context = Context()

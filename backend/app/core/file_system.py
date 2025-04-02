@@ -108,6 +108,16 @@ def load_list_pickle(file_path: str) -> list:
         return pickle.load(f)
 
 
+def get_csv_headers(file_path : str) -> list[str]:
+    """
+    Get headers from a CSV file.
+    Assumes the first row contains headers.
+    """
+    with open(file_path, 'r') as f:
+        headers = f.readline().strip().split(',')
+    return headers
+
+
 def create_project_files(problem_name : str, data_path : str, problem_type : str, prediction_type : str) -> pl.Path:
     path = get_pwd(problem_name)
     path.mkdir(parents=True, exist_ok=True)
