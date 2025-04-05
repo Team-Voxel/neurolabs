@@ -13,14 +13,16 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  background: #282c34;
-  color: white;
-  font-family: sans-serif;
+  height: 60vh;
+  width: 100vh;
+  background: linear-gradient(135deg, #d551a2, #070059 );
+  color: rgb(255, 210, 255);
+  font-family: poppins;
+  border-radius: 2rem;
 }
 
 .menu-window h1 {
-  font-size: 3rem;
+  font-size: 2.5rem;
   margin-bottom: 2rem;
 }
 
@@ -34,15 +36,18 @@
   padding: 0.75rem 2rem;
   font-size: 1.25rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 0.3rem;
   cursor: pointer;
-  background-color: #61dafb;
+  background-color: #000000;
   color: #282c34;
-  transition: background-color 0.3s ease;
+  transition:0.5s ease;
 }
 
 .menu-button:hover {
-  background-color: #52c7e8;
+  background: linear-gradient(0deg, #000a65, #ff7575 );
+  color: #ffffff;
+  scale: 1.05;
+  
 }
 
 /*new project window stylings*/

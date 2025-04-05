@@ -53,11 +53,11 @@ const NewProject: React.FC = () => {
               <option value="randomForest">Random Forest</option>
               <option value="ann">ANN</option>
             </select>
-            <button>View</button>
-            <button>Analyze</button>
-            <button onClick={handleImportDataset}>Display Dataset</button>
-            <button onClick={handleBack}>Back</button>
-            <button onClick={handleBackToNewProject}>Choose Another Dataset</button>
+            <button className="menu-button">View</button>
+            <button className="menu-button">Analyze</button>
+            <button className="menu-button" onClick={handleImportDataset}>Display Dataset</button>
+            <button className="menu-button" onClick={handleBack}>Back</button>
+            <button className="menu-button" onClick={handleBackToNewProject}>Choose Another Dataset</button>
           </section>
           {/* Right side: Dataset display */}
           <section className="dataset-display">

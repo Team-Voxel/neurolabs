@@ -113,9 +113,9 @@ const NewProjectMenu: React.FC = () => {
       )}
 
       <div className="form-section">
-      <button onClick={handleCreate}>Create</button>
+      <button className="menu-button" onClick={handleCreate}>Create</button>
       </div>
-      <button onClick={handleBack}>Back</button>
+      <button className="menu-button" onClick={handleBack}>Back</button>
     </div>
   );
 };
