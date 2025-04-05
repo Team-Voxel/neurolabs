@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './App.css';
 import { useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 interface DataRow {
   col1: string;
   col2: string;
@@ -11,10 +12,13 @@ const NewProject: React.FC = () => {
   const [dataset, setDataset] = useState<DataRow[]>([]);
   const [selectedModel, setSelectedModel] = useState<string>('');
   const navigate = useNavigate();
+  const location = useLocation();
 
+  const projectName = (location.state as { projectName?: string })?.projectName || 'Unnamed Project';
+  
   const handleBack = () => {
     
-    navigate('/');
+    navigate('/app');
   };
  
   const handleBackToNewProject = () => {
@@ -37,7 +41,7 @@ const NewProject: React.FC = () => {
   return (
     <div className="new-project-window">
       <header>
-        <h2>Data Import & Model Training</h2>
+      <h2 className='projectName'>{projectName}</h2>
       </header>
       <main className="content">
         <div className="layout-container">

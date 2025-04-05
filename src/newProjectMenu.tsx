@@ -11,7 +11,7 @@ const NewProjectMenu: React.FC = () => {
   
     const handleBack = () => {
       
-      navigate('/');
+      navigate('/app');
     };
     
   // Handle CSV file selection.
@@ -38,7 +38,7 @@ const NewProjectMenu: React.FC = () => {
       //log values or perform validation
       console.log({ projectName, csvFileName, projectType, datasetType });
       // Navigate to the NewProject page
-      navigate('/new-project');
+      navigate('/new-project', { state: { projectName } });
     };
     
  
@@ -46,6 +46,16 @@ const NewProjectMenu: React.FC = () => {
   return (
     <div className="new-project-menu">
       <h2>Create New Project</h2>
+      <div className="form-section">
+        <label htmlFor="projectName">Project Name:</label>
+        <input 
+          type="text"
+          id="projectName"
+          value={projectName}
+          onChange={(e) => setProjectName(e.target.value)}
+          placeholder="Enter project name"
+        />
+      </div>
       <div className="form-section">
         <label htmlFor="csvFile">CSV File:</label>
         <input type="file" id="csvFile" accept=".csv" onChange={handleFileChange} />
