@@ -1,13 +1,40 @@
-import { useState } from 'react'
-import { Opulento } from 'uvcanvas'
-import './App.css'
+
+import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { MainMenu } from './components/MainMenu';
+import { ProjectSelection } from './components/ProjectSelection';
+import ProjectSetupWizard from './newProjectMenu';
+import WorkflowEditor from './workflowEditor';
+import SortablePipeline from './components/SortablePipeline';
+import Main from 'electron/main';
+import { Playground } from './components/Playground';
+
+// Extend the Window interface to include electronAPI
+declare global {
+  interface Window {
+    electronAPI: {
+      openFileDialog: () => void;
+    };
+  }
+}
+
 
 function App() {
-  //const [count, setCount] = useState(0)
 
-  return (
-      <Opulento/>
-  )
+return (
+  <HashRouter>
+    <Routes>
+      <Route path="/" element={<MainMenu />} />
+      <Route path="/project-selection" element={<ProjectSelection />} />
+      <Route path="/create-new-project" element={<ProjectSetupWizard />} />
+      <Route path="/workflow" element={<WorkflowEditor />} />
+      <Route path="/nodes" element={<SortablePipeline />} />
+      <Route path="/playground" element={<Playground/>} />
+      <Route path="/explore" element={<div>Explore</div>} />
+      <Route path="/settings" element={<div>Settings</div>} />
+    </Routes>
+  </HashRouter>
+);
 }
 
 export default App

@@ -4,7 +4,13 @@
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "skipLibCheck": true,
+    "skipLibCheck": true,"baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    
+    "allowJs": true,
+    "checkJs": true,
 
     /* Bundler mode */
     "moduleResolution": "bundler",
@@ -18,7 +24,8 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": false,
   },
   "include": ["src", "electron"],
   "references": [{ "path": "./tsconfig.node.json" }]
