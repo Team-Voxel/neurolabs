@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Button from './createNewButton'
+import Button from './CreateNewButton'
 import plusIcon from '../assets/plus.svg'
 import open from '../assets/folder-input.svg'
 

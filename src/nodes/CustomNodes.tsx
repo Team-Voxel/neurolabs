@@ -210,7 +210,7 @@ export function CircularNode({ data }) {
   );
 }
 
-import DynamicForm from '@/components/DynamicForm';
+import DynamicForm from '../components/DynamicForm';
 
 type LayerNodeData = Node<LayerDefinition, 'data'>;
 

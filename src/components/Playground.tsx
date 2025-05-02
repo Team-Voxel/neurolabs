@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Canvas from "@/nodes/Canvas";
+import Canvas from "../nodes/Canvas";
 import { ReactFlowProvider } from "@xyflow/react";
-import { DnDProvider } from "@/nodes/dndContext";
+import { DnDProvider } from "../nodes/dndContext";
 
 
 export const Playground: React.FC = () => {

@@ -4,7 +4,6 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { exit } from "node:process";
 const require2 = createRequire(import.meta.url);
-createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
