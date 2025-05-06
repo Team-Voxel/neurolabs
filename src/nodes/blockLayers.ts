@@ -723,3 +723,13 @@ export const layerTypes : LayerDefinition[] = [
 export const layerMap: Record<string, LayerDefinition> = Object.fromEntries(
     layerTypes.map((layer) => [layer.layer_id, layer])
 );
+
+
+import { type MenuItem } from "../components/context_menu/types";
+
+export const layerMenuItems: MenuItem[] = layerTypes.map((layer) => ({
+    id: layer.layer_id,
+    name: layer.name,
+    icon_url: '../assets/reacts.svg',
+    category: layer.layer_type,
+}));

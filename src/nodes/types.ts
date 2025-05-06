@@ -24,5 +24,8 @@ import {
     setNodes: (nodes: AppNode[]) => void;
     setEdges: (edges: Edge[] | ((prev: Edge[]) => Edge[])) => void;
     addNewNode: (newNode: AppNode) => void;
+    selectedElements: (Node | Edge)[];
+    setSelectedElements: (elements: (Node | Edge)[]) => void;
+    deleteSelectedElements: () => void;
   };
   

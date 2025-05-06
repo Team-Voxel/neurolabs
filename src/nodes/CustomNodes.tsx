@@ -124,6 +124,8 @@ export function CustomNode({ data }: NodeProps<NodeData>) {
 
   return (
     <>
+    <Handle type="target" position={Position.Top} className="w-2 h-2 bg-gray-700" style={{height: '12px', width: '12px', opacity: '0'}} />
+    <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-gray-700" />
       <div className='flex flex-col gap-0 rounded'>
         <div className='flex flex-row gap-2 justify-between p-2'>
         {data.name}
@@ -135,14 +137,16 @@ export function CustomNode({ data }: NodeProps<NodeData>) {
             </>
           ))}
         </div> */}
-        <Handle type="target" position={Position.Top} className="w-2 h-2 bg-gray-700" />
-        <Handle type="source" position={Position.Bottom} className="w-2 h-2 bg-gray-700" />
       </div>
     </>
   );
 }
 
 export function CircularNode({ data }) {
+  
+  const styleLeft = { "--R": 100, "--T":10, "alpha": -90, "theta":90 } as React.CSSProperties;
+  let styleRight = { "--R": 100, "--T":10, "alpha": 90, "theta":90 } as React.CSSProperties;
+
   return (
     <div style={{
       width: 80,
@@ -151,61 +155,23 @@ export function CircularNode({ data }) {
       backgroundColor: 'red',
       position: 'relative',
     }}>
-      {/* Left Arc */}
-      <svg
-        width="30"
-        height="100"
-        style={{ position: 'absolute', top: 0, left: -15, zIndex: 2 }}
-        viewBox="0 0 30 100"
-      >
-        <path
-          d="M 25,0 A 40,50 0 0,1 25,100"
-          stroke="black"
-          strokeWidth="4"
-          fill="none"
-        />
-      </svg>
-
-      {/* Right Arc */}
-      <svg
-        width="30"
-        height="100"
-        style={{ position: 'absolute', top: 0, right: -15, zIndex: 2 }}
-        viewBox="0 0 30 100"
-      >
-        <path
-          d="M 5,0 A 40,50 0 0,0 5,100"
-          stroke="black"
-          strokeWidth="4"
-          fill="none"
-        />
-      </svg>
 
       {/* Invisible Handles for interaction */}
       <Handle
         type="target"
         position={Position.Left}
         style={{
-          opacity: 0,
-          left: -10,
-          top: '50%',
-          width: 20,
-          height: 20,
-          transform: 'translateY(-50%)',
+          height: '10px',
+          width: '10px',
         }}
       />
       <Handle
         type="source"
         position={Position.Right}
-        style={{
-          opacity: 0,
-          right: -10,
-          top: '50%',
-          width: 20,
-          height: 20,
-          transform: 'translateY(-50%)',
-        }}
-      />
+        className='customHandle'
+      >
+      </Handle>
+      
     </div>
   );
 }
@@ -227,6 +193,9 @@ export const CustomLayerNode: React.FC<NodeProps<LayerNodeData>> = ({ data, sele
   const color = layerColors[data.layer_type] || '#e2e8f0';
 
   return (
+    <>
+    <Handle type="target" position={Position.Left} style={{transform: 'translate(-50%, -50%)', height: '20px', width: '12px', borderRadius: '10px', opacity: '1', border: '2px solid', background:'Transparent'}} />
+    <Handle type="source" position={Position.Right} style={{transform: 'translate(50%, -50%)', height: '20px', width: '12px', borderRadius: '10px', opacity: '1', border: '2px solid', background:'Transparent'}} />
     <div
       className={`rounded-[5px] p-0 text-sm shadow-md border-2 flex flex-col gap-2`}
       style={{
@@ -247,8 +216,7 @@ export const CustomLayerNode: React.FC<NodeProps<LayerNodeData>> = ({ data, sele
 
       <DynamicForm layer={data} onChange={(values) => console.log(values)}></DynamicForm>
 
-      <Handle type="target" position={Position.Left} />
-      <Handle type="source" position={Position.Right} />
     </div>
+    </>
   );
 };

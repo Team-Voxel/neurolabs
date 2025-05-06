@@ -9,6 +9,7 @@ import { type AppState , type AppNode} from './types';
 const useStore = create<AppState>((set, get) => ({
   nodes: initialNodes,
   edges: initialEdges,
+  selectedElements: [],
   onNodesChange: (changes) => {
     set({
       nodes: applyNodeChanges(changes, get().nodes),
@@ -36,6 +37,24 @@ const useStore = create<AppState>((set, get) => ({
   },
   addNewNode: (newNode: AppNode) => {
     set((state) => ({ nodes: [...state.nodes, newNode] }));
+  },
+  setSelectedElements: (elements) => {
+    set({ selectedElements: elements });
+  },
+  deleteSelectedElements: () => {
+    set((state) => {
+      const selectedIds = new Set(state.selectedElements.map((el) => el.id));
+      return {
+        nodes: state.nodes.filter((n) => !selectedIds.has(n.id)),
+        edges: state.edges.filter(
+          (e) =>
+            !selectedIds.has(e.id) &&
+            !selectedIds.has(e.source) &&
+            !selectedIds.has(e.target)
+        ),
+        selectedElements: [],
+      };
+    });
   },
 }));
 
