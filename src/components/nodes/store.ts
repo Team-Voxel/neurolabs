@@ -43,7 +43,10 @@ const useStore = create<AppState>((set, get) => ({
   },
   deleteSelectedElements: () => {
     set((state) => {
-      const selectedIds = new Set(state.selectedElements.map((el) => el.id));
+      const undeletableIds = new Set(['-1', '-2']);
+      const selectedIds = new Set(
+        state.selectedElements.map((el) => el.id).filter((id) => !undeletableIds.has(id))
+      );
       return {
         nodes: state.nodes.filter((n) => !selectedIds.has(n.id)),
         edges: state.edges.filter(

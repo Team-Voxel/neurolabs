@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { TitleBar } from './components/TitleBar';
 import Dashboard from './DashBoard';
 import {Box, Tab, Tabs} from '@mui/material'
-import Canvas from './nodes/Canvas';
+import Canvas from './components/nodes/Canvas';
 import LayerPanel from './components/LayerPanel';
 import ModelWindow from "./ModelWindow";
 import { ReactFlowProvider } from '@xyflow/react';
-import { DnDProvider } from "./nodes/dndContext";
+import { DnDProvider } from "./components/nodes/dndContext";
 
 interface TabPanelProps {
   children?: React.ReactNode;

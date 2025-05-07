@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import Canvas from "../nodes/Canvas";
+import Canvas from "./nodes/Canvas";
 import { ReactFlowProvider } from "@xyflow/react";
-import { DnDProvider } from "../nodes/dndContext";
+import { DnDProvider } from "./nodes/dndContext";
 
 
 export const Playground: React.FC = () => {
@@ -20,11 +20,6 @@ export const Playground: React.FC = () => {
                 <Canvas />
                 </DnDProvider>
                 </ReactFlowProvider>
-            </div>
-            <div className="flex flex-col w-1/5 h-full overflow-y-auto bg-gray-200 p-4">
-                <h2 className="text-xl font-semibold mb-4">Sidebar</h2>
-                <p className="text-gray-700">This is the sidebar area.</p>
-                {/* Add your sidebar content here */}
             </div>
         </div>
     );

@@ -1,13 +1,14 @@
 
 import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import React from 'react';
-import { MainMenu } from './components/MainMenu';
+import MainMenu from './components/main_menu/MainMenu';
 import { ProjectSelection } from './components/ProjectSelection';
 import ProjectSetupWizard from './newProjectMenu';
 import WorkflowEditor from './workflowEditor';
 import SortablePipeline from './components/SortablePipeline';
 import Main from 'electron/main';
 import { Playground } from './components/Playground';
+import  MainNavigation from './components/MainNavigation';
 
 // Extend the Window interface to include electronAPI
 declare global {
@@ -29,7 +30,7 @@ return (
       <Route path="/create-new-project" element={<ProjectSetupWizard />} />
       <Route path="/workflow" element={<WorkflowEditor />} />
       <Route path="/nodes" element={<SortablePipeline />} />
-      <Route path="/playground" element={<Playground/>} />
+      <Route path="/sandbox" element={<MainNavigation/>} />
       <Route path="/explore" element={<div>Explore</div>} />
       <Route path="/settings" element={<div>Settings</div>} />
     </Routes>
@@ -37,4 +38,4 @@ return (
 );
 }
 
-export default App
+export default App;

@@ -56,16 +56,8 @@ export const layerTypes : LayerDefinition[] = [
             max: 32,
             step: 1,
         },
-        stride : {
-            name: 'Stride',
-            type: 'number',
-            default: 1,
-            min: 1,
-            max: 32,
-            step: 1,
-        },
         out_channels: {
-            name: 'Output Channels',
+            name: 'Filters',
             type: 'number',
             default: 64,
             min: 1,
@@ -79,45 +71,6 @@ export const layerTypes : LayerDefinition[] = [
             default: 'ReLU',
         },
       }
-    },
-    {
-        layer_id: '2',
-        layer_type: 'DNN',
-        name: 'ConvTranspose',
-        description: 'Transposed Convolutional Layer',
-        compatible: ['DNN'],
-        controls: {
-            kernel_size: {
-                name: 'Kernel Size',
-                type: 'number',
-                default: 3,
-                min: 1,
-                max: 32,
-                step: 1,
-            },
-            stride : {
-                name: 'Stride',
-                type: 'number',
-                default: 1,
-                min: 1,
-                max: 32,
-                step: 1,
-            },
-            out_channels: {
-                name: 'Output Channels',
-                type: 'number',
-                default: 64,
-                min: 1,
-                max: 32,
-                step: 1,
-            },
-            activation_function: {
-                name: 'Activation Function',
-                type: 'select',
-                options: ['None', 'ReLU', 'Sigmoid', 'Tanh'],
-                default: 'ReLU',
-            },
-        }
     },
     {
         layer_id: '3',
@@ -134,14 +87,6 @@ export const layerTypes : LayerDefinition[] = [
             },
             kernel_size: {
                 name: 'Kernel Size',
-                type: 'number',
-                default: 2,
-                min: 1,
-                max: 32,
-                step: 1,
-            },
-            stride : {
-                name: 'Stride',
                 type: 'number',
                 default: 2,
                 min: 1,
@@ -204,20 +149,6 @@ export const layerTypes : LayerDefinition[] = [
                 step: 0.01,
             },
         }
-    },
-    {
-        layer_id: '7',
-        layer_type: 'DNN',
-        name : 'Softmax',
-        description: 'Softmax Layer',
-        compatible: ['DNN', 'Classical', 'Terminal'],
-    },
-    {
-        layer_id: '8',
-        layer_type: 'DNN',
-        name : 'Softmin',
-        description: 'Softmin Layer',
-        compatible: ['DNN', 'Classical', 'Terminal'],
     },
     {
         layer_id: '9',
@@ -298,20 +229,6 @@ export const layerTypes : LayerDefinition[] = [
                 default: '{}',
             },
         }
-    },
-    {
-        layer_id: '-1',
-        layer_type: 'Input',
-        name : 'Input Features',
-        description: 'Input Features Block',
-        compatible: ['Input', 'DNN', 'Classical'],
-    },
-    {
-        layer_id: '-2',
-        layer_type: 'Terminal',
-        name : 'Model Output',
-        description: 'Output Block',
-        compatible: [],
     },
     // Classical
     {
@@ -725,7 +642,7 @@ export const layerMap: Record<string, LayerDefinition> = Object.fromEntries(
 );
 
 
-import { type MenuItem } from "../components/context_menu/types";
+import { type MenuItem } from "../context_menu/types";
 
 export const layerMenuItems: MenuItem[] = layerTypes.map((layer) => ({
     id: layer.layer_id,

@@ -2,10 +2,7 @@ import React, {useState, useRef, useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
   ReactFlow,
-  ReactFlowProvider,
   addEdge,
-  useNodesState,
-  useEdgesState,
   reconnectEdge,
   Controls,
   useReactFlow,
@@ -14,23 +11,20 @@ import {
   XYPosition
 } from '@xyflow/react';
 
-import '../index.css'
+import '../../index.css'
 import '@xyflow/react/dist/style.css';
-import { DnDProvider, useDnD } from './dndContext';
-import SideBar from './SideBar';
 
-import {layerTypes} from './blockLayers'
 import { layerMap } from './blockLayers';
 import useStore from './store';
 import { type AppState } from './types';
-import GeneralInputNode, {GeneralOutputNode, GeneralNode, CustomNode, CustomLayerNode, CircularNode} from './CustomNodes'
+import InputNode, {OutputNode, CustomLayerNode} from './CustomNodes'
 import CustomSmoothStepEdge, {CustomConnectionLine} from './CustomEdges';
-import useMousePosition from '../GetMousePosition';
+import useMousePosition from '../../GetMousePosition';
 
 import { layerMenuItems } from './blockLayers';
-import { ContextMenu } from '../components/context_menu';
+import { ContextMenu } from '../context_menu';
 import { red } from '@mui/material/colors';
-import { MenuItem } from '../components/context_menu/types';
+import { MenuItem } from '../context_menu/types';
 import { FinalConnectionState } from '@xyflow/react';
 
 const edgeTypes = {
@@ -38,12 +32,9 @@ const edgeTypes = {
 };
 
 const nodeTypes = {
-  'inputNode': GeneralInputNode,
-  'outputNode': GeneralOutputNode,
-  'general': GeneralNode,
-  'custom': CustomNode,
+  'INF': InputNode,
+  'OUT': OutputNode,
   'layer': CustomLayerNode,
-  'circular': CircularNode,
 };
 
 const selector = (state : AppState) => ({
@@ -65,28 +56,26 @@ const Canvas : React.FC = () => {
     const reactFlowWrapper = useRef(null);
     const edgeReconnectSuccessful = useRef(true);
     
-    const { nodes, edges, selectedElements, onNodesChange, onEdgesChange, onConnect, addNewNode, setNodes, setEdges, deleteSelectedElements } = useStore(
+    const { nodes, edges, selectedElements, onNodesChange, onEdgesChange, onConnect, addNewNode, setNodes, setEdges, setSelectedElements, deleteSelectedElements } = useStore(
         useShallow(selector),
     );
     const { screenToFlowPosition } = useReactFlow();
-    const [type, setType] = useDnD();
     const [nodeIdx, setNodeIdx] = useState(0);
     const contextMenuRef = useRef<HTMLDivElement>(null);
     
-    const [connectionInfo, setConnectionInfo] = useState<Connection | null>(null);
     const [isCurrentConnectionValid, setIsCurrentConnectionValid] = useState(true);
     const [mousePosCanvas, setMousePosCanvas] = useState<XYPosition>({x: 0, y: 0});
     const [showContextMenu, setShowContextMenu] = useState<boolean>(false);
     const [connectionState, setConnectionState] = useState<FinalConnectionState>();
 
     const onSelectionChange = useCallback(({ nodes, edges }) => {
-      useStore.getState().setSelectedElements([...nodes, ...edges]);
+      setSelectedElements([...nodes, ...edges]);
     }, []);
 
     const handleSelectItem = (item : MenuItem) => {
       console.log('Selected item:', item);
       setShowContextMenu(false);
-      const position = mousePosCanvas; //screenToFlowPosition(mousePosCanvas);
+      const position = mousePosCanvas;
       const id = `${nodeIdx}`;
       const newNode = {
         id: id,
@@ -138,25 +127,13 @@ const Canvas : React.FC = () => {
     
     useEffect(() => {
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Delete') {
-          /* const selectedIds = new Set(selectedElements.map((el) => el.id));
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
 
-          setNodes(nodes.filter((n) => !selectedIds.has(n.id)));
-
-          setEdges(
-            edges.filter(
-              (e) =>
-                !selectedIds.has(e.id) && // if the edge itself is selected
-                !selectedIds.has(e.source) && // if its source node is selected
-                !selectedIds.has(e.target)    // if its target node is selected
-            )
-          );
-
-          setSelectedElements([]);
-          //deleteSelectedElements(); */
+          deleteSelectedElements(); // delete selected elements
+          
           console.log('Nodes deleted:', nodes.length);
           console.log('Edges deleted:', edges.length);
-          deleteSelectedElements(); 
         }
   
         if (e.key === ' ') {
@@ -209,72 +186,21 @@ const Canvas : React.FC = () => {
       event.dataTransfer.dropEffect = 'move';
     };
     
-    const onDrop: React.DragEventHandler<HTMLDivElement> = useCallback(
-      (event) => {
-        event.preventDefault();
-        
-        console.log('Called on drop', type)
-
-        if (!type) return;
-    
-        const position = screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY,
-        });
-
-        let name: string = 'Unknown Layer';
-        let block_type : any;
-        layerTypes.forEach((layer) => {
-          if (layer.layer_id === type) {
-            name = layer.name;
-            block_type = layer;
-          }
-        });
-
-        const layerInfo = layerMap[type];
-        if (!layerInfo) return;
-    
-        const newNode = {
-          id: `${nodeIdx}`,
-          type: 'layer',
-          position,
-          data: {
-            ...layerInfo,
-            label: layerInfo.name,
-            outputShape: '1x1',
-          },
-        };
-
-        setNodeIdx(nodeIdx + 1);
-        addNewNode(newNode);
-        setType(''); // Reset type after adding the node
-      },
-      [screenToFlowPosition, type]
-    );
-
     const onConnectEnd = useCallback(
       (event, connectionState) => {
-        // when a connection is dropped on the pane it's not valid
         setConnectionState(connectionState);
+
+        // when a connection is dropped on the pane it's not valid
         if (!connectionState.isValid) {
-          const { clientX, clientY } = 'changedTouches' in event ? event.changedTouches[0] : event;
-          const pos = screenToFlowPosition({x: clientX,y: clientY,})
-          //setMousePosCanvas(pos);
+          /* const { clientX, clientY } = 'changedTouches' in event ? event.changedTouches[0] : event;
+          const pos = screenToFlowPosition({x: clientX,y: clientY,}) */
+
           setShowContextMenu(true);
-          //setEdges((eds) => eds.concat({ id, source: connectionState.fromNode.id, target: id }),);
         }
       },
       [screenToFlowPosition],
     );
 
-    const onDragStart = (nodeType: string): React.DragEventHandler<HTMLDivElement> => {
-      return (event) => {
-        setType(nodeType);
-        event.dataTransfer.setData('text/plain', nodeType);
-        event.dataTransfer.effectAllowed = 'move';
-      };
-    };
-    
     function isValidConnection(edge: Edge | Connection) : any {
       const sourceNode = nodes.find(n => n.id === edge.source);
       const targetNode = nodes.find(n => n.id === edge.target);
@@ -297,18 +223,15 @@ const Canvas : React.FC = () => {
           fa
         </div>
         <div className='flex flex-row h-19/20'>
-          <div className='w-1/4 bg-white border-r border-gray-200'>
-            <SideBar dragFunction={onDragStart} />
-          </div>
-          <div className="w-4/5 react-flow" ref={reactFlowWrapper}>
+          <div className="w-full react-flow" ref={reactFlowWrapper}>
             <ReactFlow
               nodes={nodes}
               edges={edges}
+              
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
               onSelectionChange={onSelectionChange}
-              onDrop={onDrop}
               onDragOver={onDragOver}
               onReconnect={onReconnect}
               onReconnectStart={onReconnectStart}
