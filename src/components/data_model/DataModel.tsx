@@ -14,8 +14,7 @@ import React from "react";
 import FileUpload from "../fileUpload";
 import { Autocomplete, TextField } from "@mui/material";
 import Papa from "papaparse";
-import Toggle from "../Toggle";
-import { on } from "events";
+import DatasetViewer from "./VisualModel";
 
 const data = [
     { label: 'The Shawshank Redemption', year: 1994 },
@@ -59,10 +58,17 @@ interface SourceContentProps {
 
 const SourceContent : React.FC<SourceContentProps> = ({selection}) => {
     
+    const [hasHeaders, setHasHeaders] = React.useState<boolean>(true);
+    const [genType, setGenType] = React.useState<string>('classify');
+    const [genFeatures, setGenFeatures] = React.useState<number>(2);
+    const [redFeatures, setRedFeatures] = React.useState<number>(0);
+    const [numSamples, setNumSamples] = React.useState<number>(1000);
+    const [randSeed, setRandSeed] = React.useState<number>(42);
+    const [targetColumn, setTargetColumn] = React.useState<string>('');
+
     switch (selection) {
         case 'import':
             
-            const [hasHeaders, setHasHeaders] = React.useState<boolean>(true);
     
             const handleHeaderChange = (event) => {
                 setHasHeaders(!hasHeaders);
@@ -90,10 +96,6 @@ const SourceContent : React.FC<SourceContentProps> = ({selection}) => {
             );
         case 'generate':
             
-            const [genType, setGenType] = React.useState<string>('classify');
-            const [genFeatures, setGenFeatures] = React.useState<number>(2);
-            const [redFeatures, setRedFeatures] = React.useState<number>(0);
-            const [numSamples, setNumSamples] = React.useState<number>(1000);
 
             const handleGeneratorTypeChange = (event) => {
                 setGenType(event.target.value);
@@ -114,6 +116,9 @@ const SourceContent : React.FC<SourceContentProps> = ({selection}) => {
             }
             const onClickGenerate = () => {
                 console.log('Generating data...');
+            }
+            const onChangeSeed = (event) => {
+                setRandSeed(clamp(event.target.value, 0, 100000000));
             }
             return (
                 <>
@@ -152,24 +157,36 @@ const SourceContent : React.FC<SourceContentProps> = ({selection}) => {
                             max={50}
                             step={1}
                             />
-                            {genFeatures > 1 && (<><Typography id="red-features-label">Number of Redundant Features</Typography>
-                            <Slider 
-                            aria-labelledby="red-features-label"
-                            value={redFeatures} 
-                            defaultValue={0} 
-                            aria-label="Default" 
-                            valueLabelDisplay="auto" 
-                            onChange={handleRedFeaturesChange}
-                            min={0}
-                            max={genFeatures - 1}
-                            step={1}
-                            /></>)}
+                            {genFeatures > 1 && (
+                            <div>
+                                <Typography id="red-features-label">Number of Redundant Features</Typography>
+                                <Slider 
+                                aria-labelledby="red-features-label"
+                                value={redFeatures} 
+                                defaultValue={0} 
+                                aria-label="Default" 
+                                valueLabelDisplay="auto" 
+                                onChange={handleRedFeaturesChange}
+                                min={0}
+                                max={genFeatures - 1}
+                                step={1}
+                                />
+                            </div>
+                            )}
                             <TextField
                             id="outlined-number"
                             label="Number of Samples"
                             type="number"
                             value={numSamples}
                             onChange={onChangeSamples}
+                            size="small"
+                            />
+                            <TextField
+                            id="outlined-number"
+                            label="Random Seed"
+                            type="number"
+                            value={randSeed}
+                            onChange={onChangeSeed}
                             style={{marginBottom: '30px'}}
                             size="small"
                             />
@@ -184,6 +201,35 @@ const SourceContent : React.FC<SourceContentProps> = ({selection}) => {
         default:
             return null;
     }
+}
+
+const VisualModel : React.FC = () => {
+    const [source, setSource] = React.useState<string>('table');
+    const handleChange = (
+        event: React.MouseEvent<HTMLElement>,
+        newSource: string,
+    ) => {
+        setSource(newSource);
+    };
+
+    return (
+        <div className="flex flex-col w-full h-full overflow-y-auto bg-white space-y-2">
+            {/* <ToggleButtonGroup
+                color="primary"
+                value={source}
+                exclusive
+                onChange={handleChange}
+                aria-label="Platform"
+                size="small"
+                fullWidth
+                >
+                    <ToggleButton fullWidth value={"table"} aria-label="import">Table</ToggleButton>
+                    <ToggleButton fullWidth value={"dist"} aria-label="generate">Distribution</ToggleButton>
+                    <ToggleButton fullWidth value={"corr"} aria-label="generate">Correlation</ToggleButton>
+                </ToggleButtonGroup> */}
+            <DatasetViewer></DatasetViewer>
+        </div>
+    );
 }
 
 export const DataModel: React.FC = () => {
@@ -204,9 +250,11 @@ export const DataModel: React.FC = () => {
                 onChange={handleChange}
                 aria-label="Platform"
                 size="small"
+                fullWidth
+                style={{paddingLeft: '24px', paddingRight: '24px', marginBottom: '24px'}}
                 >
-                    <ToggleButton value={"import"} aria-label="import">Import</ToggleButton>
-                    <ToggleButton value={"generate"} aria-label="generate">Generate</ToggleButton>
+                    <ToggleButton fullWidth value={"import"} aria-label="import">Import</ToggleButton>
+                    <ToggleButton fullWidth value={"generate"} aria-label="generate">Generate</ToggleButton>
                 </ToggleButtonGroup>
 
                 <div className="flex flex-col w-full h-full overflow-y-auto bg-white p-4">
@@ -214,7 +262,7 @@ export const DataModel: React.FC = () => {
                 </div>
             </div>
             <div className="flex flex-col w-7/10 h-full overflow-y-auto bg-white p-4 border-l">
-                <h1 className="text-2xl font-bold mb-4">Viualizations</h1>
+                <VisualModel/>
                 
             </div>
         </div>

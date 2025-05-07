@@ -1,3 +1,5 @@
+import json
+
 from DGen import generate_classification
 from fastapi import FastAPI, HTTPException, WebSocket
 from fastapi.responses import JSONResponse
@@ -28,8 +30,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+class GenerateConfig(BaseModel):
+    n_samples: int
+    n_features: int
+    random_state: int = 42  # optional default
+
 @app.post("/generate")
-async def generate(config : Dict):
+async def generate(config: Dict):
     X, y = generate_classification(config)
     feature_names = [f"feature_{i}" for i in range(1, config['n_features'] + 1)]
     df = pd.DataFrame(X, columns=feature_names)
@@ -39,11 +46,14 @@ async def generate(config : Dict):
     rows = df.reset_index().rename(columns={"index": "id"}).to_dict(orient="records")
     columns = [{"field": col, "headerName": col.replace("_", " ").title(), "flex": 1} for col in df.columns]
 
-    # --- For Recharts scatter ---
-    reducer = umap.UMAP(n_components=2, random_state=42)
-    embedding = reducer.fit_transform(X)
-    scatter_data = [{"x": float(x), "y": float(y), "label": int(label)} for (x, y), label in zip(embedding, y)]
 
+    if config['n_features'] > 2:
+        reducer = umap.UMAP(n_components=2, random_state=42)
+        embedding = reducer.fit_transform(X)
+        scatter_data = [{"x": float(x), "y": float(y), "label": int(label)} for (x, y), label in zip(embedding, y)]
+    else:
+        scatter_data = [{"x": float(X[i][0]), "y": float(X[i][1]), "label": int(y[i])} for i in range(len(X))]
+        
     return JSONResponse(content={
         "table": {
             "columns": columns,
@@ -57,6 +67,6 @@ if __name__ == "__main__":
     import asyncio
     import uvicorn
 
-    config = uvicorn.Config("app:app", host="127.0.0.1", port=8000, reload=True)
+    config = uvicorn.Config("main:app", host="127.0.0.1", port=8000, reload=True)
     server = uvicorn.Server(config)
     asyncio.run(server.serve())

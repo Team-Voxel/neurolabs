@@ -17,5 +17,5 @@ export const initialNodes = [
       position: { x: 150, y: 100 },
       data: { label: 'OUT', layer_id: '-2', layer_type: 'OUT' },
       deletable: false,
-    }
+    },
 ] as AppNode[];

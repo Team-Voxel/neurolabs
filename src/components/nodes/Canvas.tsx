@@ -26,6 +26,7 @@ import { ContextMenu } from '../context_menu';
 import { red } from '@mui/material/colors';
 import { MenuItem } from '../context_menu/types';
 import { FinalConnectionState } from '@xyflow/react';
+import Toolbar from '../Toolbar';
 
 const edgeTypes = {
   'custom' : CustomSmoothStepEdge,
@@ -219,10 +220,17 @@ const Canvas : React.FC = () => {
       <>
       <div className='flex flex-col w-full h-full'>
 
-        <div className='node-box h-1/20'>
-          fa
-        </div>
-        <div className='flex flex-row h-19/20'>
+        <Toolbar 
+          onNew={() => console.log('New clicked')}
+          onOpen={() => console.log('Open clicked')}
+          onSettings={() => console.log(nodes, edges)}
+          onHelp={() => console.log('Help clicked')}
+          onInfo={() => console.log('Info clicked')}
+          onTrain={() => console.log('Train clicked')}
+          onInspect={() => console.log('Inspect clicked')}
+          onEvaluate={() => console.log('Evaluate clicked')}
+        />
+        <div className='flex flex-row h-full'>
           <div className="w-full react-flow" ref={reactFlowWrapper}>
             <ReactFlow
               nodes={nodes}

@@ -42,6 +42,11 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    proxy: {
+      '/generate': 'http://localhost:8000'
+    }
+  },
   plugins: [
     react(),
     electron({
