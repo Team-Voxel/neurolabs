@@ -13,7 +13,7 @@ const Button: React.FC<ButtonProps> = ({ icon, label, onClick }) => {
     <div
       role="button"
       tabIndex={0}
-      className="flex flex-col text-black size-50 bg-white shadow rounded-xl items-center justify-center text-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 hover:shadow-lg"
+      className="flex flex-col text-black size-30 bg-white shadow rounded-xl items-center justify-center text-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 hover:shadow-lg"
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -21,7 +21,7 @@ const Button: React.FC<ButtonProps> = ({ icon, label, onClick }) => {
         }
       }}
     >
-      <img className="size-20 pb-1" src={icon} alt={`${label} icon`} />
+      <img className="size-10 pb-2" src={icon} alt={`${label} icon`} />
       <span>{label}</span>
     </div>
   );
