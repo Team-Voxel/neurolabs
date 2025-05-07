@@ -2,6 +2,7 @@ import { app, BrowserWindow } from 'electron'
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import { exit } from 'node:process'
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -28,14 +29,18 @@ let win: BrowserWindow | null
 
 function createWindow() {
   win = new BrowserWindow({
+    autoHideMenuBar: true,
     icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
-    
+    width: 1280,
+    height: 720,
+    minWidth: 1280,
+    minHeight: 720,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
     },
   })
 
-
+  win.webContents.openDevTools({ mode: 'detach' })
 
   // Test active push message to Renderer-process.
   win.webContents.on('did-finish-load', () => {
@@ -51,7 +56,8 @@ function createWindow() {
   const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  openFileDialog: () => ipcRenderer.invoke('dialog:openFile')
+  openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
+  exit: () => exit(0),
 });
 }
 

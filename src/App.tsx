@@ -1,4 +1,13 @@
 
+import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { MainMenu } from './components/MainMenu';
+import { ProjectSelection } from './components/ProjectSelection';
+import ProjectSetupWizard from './newProjectMenu';
+import WorkflowEditor from './workflowEditor';
+import SortablePipeline from './components/SortablePipeline';
+import Main from 'electron/main';
+import { Playground } from './components/Playground';
 
 // Extend the Window interface to include electronAPI
 declare global {
@@ -9,36 +18,23 @@ declare global {
   }
 }
 
-import plusIcon from './assets/plus.svg'
-import open from './assets/folder-input.svg'
-import './App.css'
-import Button from './components/createNewButton'
 
 function App() {
-  // const [count, setCount] = useState(0)
 
-  const handleCreateProject = () => {
-    window.electronAPI.openFileDialog()
-  };
-  const handleOpenProject = () => {
-    console.log("Create New Project clicked");
-  };
-
-  return (
-    <>
-      <div className='flex flex-col gap-20'>
-
-        <div>
-          <div className='text-black text-6xl'>Select a Project</div>
-        </div>
-        <div className='flex align-middle justify-center gap-24 '>
-          <Button icon={plusIcon} label="Create New Project" onClick={handleCreateProject} />
-          <Button icon={open} label="Open Recent Project" onClick={handleOpenProject} />
-        </div>
-         
-      </div>
-    </>
-  )
+return (
+  <HashRouter>
+    <Routes>
+      <Route path="/" element={<MainMenu />} />
+      <Route path="/project-selection" element={<ProjectSelection />} />
+      <Route path="/create-new-project" element={<ProjectSetupWizard />} />
+      <Route path="/workflow" element={<WorkflowEditor />} />
+      <Route path="/nodes" element={<SortablePipeline />} />
+      <Route path="/playground" element={<Playground/>} />
+      <Route path="/explore" element={<div>Explore</div>} />
+      <Route path="/settings" element={<div>Settings</div>} />
+    </Routes>
+  </HashRouter>
+);
 }
 
 export default App
