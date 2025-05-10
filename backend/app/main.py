@@ -53,7 +53,7 @@ async def generate(config: Dict):
         scatter_data = [{"x": float(x), "y": float(y), "label": int(label)} for (x, y), label in zip(embedding, y)]
     else:
         scatter_data = [{"x": float(X[i][0]), "y": float(X[i][1]), "label": int(y[i])} for i in range(len(X))]
-        
+
     return JSONResponse(content={
         "table": {
             "columns": columns,
