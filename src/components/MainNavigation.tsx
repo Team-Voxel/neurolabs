@@ -21,12 +21,12 @@ const NavButton: React.FC<NavButtonProps> = ({
   isHome = false,
 }) => {
   return (
-    <button
+    <div
       onClick={onClick}
       className={`
         relative group w-full flex items-center justify-center
         ${isHome ? 'h-[60px]' : 'h-[48px]'}
-        ${isSelected ? 'bg-gray-200' : 'hover:bg-gray-300'}
+        ${isSelected ? 'bg-gray-400' : 'hover:bg-gray-300'}
         transition-colors duration-200
       `}
       aria-label={tooltip}
@@ -40,7 +40,7 @@ const NavButton: React.FC<NavButtonProps> = ({
                     transition-all duration-200 whitespace-nowrap z-50">
         {tooltip}
       </div>
-    </button>
+    </div>
   );
 };
 
