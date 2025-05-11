@@ -4,7 +4,7 @@ import React from 'react';
 import MainMenu from './components/main_menu/MainMenu';
 import { ProjectSelection } from './components/ProjectSelection';
 import ProjectSetupWizard from './newProjectMenu';
-import WorkflowEditor from './workflowEditor';
+import { WorkflowSelection } from './components/WorkflowSelection';
 import SortablePipeline from './components/SortablePipeline';
 import Main from 'electron/main';
 import { Playground } from './components/Playground';
@@ -28,7 +28,7 @@ return (
       <Route path="/" element={<MainMenu />} />
       <Route path="/project-selection" element={<ProjectSelection />} />
       <Route path="/create-new-project" element={<ProjectSetupWizard />} />
-      <Route path="/workflow" element={<WorkflowEditor />} />
+      <Route path="/workflow-selection" element={<WorkflowSelection/>} />
       <Route path="/nodes" element={<SortablePipeline />} />
       <Route path="/sandbox" element={<MainNavigation/>} />
       <Route path="/explore" element={<div>Explore</div>} />

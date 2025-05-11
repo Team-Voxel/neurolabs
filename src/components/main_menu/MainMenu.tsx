@@ -7,7 +7,7 @@ const MainMenu: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const navigate = useNavigate();
   const menuOptions = [
-    { label: 'Sandbox', onClick: () => navigate('/sandbox') },
+    { label: 'Sandbox', onClick: () => navigate('/workflow-selection') },
     { label: 'Explore', onClick: () => console.log('Explore clicked') },
     { label: 'Settings', onClick: () => console.log('Settings clicked') },
     { label: 'Exit', onClick: () => console.log('Exit clicked') },
