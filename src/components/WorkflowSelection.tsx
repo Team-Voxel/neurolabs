@@ -19,7 +19,7 @@ export const WorkflowSelection : React.FC = () => {
       ]);
     const handleItemClick = (index: number) => {
         console.log(`Clicked on: ${items[index].name}`);
-        // You would typically navigate or open the item here
+        navigate("/sandbox");
     };
 
     const handleItemDelete = (index: number) => {

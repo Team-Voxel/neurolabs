@@ -4,6 +4,7 @@ import { Home, Database, Brain, Cpu } from 'lucide-react';
 import Canvas from "./nodes/Canvas";
 import { DataModel } from './data_model/DataModel';
 import { ReactFlowProvider } from "@xyflow/react";
+import { NNModel } from './modelling/NNModel';
 
 interface NavButtonProps {
   icon: React.ReactNode;
@@ -68,7 +69,7 @@ const MainNavigation: React.FC = () => {
             </>
         );
       case 2:
-        return <div className="p-6"><h1 className="text-2xl font-bold">Inference Settings</h1></div>;
+        return <NNModel/>;
       default:
         return <div className="p-6"><h1 className="text-2xl font-bold">Select a tab</h1></div>;
     }
