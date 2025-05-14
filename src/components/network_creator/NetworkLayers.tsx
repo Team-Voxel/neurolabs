@@ -1,9 +1,13 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useDrop, useDrag, DropTargetMonitor } from 'react-dnd';
-import { NetworkLayersProps, DragItem } from './types';
+import { NetworkLayersProps, DragItem, ActiveNetworkElement } from './types';
 import NetworkItem from './NetworkItem';
 import { ItemTypes } from './ItemTypes';
 import { Layers } from 'lucide-react';
+
+type IdCountMap = {
+  [key: string]: Set<number>;
+};
 
 const NetworkLayers: React.FC<NetworkLayersProps> = ({ 
   layers, 
@@ -12,9 +16,55 @@ const NetworkLayers: React.FC<NetworkLayersProps> = ({
   onElementSelect,
   selectedElementId 
 }) => {
+
+  const [idSet, setIdSet] = useState<IdCountMap>(() => {
+    const initialIdSet: IdCountMap = {};
+    
+    allElements.forEach((element) => {
+      initialIdSet[element.id] = new Set<number>([0,1,2,3,4,5,6,7,8,9]);
+    });
+    
+    return initialIdSet;
+  });
+
+
+  const getID = (id: string): number | undefined => {
+    const set = idSet[id];
+    if (!set || set.size === 0) {
+      throw new Error(`No available IDs for element type: ${id}`);
+    }
+    
+    // Get the first number from the set
+    const iterator = set.values();
+    const number = iterator.next().value;
+    
+    // Remove the number from the set
+    setIdSet((prevState) => {
+      const newSet = new Set(prevState[id]);
+      newSet.delete(number? number : 0);
+      return {
+        ...prevState,
+        [id]: newSet
+      };
+    });
+    
+    return number;
+  };
+
+  const returnID = (id: string, number: number): void => {
+    setIdSet((prevState) => {
+      const newSet = new Set(prevState[id]);
+      newSet.add(number);
+      return {
+        ...prevState,
+        [id]: newSet
+      };
+    });
+  };
+
   // Get elements that are in layers
-  const layerElements = layers.map(id => 
-    allElements.find(element => element.id === id)
+  const layerElements = layers.map(activeNetworkEl => 
+    allElements.find(element => element.id === activeNetworkEl.type)
   ).filter(Boolean);
 
   // Handle element drop
@@ -28,7 +78,11 @@ const NetworkLayers: React.FC<NetworkLayersProps> = ({
 
       // If item is from toolbar, add it to layers
       if (item.type === ItemTypes.NETWORK_ITEM) {
-        const newLayers = [...layers, item.id];
+        const newItem : ActiveNetworkElement = {
+          type: item.id,
+          id: getID(item.id)!,
+        }
+        const newLayers = [...layers, newItem];
         onLayersChange(newLayers);
         /* if (!layers.includes(item.id)) {
         } */
@@ -53,6 +107,12 @@ const NetworkLayers: React.FC<NetworkLayersProps> = ({
   const layerRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const handleRemoveLayer = (index: number) => {
+    layers.forEach((layer, layer_index) => {
+      if (layer_index === index) {
+        returnID(layer.type, layer.id);
+        console.log(idSet);
+      }
+    });
     const newLayers = layers.filter((layerId, layer_index) => layer_index !== index);
     onLayersChange(newLayers);
   };
@@ -85,7 +145,7 @@ const NetworkLayers: React.FC<NetworkLayersProps> = ({
         <div className="flex flex-row space-x-2">
           {layerElements.map((element, index) => element && (
             <LayerItem
-              key={element.id}
+              key={index}
               id={element.id}
               index={index}
               element={element}

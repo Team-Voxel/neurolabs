@@ -4,6 +4,11 @@ export interface DraggableItem {
     imageUrl: string;
     tooltipContent: string;
   }
+
+  export interface ActiveNetworkElement {
+    id: number;
+    type: string;
+  }
   
   export type ToolbarPosition = 'top' | 'bottom';
   
@@ -11,7 +16,7 @@ export interface DraggableItem {
     toolbarPosition: ToolbarPosition;
     elements: DraggableItem[];
     onElementSelect: (elementId: number) => void;
-    onLayersChange: (layers: string[]) => void;
+    onLayersChange: (layers: ActiveNetworkElement[]) => void;
   }
   
   export interface NetworkToolbarProps {
@@ -21,9 +26,9 @@ export interface DraggableItem {
   }
   
   export interface NetworkLayersProps {
-    layers: string[];
+    layers: ActiveNetworkElement[];
     allElements: DraggableItem[];
-    onLayersChange: (layers: string[]) => void;
+    onLayersChange: (layers: ActiveNetworkElement[]) => void;
     onElementSelect: (elementId: number) => void;
     selectedElementId: number | null;
   }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { NetworkCreatorProps } from './types';
+import { NetworkCreatorProps, ActiveNetworkElement } from './types';
 import NetworkToolbar from './NetworkToolbar';
 import NetworkLayers from './NetworkLayers.tsx';
 import NetworkErrorBoundary from './NetworkErrorBoundary';
@@ -12,7 +12,7 @@ const NetworkCreator: React.FC<NetworkCreatorProps> = ({
   onElementSelect, 
   onLayersChange 
 }) => {
-  const [layers, setLayers] = useState<string[]>([]);
+  const [layers, setLayers] = useState<ActiveNetworkElement[]>([]);
   const [selectedElementId, setSelectedElementId] = useState<number | null>(null);
 
   const handleElementSelect = (elementId: number) => {
@@ -20,7 +20,7 @@ const NetworkCreator: React.FC<NetworkCreatorProps> = ({
     onElementSelect(elementId);
   };
 
-  const handleLayersChange = (newLayers: string[]) => {
+  const handleLayersChange = (newLayers: ActiveNetworkElement[]) => {
     setLayers(newLayers);
     onLayersChange(newLayers);
   };

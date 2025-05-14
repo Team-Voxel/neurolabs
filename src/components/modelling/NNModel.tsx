@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NetworkCreator from '../network_creator/NetworkCreator';
-import { DraggableItem } from '../network_creator/types';
+import { DraggableItem, ActiveNetworkElement} from '../network_creator/types';
 import { Network, Server, Database, Globe, Cpu, Laptop, HardDrive, Wifi } from 'lucide-react';
 
 // Sample network elements
@@ -47,31 +47,31 @@ const networkElements: DraggableItem[] = [
 
 export const NNModel: React.FC = () => {
 
-  const [toolbarPosition, setToolbarPosition] = useState<'top' | 'bottom'>('top');
   const [selectedElement, setSelectedElement] = useState<number | null>(null);
-  const [layers, setLayers] = useState<string[]>([]);
+  const [layers, setLayers] = useState<ActiveNetworkElement[]>([]);
 
   const handleElementSelect = (elementId: number) => {
     setSelectedElement(elementId);
     console.log('Selected element:', elementId);
   };
 
-  const handleLayersChange = (newLayers: string[]) => {
+  const handleLayersChange = (newLayers: ActiveNetworkElement[]) => {
     setLayers(newLayers);
     console.log('Layers changed:', newLayers);
   };
 
-  const toggleToolbarPosition = () => {
-    setToolbarPosition(prev => prev === 'top' ? 'bottom' : 'top');
-  };
-
   return (
+    <div className='flex flex-row w-full h-full'>
     <NetworkCreator
-              toolbarPosition={toolbarPosition}
+              toolbarPosition='bottom'
               elements={networkElements}
               onElementSelect={handleElementSelect}
               onLayersChange={handleLayersChange}
+              
             />
-   
+      <div className='flex flex-col w-1/4 h-full p-4'>
+        fa
+      </div>
+   </div>
   );
 }
