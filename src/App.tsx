@@ -27,7 +27,7 @@ return (
     <Routes>
       <Route path="/" element={<MainMenu />} />
       <Route path="/project-selection" element={<ProjectSelection />} />
-      <Route path="/create-new-project" element={<ProjectSetupWizard />} />
+      <Route path="/new-workflow" element={<ProjectSetupWizard />} />
       <Route path="/workflow-selection" element={<WorkflowSelection/>} />
       <Route path="/nodes" element={<SortablePipeline />} />
       <Route path="/sandbox" element={<MainNavigation/>} />

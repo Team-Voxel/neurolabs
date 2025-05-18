@@ -1,4 +1,5 @@
 import { ipcRenderer, contextBridge } from 'electron'
+import { Workflow, UserModel } from '../src/AppState'
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -19,6 +20,30 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     return ipcRenderer.invoke(channel, ...omit)
   },
 
-  // You can expose other APTs you need here.
-  // ...
 })
+
+
+contextBridge.exposeInMainWorld('fsAPI', {
+  readFile: (path: string) => ipcRenderer.invoke('read-file', path),
+  writeFile: (path: string, content: string) => ipcRenderer.invoke('write-file', path, content),
+  createDir: (path: string) => ipcRenderer.invoke('create-dir', path),
+  copyFile: (src: string, dest: string) => ipcRenderer.invoke('copy-file', src, dest),
+  deleteFile: (path: string) => ipcRenderer.invoke('delete-file', path),
+  joinPath: (...paths: string[]) => ipcRenderer.invoke('join-path', ...paths),
+  resolvePath: (path: string) => ipcRenderer.invoke('resolve-path', path),
+  getAppRoot: () => ipcRenderer.invoke('get-app-root'),
+  getPublicPath: () => ipcRenderer.invoke('get-public-path'),
+  getAppPath: () => ipcRenderer.invoke('get-app-path'),
+  getExtension: (file: string) => ipcRenderer.invoke('get-extension', file),
+  getFileName: (file: string) => ipcRenderer.invoke('get-file-name', file),
+  openFile: () => ipcRenderer.invoke('dialog:openFile'),
+});
+
+
+contextBridge.exposeInMainWorld('wfStore', {
+  loadAll: (): Promise<Workflow[]>       => ipcRenderer.invoke('wf-load-all'),
+  saveOne: (wf: Workflow): Promise<Workflow> => ipcRenderer.invoke('wf-save-one', wf),
+  deleteOne: (id: string): Promise<Workflow[]> => ipcRenderer.invoke('wf-delete-one', id),
+  loadModels: (name: string): Promise<UserModel[]> => ipcRenderer.invoke('wf-get-models', name),
+  getWfDir: (name: string): Promise<string> => ipcRenderer.invoke('wf-get-workflow-dir', name),
+});

@@ -28,63 +28,48 @@ const DatasetViewer: React.FC = () => {
     loadData();
   }, []);
 
-  /* return (
-    <div style={{ display: "flex", gap: "2rem" }}>
-      <div style={{ flex: 1, height: 500 }}>
-        <DataGrid rows={rows} columns={columns} />
-      </div>
-      <div style={{ flex: 1 }}>
-        <ScatterChart width={500} height={500}>
-          <XAxis dataKey="x" name="UMAP-1" />
-          <YAxis dataKey="y" name="UMAP-2" />
-          <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-          <Scatter name="UMAP Projection" data={scatterData} fill="#8884d8" />
-        </ScatterChart>
-      </div>
-    </div>
-    
-  ); */
-
   const [source, setSource] = React.useState<string>('table');
-    const handleChange = (
-        event: React.MouseEvent<HTMLElement>,
-        newSource: string,
-    ) => {
-        setSource(newSource);
-    };
+  const handleChange = (
+      event: React.MouseEvent<HTMLElement>,
+      newSource: string,
+  ) => {
+      setSource(newSource);
+  };
 
-    return (
-        <div className="flex flex-col w-full h-full overflow-y-auto bg-white space-y-2">
-            <ToggleButtonGroup
-                color="primary"
-                value={source}
-                exclusive
-                onChange={handleChange}
-                aria-label="Platform"
-                size="small"
-                fullWidth
-            >
-                <ToggleButton fullWidth value={"table"} aria-label="import">Table</ToggleButton>
-                <ToggleButton fullWidth value={"dist"} aria-label="generate">Distribution</ToggleButton>
-                <ToggleButton fullWidth value={"corr"} aria-label="generate">Correlation</ToggleButton>
-            </ToggleButtonGroup>
-            {source === "table" && (
-                <div style={{ flex: 1, height: 500 }}>
-                    <DataGrid rows={rows} columns={columns} />
-                </div>
-            )}
-            {source === "dist" && (
-                <ResponsiveContainer width="95%" height="95%">
-                <ScatterChart>
-                    <XAxis dataKey="x" name="UMAP-1" />
-                    <YAxis dataKey="y" name="UMAP-2" />
-                    <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                    <Scatter name="UMAP Projection" data={scatterData} fill="#8884d8" />
-                </ScatterChart>
-                </ResponsiveContainer>
-            )}
-        </div>
-    );
+  return (
+      <div className="flex flex-col w-full h-full overflow-y-auto bg-white space-y-2">
+          <ToggleButtonGroup
+              color="primary"
+              value={source}
+              exclusive
+              onChange={handleChange}
+              aria-label="Platform"
+              size="small"
+              fullWidth
+          >
+              <ToggleButton fullWidth value={"table"} aria-label="import">Table</ToggleButton>
+              <ToggleButton fullWidth value={"stats"} aria-label="import">Statistics</ToggleButton>
+              <ToggleButton fullWidth value={"visual"} aria-label="import">Visualize</ToggleButton>
+              <ToggleButton fullWidth value={"dist"} aria-label="generate">Distribution</ToggleButton>
+              <ToggleButton fullWidth value={"corr"} aria-label="generate">Correlation</ToggleButton>
+          </ToggleButtonGroup>
+          {source === "table" && (
+              <div style={{ flex: 1, height: 500 }}>
+                  <DataGrid rows={rows} columns={columns} />
+              </div>
+          )}
+          {source === "dist" && (
+              <ResponsiveContainer width="95%" height="95%">
+              <ScatterChart>
+                  <XAxis dataKey="x" name="UMAP-1" />
+                  <YAxis dataKey="y" name="UMAP-2" />
+                  <Tooltip cursor={{ strokeDasharray: "3 3" }} />
+                  <Scatter name="UMAP Projection" data={scatterData} fill="#8884d8" />
+              </ScatterChart>
+              </ResponsiveContainer>
+          )}
+      </div>
+  );
 };
 
 export default DatasetViewer;
