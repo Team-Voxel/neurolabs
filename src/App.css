@@ -1,0 +1,194 @@
+#root {
+  /* max-width: 1280px; */
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+/*new project window stylings*/
+.new-project-window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  font-family: Arial, sans-serif;
+  padding: 1rem;
+  box-sizing: border-box;
+  font: 1rem poppins;
+  
+}
+
+header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 150vh;
+  
+  
+}
+
+/* Flex container for left/right layout */
+.layout-container {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  
+  
+}
+
+/* Left side: Controls area */
+.controls {
+  flex: 1; /* Adjust width as needed */
+  align-items:center;
+  border-radius: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  border: 1px solid #ffffff;
+  height:80vh;
+  background: linear-gradient(135deg, #d551a2, #070059 )
+}
+
+/* Right side: Dataset display area */
+.dataset-display {
+  border-radius: 1.5rem;
+  flex: 2; /* Takes more horizontal space */
+  border: 0.05rem solid #56179e;
+  padding: 3rem;
+  height: 80vh;
+  color: #000000;
+  background-color: #f0cbf7;
+}
+
+.dataset-display table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dataset-display th,
+.dataset-display td {
+  border: 1px solid #000000;
+  padding: 0.5rem;
+  text-align: left;
+}
+.new-project-window .controls button {
+  padding: 0.5rem 1rem;
+  font-size: 0.7rem;
+  cursor: pointer;
+  background-color: #c555e8;
+  color: #ffffff;                     
+  transition: ease-in-out 0.2s;  
+  width: 50%;    
+  align-self: center;
+  border-style: solid;
+  border-width: 0.05rem;
+}
+
+.new-project-window .controls button:hover {
+  background-color: #52006d; 
+  color: #fff;
+  border-style: solid;
+  border-width: 0.05rem;
+  border-color: #4c0072;
+}
+
+/*New Project Menu Window*/
+.new-project-menu {
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  border: 1px solid #ccc;
+  border-radius: 2rem;
+  background: linear-gradient(135deg, #d551a2, #070059 );
+  font: 1rem poppins;
+}
+
+.new-project-menu h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.form-section {
+  margin-bottom: 1rem;
+}
+
+.form-section label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
+}
+
+.form-section input[type="text"],
+.form-section input[type="file"] {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #000000;
+}
+
+.csv-name {
+  font-style: italic;
+  color: #ffffff;
+}
+
+.form-section p {
+  margin-bottom: 0.5rem;
+}
+
+.form-section input[type="radio"] {
+  margin-right: 0.5rem;
+}
+
+.new-project-menu button {
+  display: block;
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  background-color: #c555e8;
+  color: rgb(255, 255, 255);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.new-project-menu button:hover {
+  background-color: #971dc8;
+}
+
+
+/* Titlebar and Menu bar styles */

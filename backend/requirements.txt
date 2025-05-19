@@ -1,0 +1,14 @@
+numpy~=2.2.4
+scipy~=1.15.2
+pandas~=2.2.3
+scikit-learn==1.6.1
+statsmodels~=0.14.4
+fastapi~=0.115.11
+uvicorn~=0.34.0
+numba
+umap-learn
+torch~=2.7.0
+torchvision 
+torchaudio
+polars~=1.26.0
+pydantic~=2.11.3
