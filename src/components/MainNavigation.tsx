@@ -5,6 +5,7 @@ import Canvas from "./nodes/Canvas";
 import { DataModel } from './data_model/DataModel';
 import { ReactFlowProvider } from "@xyflow/react";
 import { NNModel } from './modelling/NNModel';
+import { ModelContext } from './modelling/ModelContext';
 
 interface NavButtonProps {
   icon: React.ReactNode;
@@ -62,11 +63,7 @@ const MainNavigation: React.FC = () => {
         );
       case 1:
         return (
-            <>
-                <ReactFlowProvider>
-                <Canvas />
-                </ReactFlowProvider>
-            </>
+            <ModelContext/>
         );
       case 2:
         return <NNModel/>;

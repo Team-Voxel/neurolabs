@@ -1,9 +1,35 @@
 import {create} from 'zustand';
 
+export enum ModelType {
+  LINEAR_REG = 0,
+  NONL_REG,
+  SV_REG,
+  NN_REG,
+  SGD_REG,
+  DT_REG,
+  RF_REG,
+  GB_REG,
+  LOGS_CLASS,
+  SV_CLASS,
+  NN_CLASS,
+  SGD_CLASS,
+  DT_CLASS,
+  RF_CLASS,
+  GB_CLASS,
+  DNN,
+}
+
+export enum ModelState {
+  TRAINED = 'trained',
+  UNTRAINED = 'untrained',
+  TRAINING = 'training',
+  ERROR = 'error',
+}
+
 export interface UserModel {
   name: string;
-  state: string; // trained, untrained, etc.
-  type: string; // linear, random forest, dnn, etc.
+  state: ModelState;
+  type: ModelType;
   params: Record<string, any>; // hyperparameters
   architecture: string; // model architecture
   date: string; // date of creation
@@ -16,6 +42,7 @@ export interface Workflow {
   wfDir: string; // path to the workflow directory
   datafile: string; // path to the data file
   dataType: string; // type of data (e.g., CSV, JSON)
+  currentModel?: UserModel; // currently selected model
 }
 
 export interface AppState {

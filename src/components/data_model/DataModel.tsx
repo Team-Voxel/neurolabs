@@ -242,29 +242,7 @@ export const DataModel: React.FC = () => {
     };
     return (
         <div className="flex flex-row items-center h-full w-full bg-gray-100">
-            <div className="flex flex-col w-3/10 h-full bg-white pt-4 items-center">
-                <ToggleButtonGroup
-                color="primary"
-                value={source}
-                exclusive
-                onChange={handleChange}
-                aria-label="Platform"
-                size="small"
-                fullWidth
-                style={{paddingLeft: '24px', paddingRight: '24px', marginBottom: '24px'}}
-                >
-                    <ToggleButton fullWidth value={"import"} aria-label="import">Import</ToggleButton>
-                    <ToggleButton fullWidth value={"generate"} aria-label="generate">Generate</ToggleButton>
-                </ToggleButtonGroup>
-
-                <div className="flex flex-col w-full h-full overflow-y-auto bg-white p-4">
-                    <SourceContent selection={source}/>
-                </div>
-            </div>
-            <div className="flex flex-col w-7/10 h-full overflow-y-auto bg-white p-4 border-l">
-                <VisualModel/>
-                
-            </div>
+            <VisualModel/>  
         </div>
 
     );

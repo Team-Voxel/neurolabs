@@ -70,7 +70,7 @@ export const NNModel: React.FC = () => {
               
             />
       <div className='flex flex-col w-1/4 h-full p-4'>
-        fa
+        Controls Panel
       </div>
    </div>
   );

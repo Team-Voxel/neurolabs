@@ -9,12 +9,13 @@ import FileUpload from './components/fileUpload';
 import { Workflow, useWorkflowStore } from './AppState';
 import { Select, Slider, Switch, Radio, Typography} from 'antd';
 import Settings from './components/settings/Settings';
-import { SettingControl, SelectOption } from './components/settings/types';
+import SettingControl from './components/settings/SettingsControl';
+import { SettingControl as SettingControlType, SelectOption } from './components/settings/types';
+import { ToggleButton, ToggleButtonGroup } from '@mui/material';
 
 enum SetupSteps {
   Start = 0,
   SelectFile = 1,
-  DatasetType = 3,
   Finish = 4
 }
 
@@ -133,7 +134,7 @@ const DataGeneration : React.FC = () => {
   }
   
   const regBool = !(regGenStrat === RegressionGenStrat.Friedman1 || regGenStrat === RegressionGenStrat.Friedman2 || regGenStrat === RegressionGenStrat.Friedman3);
-  const classficationSettings: SettingControl[] = [
+  const classficationSettings: SettingControlType[] = [
     {
       id: 'datasetType',
       label: 'Dataset Type',
@@ -297,10 +298,20 @@ const DataGeneration : React.FC = () => {
     },
   ];
   
+  {/* <div className='flex w-full h-full justify-center items-center '>
+    <Settings controls={classficationSettings} />
+    </div> */}
+    
   return (
-    <div className='flex flex-col w-full h-full justify-center items-center'>
-      <Settings controls={classficationSettings} />
+    <div className='flex w-full h-full justify-center items-center'>
+  <div className='flex flex-col text-gray-800 w-full h-full overflow-auto'>
+    <div>
+      {classficationSettings.map((control) => (
+        control.visible && <SettingControl key={control.id} control={control} />
+      ))}
     </div>
+  </div>
+</div>
   );
 }
 
@@ -334,12 +345,12 @@ function ProjectSetupWizard() {
     setWorkflowName(name);
     wfs.forEach((wf) => {
       if (wf.name === name) {
-        setNameError('name already exists');
+        setNameError('Name already exists');
         return;
       }
     });
     if (name.length < 3) {
-      setNameError('name too short');
+      setNameError('Name too short');
       return;
     }
     setNameError('none');
@@ -407,67 +418,69 @@ function ProjectSetupWizard() {
         </div>
       )}
       {step === SetupSteps.SelectFile && (
-        <div className='flex flex-row'>
-          <div className='w-1/2 h-full flex flex-col'>
-            <div>
-              <div className='flex items-center justify-between py-3'>
-                <div className="font-medium text-gray-800">Data Source</div>
-                <Select
-                  value={dataSource}
-                  onChange={(value) => setDataSource(value)}
-                  className="w-full settings-select"
-                  options={[{label: 'Import', value: 'file'}, {label: 'Generate', value: 'generate'}]}
-                  size="middle"
-                />
+        <div className='flex flex-row h-full'>
+        {/* Left side : Selections */}
+        <div className='w-2/5 h-full flex flex-col border p-4'>
+          <div className='flex items-center'>
+            <ToggleButtonGroup
+              color="primary"
+              value={dataSource}
+              exclusive
+              onChange={(e, src) => setDataSource(src)}
+              aria-label="Platform"
+              size="small"
+              fullWidth
+            >
+              <ToggleButton fullWidth value="file" aria-label="file">Import</ToggleButton>
+              <ToggleButton fullWidth value="generate" aria-label="generate">Generate</ToggleButton>
+            </ToggleButtonGroup>
+          </div>
+      
+          {/* Conditional sections */}
+          <div className='flex-grow mt-8 overflow-hidden'>
+            {dataSource === 'file' && (
+              <div className='flex flex-col gap-4 items-center'>
+                <Box component="form" sx={{ '& > :not(style)': { m: 1, width: '50ch' } }} noValidate autoComplete="off">
+                  <FileUpload
+                    accept=".csv"
+                    maxSize={10000000}
+                    onChange={handleFileChange}
+                    buttonText="Choose CSV File"
+                  />
+                  <div className='flex flex-row justify-items-stretch gap-4'>
+                    <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
+                    {csvFile && <Button fullWidth variant="contained" onClick={() => setStep(SetupSteps.Finish)}>Next</Button>}
+                  </div>
+                </Box>
               </div>
-            </div>
-          </div>
-          <div className='w-1/2 h-full flex flex-col'>
-          </div>
-          <h1 className="text-xl font-semibold mb-2">Select your dataset</h1>
-          <Radio.Group value={dataSource} onChange={(e) => {setDataSource(e.target.value)}} style={{ marginBottom: 16 }}>
-            <Radio.Button value="file">Import</Radio.Button>
-            <Radio.Button value="generated">Generate</Radio.Button>
-          </Radio.Group>
-          {dataSource === 'file' && <div className='justify-center items-center flex flex-col gap-4'>
-            <Box component="form" sx={{ '& > :not(style)': { m: 1, width: '50ch' } }} noValidate autoComplete="off">
-              <FileUpload
-                accept=".csv"
-                maxSize={10000000} // 10MB
-                onChange={handleFileChange}
-                buttonText="Choose CSV File"
-              />
-              <div className='flex flex-row justify-items-stretch gap-4'>
-              <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
-              {csvFile && <Button fullWidth variant="contained" onClick={() => setStep(SetupSteps.Finish)}>Next</Button>}
+            )}
+      
+            {dataSource === 'generate' && (
+              <div className='flex flex-col h-full'>
+                <Typography.Title>Select Generation Parameters</Typography.Title>
+                <div className='flex-grow overflow-y-auto'>
+                  <DataGeneration />
+                </div>
+                <div className='flex flex-row w-full justify-items-stretch gap-4 mt-4'>
+                  <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
+                  <Button fullWidth variant="contained" onClick={() => setStep(SetupSteps.Finish)}>Next</Button>
+                </div>
               </div>
-            </Box>
-          </div>}
-          {dataSource === 'generate'  && <div className='justify-center items-center flex flex-col gap-4'>
-            <DataGeneration />
-            <div className='flex flex-row justify-items-stretch gap-4'>
-              <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
-              <Button fullWidth variant="contained" onClick={() => {setStep(SetupSteps.Finish); }}>Next</Button>
-            </div>
-          </div>}
-        </div>
-      )}
-      {step === SetupSteps.DatasetType && (
-        <div className="h-full flex flex-col justify-center items-center">
-          <h1>Dataset Nature</h1>
-          <div className='flex flex-row align-center m-4 gap-4'>
-            <ImageButton imageUrl='.assets/plus.png' title="Sequential" width='300px' height='200px' onClick={() => {setStep(SetupSteps.Finish); setDatasetType("sequential")}} />
-            <ImageButton imageUrl='.assets/plus.png' title="None Sequential" width='300px' height='200px' onClick={() => {setStep(SetupSteps.Finish); setDatasetType("non-sequential")}} />
+            )}
           </div>
-          <Box component="form" sx={{width: '50ch'}} noValidate autoComplete="off">
-            <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
-          </Box>
         </div>
+      
+        {/* Right side : Preview */}
+        <div className='w-3/5 h-full flex flex-col'>
+          Right Side
+        </div>
+      </div>
+      
       )}
       {step === SetupSteps.Finish && (
         <div className="h-full flex flex-col justify-center items-center">
           <Box component="form" sx={{ '& > :not(style)': { m: 4, width: '25ch' } }} noValidate autoComplete="off">
-            <h1>Prediction setup complete!</h1>
+            <h1>Setup Complete!</h1>
             <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
             <Button variant="contained" onClick={() => handleFinalization()}>Finish</Button>
           </Box>
