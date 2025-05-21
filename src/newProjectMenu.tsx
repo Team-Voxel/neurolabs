@@ -299,18 +299,8 @@ const DataGeneration : React.FC = () => {
   
   return (
     <div className='flex flex-col w-full h-full justify-center items-center'>
-      {/* <Select
-        defaultValue="classify"
-        style={{ width: 120 }}
-        onChange={(v) => setDatasetType(v as 'classify' | 'regress')}
-        options={[
-          { value: 'classify', label: 'Classification' },
-          { value: 'regress', label: 'Regression' },
-        ]}
-      /> */}
       <Settings controls={classficationSettings} />
-      
-      </div>
+    </div>
   );
 }
 
@@ -320,7 +310,7 @@ function ProjectSetupWizard() {
   const [workflowName, setWorkflowName] = useState<string>('');
   const [nameError, setNameError] = useState<string>('Enter a name');
   const [csvFile, setCsvFile] = useState<File|null>(null);
-  const [dataSource, setDataSource] = useState<'file'|'generated'>('generated');
+  const [dataSource, setDataSource] = useState<'file'|'generate'>('generate');
   const [datasetType, setDatasetType] = useState<'sequential' | 'non-sequential' | ''>('');
 
   const [wfs, setWfs] = useState<Workflow[]>([]);
@@ -417,7 +407,23 @@ function ProjectSetupWizard() {
         </div>
       )}
       {step === SetupSteps.SelectFile && (
-        <div>
+        <div className='flex flex-row'>
+          <div className='w-1/2 h-full flex flex-col'>
+            <div>
+              <div className='flex items-center justify-between py-3'>
+                <div className="font-medium text-gray-800">Data Source</div>
+                <Select
+                  value={dataSource}
+                  onChange={(value) => setDataSource(value)}
+                  className="w-full settings-select"
+                  options={[{label: 'Import', value: 'file'}, {label: 'Generate', value: 'generate'}]}
+                  size="middle"
+                />
+              </div>
+            </div>
+          </div>
+          <div className='w-1/2 h-full flex flex-col'>
+          </div>
           <h1 className="text-xl font-semibold mb-2">Select your dataset</h1>
           <Radio.Group value={dataSource} onChange={(e) => {setDataSource(e.target.value)}} style={{ marginBottom: 16 }}>
             <Radio.Button value="file">Import</Radio.Button>
@@ -437,7 +443,7 @@ function ProjectSetupWizard() {
               </div>
             </Box>
           </div>}
-          {dataSource === 'generated'  && <div className='justify-center items-center flex flex-col gap-4'>
+          {dataSource === 'generate'  && <div className='justify-center items-center flex flex-col gap-4'>
             <DataGeneration />
             <div className='flex flex-row justify-items-stretch gap-4'>
               <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
