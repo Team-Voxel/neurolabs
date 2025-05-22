@@ -303,15 +303,7 @@ const DataGeneration : React.FC = () => {
     </div> */}
     
   return (
-    <div className='flex w-full h-full justify-center items-center'>
-  <div className='flex flex-col text-gray-800 w-full h-full overflow-auto'>
-    <div>
-      {classficationSettings.map((control) => (
-        control.visible && <SettingControl key={control.id} control={control} />
-      ))}
-    </div>
-  </div>
-</div>
+    <Settings controls={classficationSettings} />
   );
 }
 

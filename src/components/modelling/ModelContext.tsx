@@ -4,7 +4,7 @@ import { ModelType, UserModel, useWorkflowStore, Workflow } from "../../AppState
 import { Modal, Button } from "antd";
 import { AddNewModel, OpenModelModal } from "./Modals";
 import { NNModel } from "./NNModel";
-
+import { LinearRegression } from "./LinearRegression";
 
 export const ModelContext : React.FC = () => {
     const [model, setModel] = useState<UserModel | null>(null);
@@ -53,7 +53,7 @@ export const ModelContext : React.FC = () => {
                     <div className="flex flex-col items-center justify-center h-full">
                         {/* <h1 className="text-2xl font-bold">No model loaded</h1>
                         <p className="text-gray-500">Please load a model to view its context.</p> */}
-                        <NNModel></NNModel>
+                        <LinearRegression/>
                     </div>
                 </div>)
             }

@@ -4,9 +4,9 @@ import SettingControl from './SettingsControl';
 
 const Settings: React.FC<SettingsProps> = ({ controls, className = '' }) => {
   return (
-    <div className="flex-1 w-full overflow-y-auto">
-      <div className={`flex flex-col text-gray-800 shadow border rounded-lg p-4 ${className}`}>
-        <div className="space-y-1">
+    <div className='flex w-full h-full justify-center items-center'>
+      <div className='flex flex-col text-gray-800 w-full h-full overflow-y-auto overflow-x-hidden'>
+        <div>
           {controls.map((control) => (
             control.visible && <SettingControl key={control.id} control={control} />
           ))}
