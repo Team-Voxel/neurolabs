@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from typing import List, Dict
 import pandas as pd
 import umap
+from data_analysis import generate_file_summary_report
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,6 +21,7 @@ app = FastAPI(
 origins = [
     "http://localhost",
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 app.add_middleware(
@@ -61,6 +63,25 @@ async def generate(config: Dict):
         },
         "scatter": scatter_data
     })
+
+@app.post("/generate_dataset_preview")
+async def generate_dataset_preview(config: Dict):
+    
+    return JSONResponse(content={
+        "message": "Dataset preview generated successfully"
+    })
+
+class FilePathRequest(BaseModel):
+    file_path: str
+    target_column: str
+
+@app.post("/generate_summary_from_file")
+async def generate_summary_from_file(request : FilePathRequest):
+    print(f'{request.file_path}, {request.target_column}')
+    summary = generate_file_summary_report(request.file_path, request.target_column)
+    if summary is None:
+        raise HTTPException(status_code=404, detail="File not found or empty")
+    return JSONResponse(content=summary)
 
 
 if __name__ == "__main__":

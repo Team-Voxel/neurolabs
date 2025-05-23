@@ -1,17 +1,20 @@
 import React, { useState, ChangeEvent, useEffect } from 'react';
 import './App.css';
-import { data, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
-import ImageButton from './components/ImageButton';
-import Button from '@mui/material/Button';
-import FileUpload from './components/fileUpload';
 import { Workflow, useWorkflowStore } from './AppState';
-import { Select, Slider, Switch, Radio, Typography} from 'antd';
+import { Typography, Upload, Button,  Divider, Table, AutoComplete, Select } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
 import Settings from './components/settings/Settings';
-import SettingControl from './components/settings/SettingsControl';
 import { SettingControl as SettingControlType, SelectOption } from './components/settings/types';
 import { ToggleButton, ToggleButtonGroup } from '@mui/material';
+import type { TableColumnsType, TableProps } from 'antd';
+import {generateDatasetPreview, generateSummaryFromFile} from './backend_api/data_api';
+import type { DatasetSummary, DataSummaryEntry } from './backend_api/types';
+import { Treemap, AreaChart } from 'recharts';
+import Papa, {ParseResult} from 'papaparse';
+
 
 enum SetupSteps {
   Start = 0,
@@ -38,13 +41,6 @@ enum RegressionGenStrat {
   Sinusoidal = 6,
   GP = 7,
 }
-
-// Generation
-// |-- Type: Classification
-//      |-- Clusters
-  //      |-- No features (number)
-  //      |-- Shape (blobs/spherical/circles/s-curve/spiral)
-  //      |-- 
 
 
 const D2Clusterings : SelectOption[]= [
@@ -85,8 +81,11 @@ const HighDClusterings : SelectOption[]= [
   value: ClusterTypes.Spherical
 }];
 
+interface DataGenerationProps {
+  onGenerate: (data: DatasetSummary) => void;
+}
 
-const DataGeneration : React.FC = () => {
+const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate}) => {
   const [datasetType, setDatasetType] = useState<'classify' | 'regress'>('classify');
   const [isClusters, setIsClusters] = useState<boolean>(true);
   const [cluserType, setClusterType] = useState<ClusterTypes>(ClusterTypes.Blobs);
@@ -101,6 +100,32 @@ const DataGeneration : React.FC = () => {
   const [noise, setNoise] = useState<number>(1.0);
 
   const [regGenStrat, setRegGenStrat] = useState<RegressionGenStrat>(RegressionGenStrat.Linear);
+
+  const onClickGenerate = () => {
+    const sendGenerationRequest = async () => {
+      try {
+        const config = { 
+          datasetType: datasetType, 
+          n_samples: nSamples, 
+          n_features: nFeatures, 
+          n_informative: nInformative, 
+          n_redundant: nRedundant, 
+          random_state: randomState, 
+          noise: noise, 
+          is_clusters: isClusters, 
+          cluster_type: cluserType, 
+          n_clusters: nClusters, 
+          cluster_dispersion: clusterDispersion 
+        };
+        const data = await generateDatasetPreview(config);
+        onGenerate(data);
+      } catch (err) {
+        console.error("Failed to fetch dataset:", err);
+      }
+    };
+
+    sendGenerationRequest();
+  };
 
   const updateFeatureCountsFromRedn = (nRed) => {
     setNRedundant(nRed);
@@ -303,10 +328,41 @@ const DataGeneration : React.FC = () => {
     </div> */}
     
   return (
-    <Settings controls={classficationSettings} />
+    <div className='flex flex-col h-full w-full justify-center items-center'>
+      <Settings controls={classficationSettings} />
+      <Button block type="primary" onClick={() => onClickGenerate()}>Generate</Button>
+    </div>
   );
 }
 
+const columns: TableColumnsType<DataSummaryEntry> = [
+  {
+    title: 'Feature Name',
+    dataIndex: 'name',
+  },
+  {
+    title: 'Type',
+    dataIndex: 'type',
+  },
+  {
+    title: 'Missing %',
+    dataIndex: 'missing_percent',
+  },
+  {
+    title: 'Cntral Tendency',
+    dataIndex: 'central',
+  },
+  {
+    title: 'Dispersion',
+    dataIndex: 'dispersion',
+  },
+  {
+    title: 'Data Range',
+    dataIndex: 'range',
+  }
+];
+
+type ColumnHeaderItem = { value: string };
 
 function ProjectSetupWizard() {
   const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
@@ -314,7 +370,10 @@ function ProjectSetupWizard() {
   const [nameError, setNameError] = useState<string>('Enter a name');
   const [csvFile, setCsvFile] = useState<File|null>(null);
   const [dataSource, setDataSource] = useState<'file'|'generate'>('generate');
-  const [datasetType, setDatasetType] = useState<'sequential' | 'non-sequential' | ''>('');
+  const [dataSummary, setDataSummary] = useState<DatasetSummary | null>(null);
+  const [columnHeaders, setColumnHeaders] = useState<ColumnHeaderItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [targetColumn, setTargetColumn] = useState<string | null>(null);
 
   const [wfs, setWfs] = useState<Workflow[]>([]);
 
@@ -348,17 +407,61 @@ function ProjectSetupWizard() {
     setNameError('none');
   };
 
+  useEffect(() => {
+    if (csvFile && targetColumn) {
+      
+      const sendSummaryRequest = async () => {
+        try {
+          const summary = await generateSummaryFromFile(csvFile.path, targetColumn);
+          setDataSummary(summary);
+        } catch (err) {
+          console.error("Failed to fetch summary:", err);
+        }
+      } 
+      sendSummaryRequest();
+    }
+  }, [csvFile, targetColumn]);
+
   const handleFileChange = (file: File | null) => {
     if (file) {
+
+      Papa.parse(file, {
+        header: true, // Ensures the first row is treated as headers
+        preview: 1,   // We only need to parse enough to get the headers.
+                      // For header:true, PapaParse reads the first line to determine field names.
+        skipEmptyLines: true,
+        complete: (results: ParseResult<unknown>) => {
+          if (results.meta && results.meta.fields && results.meta.fields.length > 0) {
+            // results.meta.fields contains the array of header names
+            setColumnHeaders(results.meta.fields.map(header => ({ value : header })));
+            setError(null); // Clear any previous error
+          } else if (results.errors && results.errors.length > 0) {
+            setError(`Error parsing CSV: ${results.errors[0].message}`);
+            setColumnHeaders([]);
+          }
+          else {
+            setError('Could not extract headers. The CSV might be empty, not have a header row, or is improperly formatted.');
+            setColumnHeaders([]);
+          }
+        },
+        error: (err: Error) => {
+          setError(`Error parsing CSV: ${err.message}`);
+          setColumnHeaders([]);
+        },
+      });
+
+      console.log(columnHeaders);
+
       setCsvFile(file);
     } else {
       setCsvFile(null);
     }
+    return false; // Prevent auto-upload
   };
 
-  const handleDatasetTypeChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setDatasetType(e.target.value as 'sequential' | 'non-sequential');
-  };
+  const onDataGenerate = (data : DatasetSummary) => {
+    setDataSummary(data);
+  }
 
   const addNew = async () => {
     const wfDir = await window.wfStore.getWfDir(workflowName);
@@ -390,6 +493,17 @@ function ProjectSetupWizard() {
     navigate('/sandbox');
   };
 
+  
+
+  const rowSelection: TableProps<DataSummaryEntry>['rowSelection'] = {
+    onChange: (selectedRowKeys: React.Key[], selectedRows: DataSummaryEntry[]) => {
+      console.log(`selectedRowKeys: ${selectedRowKeys}`, 'selectedRows: ', selectedRows);
+    },
+    getCheckboxProps: (record: DataSummaryEntry) => ({
+      name: record.name,
+    }),
+  };
+
   return (
     // top most container
     <div className="flex flex-col gap-20 h-full justify-center">
@@ -401,8 +515,8 @@ function ProjectSetupWizard() {
               <TextField label="Project Name" variant="outlined" value={workflowName} onChange={handleNameChange} />
               {nameError !== 'none' && <p className='text-red-500'>{nameError}</p>}
             <div className='flex flex-row justify-items-stretch gap-4'>
-              <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
-              {nameError === 'none' && <Button fullWidth variant="contained" onClick={() => {setStep(SetupSteps.SelectFile)}}>Next</Button>}
+              <Button block type="primary" onClick={() => handleBack()}>Back</Button>
+              {nameError === 'none' && <Button block type="primary" onClick={() => {setStep(SetupSteps.SelectFile)}}>Next</Button>}
             </div>
 
             </Box>
@@ -429,21 +543,37 @@ function ProjectSetupWizard() {
           </div>
       
           {/* Conditional sections */}
-          <div className='flex-grow mt-8 overflow-hidden'>
+          <div className='flex-grow h-full overflow-hidden'>
             {dataSource === 'file' && (
-              <div className='flex flex-col gap-4 items-center'>
-                <Box component="form" sx={{ '& > :not(style)': { m: 1, width: '50ch' } }} noValidate autoComplete="off">
-                  <FileUpload
-                    accept=".csv"
-                    maxSize={10000000}
-                    onChange={handleFileChange}
-                    buttonText="Choose CSV File"
-                  />
-                  <div className='flex flex-row justify-items-stretch gap-4'>
-                    <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
-                    {csvFile && <Button fullWidth variant="contained" onClick={() => setStep(SetupSteps.Finish)}>Next</Button>}
+              <div className='flex-1 flex-col gap-4 items-center mt-8 justify-between'>
+                
+                <Upload
+                  beforeUpload={handleFileChange}
+                  maxCount={1}
+                  accept='.csv'
+
+                >
+                  <Button icon={<UploadOutlined />} size='large'>Select CSV File</Button>
+                </Upload>
+                {csvFile && columnHeaders.length > 0 && 
+                  <div className='flex justify-between w-full my-4'>
+                    <Divider/>
+                    <Typography.Title level={5}>Select Target Column</Typography.Title>
+                    <div className="w-48">
+                      <Select
+                        value={targetColumn}
+                        onChange={(value) => setTargetColumn(value)}
+                        className="w-full settings-select"
+                        options={columnHeaders}
+                        size="middle"
+                      />
+                      </div>
                   </div>
-                </Box>
+                }
+                <div className='flex flex-row justify-items-stretch gap-4'>
+                  <Button block type="primary" onClick={() => handleBack()}>Back</Button>
+                  {csvFile && <Button block type="primary" onClick={() => setStep(SetupSteps.Finish)}>Next</Button>}
+                </div>
               </div>
             )}
       
@@ -451,11 +581,11 @@ function ProjectSetupWizard() {
               <div className='flex flex-col h-full'>
                 <Typography.Title>Select Generation Parameters</Typography.Title>
                 <div className='flex-grow overflow-y-auto'>
-                  <DataGeneration />
+                  <DataGeneration onGenerate={onDataGenerate}/>
                 </div>
                 <div className='flex flex-row w-full justify-items-stretch gap-4 mt-4'>
-                  <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
-                  <Button fullWidth variant="contained" onClick={() => setStep(SetupSteps.Finish)}>Next</Button>
+                  <Button type="primary" onClick={() => handleBack()}>Back</Button>
+                  <Button type="primary" onClick={() => setStep(SetupSteps.Finish)}>Next</Button>
                 </div>
               </div>
             )}
@@ -464,7 +594,15 @@ function ProjectSetupWizard() {
       
         {/* Right side : Preview */}
         <div className='w-3/5 h-full flex flex-col'>
-          Right Side
+        {dataSummary && <div>
+          <Table<DataSummaryEntry>
+            rowSelection={{ type: 'checkbox', ...rowSelection }}
+            columns={columns}
+            dataSource={dataSummary?.featureSummaries}
+          />
+          <Divider />
+
+        </div>}
         </div>
       </div>
       
@@ -473,8 +611,8 @@ function ProjectSetupWizard() {
         <div className="h-full flex flex-col justify-center items-center">
           <Box component="form" sx={{ '& > :not(style)': { m: 4, width: '25ch' } }} noValidate autoComplete="off">
             <h1>Setup Complete!</h1>
-            <Button fullWidth variant="contained" onClick={() => handleBack()}>Back</Button>
-            <Button variant="contained" onClick={() => handleFinalization()}>Finish</Button>
+            <Button block type="primary" onClick={() => handleBack()}>Back</Button>
+            <Button block type="primary" onClick={() => handleFinalization()}>Finish</Button>
           </Box>
         </div>
       )}
