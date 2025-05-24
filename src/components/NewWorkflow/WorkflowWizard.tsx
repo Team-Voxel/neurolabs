@@ -33,6 +33,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   const [columnHeaders, setColumnHeaders] = useState<ColumnHeaderItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [targetColumn, setTargetColumn] = useState<string | null>(null);
+  const [problemType, setProblemType] = useState<string>('classification');
 
   const [wfs, setWfs] = useState<Workflow[]>([]);
 
@@ -71,17 +72,21 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
       
       const sendSummaryRequest = async () => {
         try {
-          const summary = await generateSummaryFromFile(csvFile.path, targetColumn);
+          const summary = await generateSummaryFromFile(csvFile.path, targetColumn, problemType);
           setDataSummary(summary);
         } catch (err) {
           console.error("Failed to fetch summary:", err);
         }
       } 
       sendSummaryRequest();
+      console.log(dataSummary)
     }
   };
 
   const handleFileChange = (file: File | null) => {
+    setTargetColumn(null);
+    setProblemType('auto');
+    
     if (file) {
 
       Papa.parse(file, {
@@ -92,6 +97,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
           if (results.meta && results.meta.fields && results.meta.fields.length > 0) {
             setColumnHeaders(results.meta.fields.map(header => ({ value : header })));
             setError(null);
+            setTargetColumn(results.meta.fields[results.meta.fields.length - 1] || null);
           } else if (results.errors && results.errors.length > 0) {
             setError(`Error parsing CSV: ${results.errors[0].message}`);
             setColumnHeaders([]);
@@ -106,8 +112,6 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
           setColumnHeaders([]);
         },
       });
-
-      console.log(columnHeaders);
 
       setCsvFile(file);
     } else {
@@ -196,11 +200,13 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
             {dataSource === 'file' &&
               <FileImportFragment
                 targetColumn={targetColumn || ''}
+                problemType={problemType}
                 columnHeaders={columnHeaders}
                 onFileChange={handleFileChange}
                 onBack={handleBack}
                 onImport={onImportFile}
                 onSelectTargetColumn={(value) => setTargetColumn(value)}
+                onSelectProblemType={(value) => setProblemType(value)}
                 onNext={() => {setStep(SetupSteps.Finish)}}
                 />
             }
@@ -219,14 +225,14 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
         {/* Right side : Preview */}
         <Splitter.Panel>
         {dataSummary && 
-        <Splitter layout="vertical" >
-            <Splitter.Panel min='30%' max='70%'>
+        <div className='w-full h-full flex flex-col'>
+            <div className='flex-1 h-1/2 w-full overflow-auto'>
                 <FeatureOverview datasetSummary={dataSummary} visible={true}/>
-            </Splitter.Panel>
-            <Splitter.Panel style={{ height: '100%' }}>
+            </div>
+            <div className='flex h-1/2'>
                 <TargetOverview datasetSummary={dataSummary} visible={true}/>
-            </Splitter.Panel>
-        </Splitter>
+            </div>
+        </div>
         }
         </Splitter.Panel>
       

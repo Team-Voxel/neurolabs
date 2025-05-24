@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Table, TableColumnsType, Typography } from 'antd';
+import { Card, Table, TableColumnsType, Tooltip, Typography } from 'antd';
 import { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
-import { Area, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { Area, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { AreaChart, Treemap } from 'recharts';
 
 export interface DatasetPreviewProps {
@@ -62,8 +62,9 @@ export const FeatureOverview: React.FC<DatasetPreviewProps> = ({
                 /* rowSelection={{ type: 'checkbox', ...rowSelection }} */
                 columns={columns}
                 dataSource={datasetSummary?.featureSummaries}
-                size='middle'
-                pagination={{pageSize: 5}}
+                size='small'
+                pagination={false}
+                scroll={{ y: 40*5 }}
             />
             </>
             )}
@@ -79,7 +80,10 @@ function renderChart(datasetSummary: DatasetSummary) {
                     data={datasetSummary?.treeMapData}
                     dataKey="value"
                     stroke="#fff"
-                />
+                >
+                    <Tooltip></Tooltip>
+                    <Legend></Legend>
+                </Treemap>
             );
         case 'Numeric':
             const data = datasetSummary.targetKDEx?.map((xVal, i) => ({
@@ -126,8 +130,9 @@ export const TargetOverview: React.FC<{datasetSummary : DatasetSummary, visible 
                         <strong>Range:</strong> {datasetSummary?.targetSummary.range}
                     </Typography.Paragraph>
                 </div>
-                <div className='flex w-3/4'>
-                <ResponsiveContainer width='100%' height='100%'>
+                <div className='flex flex-col w-3/4 h-full'>
+                <Typography.Title level={4}>Target Distribution</Typography.Title>
+                <ResponsiveContainer width='100%' height='80%'>
                 {renderChart(datasetSummary)}
                 </ResponsiveContainer>
                 </div>

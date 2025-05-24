@@ -3,15 +3,19 @@ import sklearn.datasets as skd
 import umap
 import numpy as np
 from scipy.stats import gaussian_kde
+from data_cleanup import basic_data_cleanup
 
 
-def compute_feature_summaries(df : pd.DataFrame):
+def compute_feature_summaries(df : pd.DataFrame, target_column : str = None):
     """
     Compute summary statistics for each feature in the DataFrame.
     """
     summaries = []
     idx = 1
     for column in df.columns:
+        if column == target_column:
+            # Skip the target column if specified
+            continue
         missing_percent = df[column].isnull().sum() * 100 / len(df)
         if pd.api.types.is_numeric_dtype(df[column]):
             min = df[column].min()
@@ -42,14 +46,27 @@ def compute_feature_summaries(df : pd.DataFrame):
     return summaries
 
 
-def target_column_summary(df : pd.DataFrame, target_column : str):
+def target_column_summary(df : pd.DataFrame, target_column : str, problem_type : str):
     """
     Compute summary statistics for the target column in the DataFrame.
     """
     if target_column not in df.columns:
         raise ValueError(f"Target column '{target_column}' not found in DataFrame.")
+    ttype = problem_type
+    if problem_type == 'classification':
+        ttype = 'cls'
+    elif problem_type == 'regression':
+        ttype = 'reg'
+    elif pd.api.types.is_numeric_dtype(df[target_column]):
+        if df[target_column].nunique() < 20:
+            # If numeric but few unique values, treat as categorical
+            ttype = 'cls'
+        else:
+            ttype = 'reg'
+    else:
+        ttype = 'cls'
     
-    if pd.api.types.is_numeric_dtype(df[target_column]):
+    if ttype == 'reg':
         min = df[target_column].min()
         max = df[target_column].max()
 
@@ -73,6 +90,7 @@ def target_column_summary(df : pd.DataFrame, target_column : str):
 
         # If categorical, return statistics, and each unique value with its frequency
         unique_values = df[target_column].value_counts(normalize=True).to_dict()
+        tree_map_data = [{'name': str(value), 'value': freq * 100} for i, (value, freq) in enumerate(unique_values.items())]
         return {
             'key': '0',
             'name': target_column,
@@ -81,10 +99,10 @@ def target_column_summary(df : pd.DataFrame, target_column : str):
             'central': f"Mode: '{mode}'",
             'dispersion': f'UniqueCount: {unique_count}',
             'range': f'ModeFreq: {mode_freq:.1f}%',
-        }, unique_values, None
+        }, tree_map_data, None
 
 
-def generate_file_summary_report(file_path : str, target_column : str):
+def generate_file_summary_report(file_path : str, target_column : str, problem_type : str):
     """
     Generate a summary report for a given file path.
     """
@@ -95,10 +113,12 @@ def generate_file_summary_report(file_path : str, target_column : str):
     if df.empty:
         print("The DataFrame is empty. Please check the file path and content.")
         raise ValueError("The DataFrame is empty. Please check the file path and content.")
+
+    df, actions = basic_data_cleanup(df)
     
     # Compute feature summaries and target column summary
-    feature_summaries = compute_feature_summaries(df)
-    taget_sum, arg1, arg2 = target_column_summary(df, target_column)
+    feature_summaries = compute_feature_summaries(df, target_column)
+    taget_sum, arg1, arg2 = target_column_summary(df, target_column, problem_type)
 
     summary = {
         'featureSummaries': feature_summaries,

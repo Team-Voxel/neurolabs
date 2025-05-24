@@ -5,22 +5,26 @@ import { UploadOutlined } from '@ant-design/icons';
 
 export interface FileImportFragmentProps {
     targetColumn: string;
+    problemType: string;
     columnHeaders: { value: string }[];
-    onFileChange: (file: File) => void;
+    onFileChange: (file: File | null) => boolean;
     onBack: () => void;
     onNext: () => void;
     onSelectTargetColumn: (value: string) => void;
+    onSelectProblemType: (value: string) => void;
     onImport: () => void;
 }
 
 export const FileImportFragment: React.FC<FileImportFragmentProps> = (
     {
         targetColumn,
+        problemType,
         columnHeaders,
         onFileChange,
         onBack,
         onNext,
         onSelectTargetColumn,
+        onSelectProblemType,
         onImport,
     }
 ) => {
@@ -32,22 +36,39 @@ export const FileImportFragment: React.FC<FileImportFragmentProps> = (
                 beforeUpload={onFileChange}
                 maxCount={1}
                 accept='.csv'
-
+                onRemove={() => onFileChange(null)}
             >
                 <Button icon={<UploadOutlined />} size='large' >Select CSV File</Button>
             </Upload>
             
             <div className='flex justify-between w-full my-4'>
             
-            <Typography.Title level={5}>Select Target Column</Typography.Title>
-            <div className="w-48">
-                <Select
-                value={targetColumn}
-                onChange={onSelectTargetColumn}
-                className="w-full settings-select"
-                options={columnHeaders}
-                size="middle"
-                />
+                <Typography.Title level={5}>Select Target Column</Typography.Title>
+                <div className="w-48">
+                    <Select
+                    value={targetColumn}
+                    onChange={onSelectTargetColumn}
+                    className="w-full settings-select"
+                    options={columnHeaders}
+                    size="middle"
+                    />
+                </div>
+            </div>
+            
+            <div className='flex justify-between w-full my-4'>
+            
+                <Typography.Title level={5}>Select Problem Type</Typography.Title>
+                <div className="w-48">
+                    <Select
+                    value={problemType}
+                    onChange={onSelectProblemType}
+                    className="w-full settings-select"
+                    options={[
+                        { value: 'classification', label: 'Classification' },
+                        { value: 'regression', label: 'Regression' },
+                        { value: 'auto', label: 'Detect Automatically' }]}
+                    size="middle"
+                    />
                 </div>
             </div>
             

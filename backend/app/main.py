@@ -74,11 +74,12 @@ async def generate_dataset_preview(config: Dict):
 class FilePathRequest(BaseModel):
     file_path: str
     target_column: str
+    problem_type: str
 
 @app.post("/generate_summary_from_file")
 async def generate_summary_from_file(request : FilePathRequest):
-    print(f'{request.file_path}, {request.target_column}')
-    summary = generate_file_summary_report(request.file_path, request.target_column)
+    print(f'Req: {request.problem_type}, {request.target_column}')
+    summary = generate_file_summary_report(request.file_path, request.target_column, request.problem_type)
     if summary is None:
         raise HTTPException(status_code=404, detail="File not found or empty")
     return JSONResponse(content=summary)
