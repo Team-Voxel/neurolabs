@@ -106,6 +106,15 @@ ipcMain.handle("dialog:openFile", async (event) => {
   return result.filePaths;
 });
 const DATA_PATH = path.join(app.getPath("userData"), "workflows.json");
+const TEMP_DATASET_PATH = path.join(app.getPath("userData"), "tempdata.csv");
+ipcMain.handle("get-temp-dataset-path", async () => {
+  try {
+    await fs.stat(TEMP_DATASET_PATH);
+  } catch {
+    await fs.writeFile(TEMP_DATASET_PATH, "", "utf-8");
+  }
+  return TEMP_DATASET_PATH;
+});
 async function ensureStore() {
   try {
     await fs.stat(DATA_PATH);

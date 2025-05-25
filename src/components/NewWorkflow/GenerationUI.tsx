@@ -5,26 +5,27 @@ import { SettingControl as SettingControlType, SelectOption } from '../../compon
 import {generateDatasetPreview, generateSummaryFromFile} from '../../backend_api/data_api';
 import type { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
 import { useWorkflowStore } from '../../AppState';
+import { ipcMain } from 'electron';
 
 
 enum ClusterTypes {
-  Blobs = 0,
-  Spherical = 1,
-  Circles = 2,
-  SCurve = 3,
-  Spiral = 4,
-  Moons = 5
+  Blobs = 'blobs',
+  Spherical = 'spherical',
+  Circles = 'circles',
+  SCurve = 's-curve',
+  Spiral = 'spiral',
+  Moons = 'moons'
 }
 
 enum RegressionGenStrat {
-  Friedman1 = 0,
-  Friedman2 = 1,
-  Friedman3 = 2,
-  Linear = 3,
-  GaussianRBF = 4,
-  RFF = 5,
-  Sinusoidal = 6,
-  GP = 7,
+  Friedman1 = 'fr1',
+  Friedman2 = 'fr2',
+  Friedman3 = 'fr3',
+  Linear = 'lin',
+  GaussianRBF = 'rbf',
+  RFF = 'rff',
+  Sinusoidal = 'sin',
+  GP = 'gp',
 }
 
 
@@ -66,6 +67,28 @@ const HighDClusterings : SelectOption[]= [
   value: ClusterTypes.Spherical
 }];
 
+const regAlgorithms = {
+  '1D' : [{ label: 'Linear', value: RegressionGenStrat.Linear }, { label: 'Gaussian Process', value: RegressionGenStrat.GP }],
+  '2D' : [
+    { label: 'Linear', value: RegressionGenStrat.Linear },
+    { label: 'Gaussian Process', value: RegressionGenStrat.GP },
+  ],
+  '3D' : [
+    { label: 'Linear', value: RegressionGenStrat.Linear },
+    { label: 'Gaussian Process', value: RegressionGenStrat.GP },
+  ],
+  'High Dimensional' : [
+    { label: 'Linear', value: RegressionGenStrat.Linear },
+    { label: 'Non Linear Interactions', value: RegressionGenStrat.Friedman1 },
+    { label: 'Non Linear Division', value: RegressionGenStrat.Friedman2 },
+    { label: 'Non Linear Singularities', value: RegressionGenStrat.Friedman3 },
+    { label: 'Gaussian Mixture', value: RegressionGenStrat.GaussianRBF },
+    { label: 'Fourier Features', value: RegressionGenStrat.RFF },
+    { label: 'Sinusoidal Features', value: RegressionGenStrat.Sinusoidal },
+    { label: 'Gaussian Process', value: RegressionGenStrat.GP }
+  ]
+}
+
 interface DataGenerationProps {
     onGenerate: (data: DatasetSummary) => void;
     onBack: () => void;
@@ -73,12 +96,12 @@ interface DataGenerationProps {
 }
 
 export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBack, onNext}) => {
-  const [datasetType, setDatasetType] = useState<'classify' | 'regress'>('classify');
+  const [problemType, setProblemType] = useState<'classify' | 'regress'>('classify');
   const [isClusters, setIsClusters] = useState<boolean>(true);
   const [cluserType, setClusterType] = useState<ClusterTypes>(ClusterTypes.Blobs);
   const [nClusters, setNClusters] = useState<number>(3);
   const [clusterDispersion, setClusterDispersion] = useState<number>(0.5);
-  const [dimensionality, setDimensionality] = useState<'2D' | '3D' | 'High Dimensional'>('2D');
+  const [dimensionality, setDimensionality] = useState< '1D' | '2D' | '3D' | 'High Dimensional'>('2D');
   const [nFeatures, setNFeatures] = useState<number>(2);
   const [nInformative, setNInformative] = useState<number>(2);
   const [nRedundant, setNRedundant] = useState<number>(0);
@@ -89,17 +112,15 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
 
   const [regGenStrat, setRegGenStrat] = useState<RegressionGenStrat>(RegressionGenStrat.Linear);
 
-  useEffect(
-    () => {
-        setWfDir(useWorkflowStore.getState().current?.wfDir!);
-    }, []
-  )
-
+  window.fsAPI.getTempDatasetPath().then((tempDataLoc) => {
+    setWfDir(tempDataLoc);
+  });
+  
   const onClickGenerate = () => {
     const sendGenerationRequest = async () => {
       try {
         const config = { 
-          datasetType: datasetType, 
+          problem_type: problemType, 
           n_samples: nSamples, 
           n_features: nFeatures, 
           n_informative: nInformative, 
@@ -110,6 +131,8 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
           cluster_type: cluserType, 
           n_clusters: nClusters, 
           cluster_dispersion: clusterDispersion,
+          reg_gen_strat: regGenStrat,
+          dimensionality: dimensionality,
           wfDir : wfDir,
         };
         const data = await generateDatasetPreview(config);
@@ -134,7 +157,14 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
 
   const updateDimensionality = (dim) => {
     setDimensionality(dim);
-    if (dim === '2D')
+    if (dim === '1D'){
+      setNFeatures(1);
+      setIsClusters(false);
+      setNRedundant(0);
+      setNInformative(1);
+      setNClusters(1);
+    }
+    else if (dim === '2D')
       setNFeatures(2);
     else if (dim === '3D')
       setNFeatures(3);
@@ -163,8 +193,8 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
         { label: 'Classification', value: 'classify' },
         { label: 'Regression', value: 'regress' }
       ],
-      value: datasetType,
-      onChange: (value) => setDatasetType(value),
+      value: problemType,
+      onChange: (value) => setProblemType(value),
       tooltip: 'Select the type of dataset to generate',
       visible: true
     },
@@ -185,6 +215,7 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
       label: 'Dimensionality',
       type: 'select',
       options: [
+        { label: '1D', value: '1D' },
         { label: '2D', value: '2D' },
         { label: '3D', value: '3D' },
         { label: 'High Dimensional', value: 'High Dimensional' }
@@ -225,7 +256,7 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
       value: isClusters,
       onChange: (value) => setIsClusters(value),
       tooltip: 'Determine whether the generator makes clusters or not',
-      visible: true && datasetType === 'classify'
+      visible: true && problemType === 'classify' && dimensionality !== '1D'
     },
     {
       id: 'clusterType',
@@ -235,11 +266,11 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
       value: cluserType,
       onChange: (value) => {setClusterType(value); if (value === ClusterTypes.Circles) setNFeatures(2);},
       tooltip: 'Select the cluster type',
-      visible: isClusters && datasetType === 'classify'
+      visible: isClusters && problemType === 'classify' && dimensionality !== '1D'
     },
     {
       id: 'nclusters',
-      label: 'Number of clusters',
+      label: 'Number of Classes',
       type: 'slider',
       value: nClusters,
       min: 1,
@@ -247,7 +278,7 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
       step: 1,
       onChange: (value) => setNClusters(value),
       tooltip: 'Select the number of clusters',
-      visible: isClusters && cluserType === ClusterTypes.Blobs && datasetType === 'classify'
+      visible: isClusters && cluserType === ClusterTypes.Blobs && problemType === 'classify' && dimensionality !== '1D'
     },
     {
       id: 'clusterDispersion',
@@ -259,7 +290,7 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
       step: 0.01,
       onChange: (value) => setClusterDispersion(value),
       tooltip: 'Standard deviation of the clusters',
-      visible: isClusters && cluserType === ClusterTypes.Blobs && datasetType === 'classify'
+      visible: isClusters && cluserType === ClusterTypes.Blobs && problemType === 'classify' && dimensionality !== '1D'
     },
     {
       id: 'nInformative',
@@ -271,7 +302,7 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
       step: 1,
       onChange: (value) => updateFeatureCountsFromInf(value),
       tooltip: 'Number of informative features',
-      visible: !isClusters && datasetType === 'classify'
+      visible: !isClusters && problemType === 'classify' && dimensionality !== '1D'
     },
     {
       id: 'nRedundant',
@@ -283,26 +314,17 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
       step: 1,
       onChange: (value) => updateFeatureCountsFromRedn(value),
       tooltip: 'Number of redundant features',
-      visible: !isClusters && datasetType === 'classify'
+      visible: !isClusters && problemType === 'classify' && dimensionality !== '1D'
     },
     {
       id: 'dxr',
-        label: 'Generation Strategy',
+      label: 'Generation Strategy',
       type: 'select',
       value: regGenStrat,
-      options: [
-        { label: 'Linear', value: RegressionGenStrat.Linear },
-        { label: 'Non Linear Interactions', value: RegressionGenStrat.Friedman1 },
-        { label: 'Non Linear Division', value: RegressionGenStrat.Friedman2 },
-        { label: 'Non Linear Singularities', value: RegressionGenStrat.Friedman3 },
-        { label: 'Gaussian Mixture', value: RegressionGenStrat.GaussianRBF },
-        { label: 'Fourier Features', value: RegressionGenStrat.RFF },
-        { label: 'Sinusoidal Features', value: RegressionGenStrat.Sinusoidal },
-        { label: 'Gaussian Process', value: RegressionGenStrat.GP }
-      ],
+      options: regAlgorithms[dimensionality],
       onChange: (value) => updateRegressionStrat(value),
       tooltip: 'Select the generation strategy',
-      visible: datasetType === 'regress'
+      visible: problemType === 'regress'
     },
     {
       id: 'noise',
@@ -319,12 +341,12 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
   ];
   
   return (
-    <div className='flex flex-col h-full w-full justify-center items-center'>
+    <div className='flex-1 flex-col gap-4 items-center mt-4 justify-between'>
       <Settings controls={classficationSettings} />
-      <div className='flex flex-row justify-items-stretch gap-4'>
+      <div className='flex flex-row justify-items-stretch gap-4 mt-8'>
         <Button block type="primary" onClick={onBack}>Back</Button>
-        <Button block type="primary" onClick={onNext}>Next</Button>
         <Button block type="primary" onClick={() => onClickGenerate()}>Generate</Button>
+        <Button block type="primary" onClick={onNext}>Next</Button>
       </div>
     </div>
   );

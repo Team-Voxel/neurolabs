@@ -31,7 +31,8 @@ electron.contextBridge.exposeInMainWorld("fsAPI", {
   getAppPath: () => electron.ipcRenderer.invoke("get-app-path"),
   getExtension: (file) => electron.ipcRenderer.invoke("get-extension", file),
   getFileName: (file) => electron.ipcRenderer.invoke("get-file-name", file),
-  openFile: () => electron.ipcRenderer.invoke("dialog:openFile")
+  openFile: () => electron.ipcRenderer.invoke("dialog:openFile"),
+  getTempDatasetPath: () => electron.ipcRenderer.invoke("get-temp-dataset-path")
 });
 electron.contextBridge.exposeInMainWorld("wfStore", {
   loadAll: () => electron.ipcRenderer.invoke("wf-load-all"),

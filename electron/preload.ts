@@ -37,6 +37,7 @@ contextBridge.exposeInMainWorld('fsAPI', {
   getExtension: (file: string) => ipcRenderer.invoke('get-extension', file),
   getFileName: (file: string) => ipcRenderer.invoke('get-file-name', file),
   openFile: () => ipcRenderer.invoke('dialog:openFile'),
+  getTempDatasetPath: () => ipcRenderer.invoke('get-temp-dataset-path'),
 });
 
 

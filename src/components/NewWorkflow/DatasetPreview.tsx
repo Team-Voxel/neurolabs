@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Table, TableColumnsType, Tooltip, Typography } from 'antd';
 import { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
-import { Area, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from 'recharts';
-import { AreaChart, Treemap } from 'recharts';
+import { Area, BarChart, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { AreaChart, Treemap, Bar } from 'recharts';
 
 export interface DatasetPreviewProps {
     datasetSummary: DatasetSummary;
@@ -61,7 +61,7 @@ export const FeatureOverview: React.FC<DatasetPreviewProps> = ({
             <Table<DataSummaryEntry>
                 /* rowSelection={{ type: 'checkbox', ...rowSelection }} */
                 columns={columns}
-                dataSource={datasetSummary?.featureSummaries}
+                dataSource={datasetSummary?.featureSummaries}  
                 size='small'
                 pagination={false}
                 scroll={{ y: 40*5 }}
@@ -72,18 +72,26 @@ export const FeatureOverview: React.FC<DatasetPreviewProps> = ({
     );
 }
 
+{/* <Treemap
+    data={datasetSummary?.treeMapData}
+    dataKey="value"
+    stroke="#fff"
+>
+    <Tooltip></Tooltip>
+    <Legend></Legend>
+</Treemap> */}
 function renderChart(datasetSummary: DatasetSummary) {
     switch (datasetSummary?.targetSummary.type) {
         case 'Categorical':
             return (
-                <Treemap
-                    data={datasetSummary?.treeMapData}
-                    dataKey="value"
-                    stroke="#fff"
-                >
-                    <Tooltip></Tooltip>
-                    <Legend></Legend>
-                </Treemap>
+                <BarChart data={datasetSummary?.treeMapData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" label='Class' />
+                    <YAxis label='Percent' />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="value" fill="#8884d8" />
+                </BarChart>
             );
         case 'Numeric':
             const data = datasetSummary.targetKDEx?.map((xVal, i) => ({
@@ -132,7 +140,7 @@ export const TargetOverview: React.FC<{datasetSummary : DatasetSummary, visible 
                 </div>
                 <div className='flex flex-col w-3/4 h-full'>
                 <Typography.Title level={4}>Target Distribution</Typography.Title>
-                <ResponsiveContainer width='100%' height='80%'>
+                <ResponsiveContainer width='100%' height='100%'>
                 {renderChart(datasetSummary)}
                 </ResponsiveContainer>
                 </div>

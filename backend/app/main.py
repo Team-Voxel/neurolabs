@@ -8,6 +8,7 @@ from typing import List, Dict
 import pandas as pd
 import umap
 from data_analysis import generate_file_summary_report
+from data_generation import generate_and_save_data_return_stats
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -64,12 +65,14 @@ async def generate(config: Dict):
         "scatter": scatter_data
     })
 
+
 @app.post("/generate_dataset_preview")
 async def generate_dataset_preview(config: Dict):
-    
-    return JSONResponse(content={
-        "message": "Dataset preview generated successfully"
-    })
+    summary = generate_and_save_data_return_stats(config)
+    if summary is None:
+        raise HTTPException(status_code=404, detail="File not found or empty")
+    return JSONResponse(content=summary)
+
 
 class FilePathRequest(BaseModel):
     file_path: str

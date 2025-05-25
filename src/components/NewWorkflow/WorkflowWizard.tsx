@@ -28,12 +28,12 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   const [workflowName, setWorkflowName] = useState<string>('');
   const [nameError, setNameError] = useState<string>('Enter a name');
   const [csvFile, setCsvFile] = useState<File|null>(null);
-  const [dataSource, setDataSource] = useState<'file'|'generate'>('generate');
+  const [dataSource, setDataSource] = useState<'file'|'generate'>('file');
   const [dataSummary, setDataSummary] = useState<DatasetSummary | null>(null);
   const [columnHeaders, setColumnHeaders] = useState<ColumnHeaderItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [targetColumn, setTargetColumn] = useState<string | null>(null);
-  const [problemType, setProblemType] = useState<string>('classification');
+  const [problemType, setProblemType] = useState<string>('classify');
 
   const [wfs, setWfs] = useState<Workflow[]>([]);
 
@@ -86,7 +86,10 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   const handleFileChange = (file: File | null) => {
     setTargetColumn(null);
     setProblemType('auto');
-    
+    setColumnHeaders([]);
+    setCsvFile(file);
+    setDataSummary(null);
+
     if (file) {
 
       Papa.parse(file, {
@@ -112,12 +115,10 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
           setColumnHeaders([]);
         },
       });
+      return false; // Prevent auto-upload
 
-      setCsvFile(file);
-    } else {
-      setCsvFile(null);
-    }
-    return false; // Prevent auto-upload
+    } 
+    return true; // Allow auto-upload
   };
 
   const onDataGenerate = (data : DatasetSummary) => {
@@ -178,7 +179,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
       {step === SetupSteps.SelectFile && (
         <Splitter>
         {/* Left side : Selections */}
-        <Splitter.Panel min='30%' max='50%'>
+        <Splitter.Panel min='32%' max='50%' defaultSize={'32%'}>
         <div className='w-full h-full flex flex-col border p-4'>
           <div className='flex items-center'>
             <ToggleButtonGroup
@@ -226,10 +227,10 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
         <Splitter.Panel>
         {dataSummary && 
         <div className='w-full h-full flex flex-col'>
-            <div className='flex-1 h-1/2 w-full overflow-auto'>
+            <div className='flex max-h-1/2 w-full overflow-auto'>
                 <FeatureOverview datasetSummary={dataSummary} visible={true}/>
             </div>
-            <div className='flex h-1/2'>
+            <div className='flex-1 min-h-1/2'>
                 <TargetOverview datasetSummary={dataSummary} visible={true}/>
             </div>
         </div>

@@ -147,6 +147,18 @@ ipcMain.handle('dialog:openFile', async (event) => {
 });
 
 const DATA_PATH = path.join(app.getPath('userData'), 'workflows.json');
+const TEMP_DATASET_PATH = path.join(app.getPath('userData'), 'tempdata.csv');
+
+// Get temporary dataset path
+ipcMain.handle('get-temp-dataset-path', async () => {
+  // Ensure the temp dataset file exists
+  try {
+    await fs.stat(TEMP_DATASET_PATH);
+  } catch {
+    await fs.writeFile(TEMP_DATASET_PATH, '', 'utf-8');
+  }
+  return TEMP_DATASET_PATH;
+});
 
 // ensure the file exists
 async function ensureStore() {

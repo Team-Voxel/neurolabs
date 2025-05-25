@@ -17,6 +17,7 @@ declare global {
       joinPath: (...paths: string[]) => Promise<string>;
       resolvePath: (path: string) => Promise<string>;
       getExtension: (file: string) => Promise<string>;
+      getTempDatasetPath: () => Promise<string>;
     };
   }
 } 

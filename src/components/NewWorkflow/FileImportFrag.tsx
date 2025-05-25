@@ -64,8 +64,8 @@ export const FileImportFragment: React.FC<FileImportFragmentProps> = (
                     onChange={onSelectProblemType}
                     className="w-full settings-select"
                     options={[
-                        { value: 'classification', label: 'Classification' },
-                        { value: 'regression', label: 'Regression' },
+                        { value: 'classify', label: 'Classification' },
+                        { value: 'regress', label: 'Regression' },
                         { value: 'auto', label: 'Detect Automatically' }]}
                     size="middle"
                     />

@@ -13,21 +13,19 @@ def compute_feature_summaries(df : pd.DataFrame, target_column : str = None):
     summaries = []
     idx = 1
     for column in df.columns:
-        if column == target_column:
-            # Skip the target column if specified
-            continue
+        
         missing_percent = df[column].isnull().sum() * 100 / len(df)
-        if pd.api.types.is_numeric_dtype(df[column]):
+        if pd.api.types.is_numeric_dtype(df[column]) and df[column].nunique() >= 20:
             min = df[column].min()
             max = df[column].max()
             summaries.append({
                 'key': f'{idx}', 
-                'name': column, 
+                'name': f'{column} (Target)' if column == target_column else column, 
                 'type': 'Numeric', 
                 'missing_percent': f'{missing_percent:.2f}%', 
                 'central': f'Mean: {df[column].mean():.2f}', 
                 'dispersion': f'StdDev: {df[column].std():.2f}', 
-                'range': f'Min: {min:2} - Max: {max:.2f}'
+                'range': f'Min: {min:2f} - Max: {max:.2f}'
             })
         else:
             mode = df[column].mode()[0]
@@ -50,12 +48,14 @@ def target_column_summary(df : pd.DataFrame, target_column : str, problem_type :
     """
     Compute summary statistics for the target column in the DataFrame.
     """
+    
     if target_column not in df.columns:
         raise ValueError(f"Target column '{target_column}' not found in DataFrame.")
+    
     ttype = problem_type
-    if problem_type == 'classification':
+    if problem_type == 'classify':
         ttype = 'cls'
-    elif problem_type == 'regression':
+    elif problem_type == 'regress':
         ttype = 'reg'
     elif pd.api.types.is_numeric_dtype(df[target_column]):
         if df[target_column].nunique() < 20:
@@ -102,7 +102,7 @@ def target_column_summary(df : pd.DataFrame, target_column : str, problem_type :
         }, tree_map_data, None
 
 
-def generate_file_summary_report(file_path : str, target_column : str, problem_type : str):
+def generate_file_summary_report(file_path : str, target_column : str, problem_type : str) -> dict:
     """
     Generate a summary report for a given file path.
     """
@@ -116,6 +116,31 @@ def generate_file_summary_report(file_path : str, target_column : str, problem_t
 
     df, actions = basic_data_cleanup(df)
     
+    # Compute feature summaries and target column summary
+    feature_summaries = compute_feature_summaries(df, target_column)
+    taget_sum, arg1, arg2 = target_column_summary(df, target_column, problem_type)
+
+    summary = {
+        'featureSummaries': feature_summaries,
+        'targetSummary': taget_sum,
+        'targetKDEx': arg1,
+        'targetKDEy': arg2,
+        'treeMapData': arg1
+    }
+    
+    return summary
+
+
+def generate_df_summary(df : pd.DataFrame, target_column : str, problem_type : str) -> dict:
+    """
+    Generate a summary report for a given DataFrame.
+    """
+    if df.empty:
+        print("The DataFrame is empty. Please check the content.")
+        raise ValueError("The DataFrame is empty. Please check the content.")
+
+    df, actions = basic_data_cleanup(df)
+    print(f"Actions taken: {actions}")
     # Compute feature summaries and target column summary
     feature_summaries = compute_feature_summaries(df, target_column)
     taget_sum, arg1, arg2 = target_column_summary(df, target_column, problem_type)

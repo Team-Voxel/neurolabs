@@ -48,31 +48,31 @@ def basic_data_cleanup(df: pd.DataFrame) -> pd.DataFrame:
         nu = df[col].nunique(dropna=False)
         ec = df[col].isna().sum()
 
-        # all unique values (no duplicates)
-        if nu == df.shape[0]:
+        # all unique values (no duplicates) only if categorical (string or integer)
+        if nu == df.shape[0] and (pd.api.types.is_categorical_dtype(df[col]) or nu < 20):
             to_drop.append(col)
+            actions[col] = ["error", "Unique prediction column."]
             """ if col != GLOBAL_PREDICTION_VECTOR:
                 actions[col].append(["drop", col, "Unique column."])
             else:
-                actions[col] = ["error", "Unique prediction column."]
             continue """
 
         # all missing values / empty column
         if ec == df.shape[0]:
             to_drop.append(col)
+            actions[col] = ["error", "Empty prediction column."]
             """ if col != GLOBAL_PREDICTION_VECTOR:
                 actions[col].append(["drop", col, "Empty column."])
             else:
-                actions[col] = ["error", "Empty prediction column."]
             continue
  """
         # zero variability
         if nu == 1:
             to_drop.append(col)
+            actions[col] = ["error", "Empty prediction column."]
             """ if col != GLOBAL_PREDICTION_VECTOR:
                 actions[col].append(["drop", col, "Column has zero variability."])
             else:
-                actions[col] = ["error", "Empty prediction column."]
             continue """
 
     # ensure at least one feature besides prediction remains
