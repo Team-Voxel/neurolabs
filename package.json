@@ -4,12 +4,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-  "dev": "vite",
-  "dev:python": "python ./backend/app/main.py",
-  "both": "concurrently -n VITE,PY -c cyan,yellow \"npm run dev\" \"npm run dev:python\"",
-  "build": "tsc && vite build && electron-builder",
-  "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-  "preview": "vite preview"
+    "dev": "vite",
+    "dev:python": "python ./backend/app/main.py",
+    "both": "concurrently -n VITE,PY -c cyan,yellow \"npm run dev\" \"npm run dev:python\"",
+    "build": "tsc && vite build && electron-builder",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -24,6 +24,7 @@
     "@tailwindcss/vite": "^4.0.17",
     "@xyflow/react": "^12.5.5",
     "antd": "^5.25.1",
+    "apexcharts": "^4.7.0",
     "axios": "^1.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -32,6 +33,7 @@
     "papaparse": "^5.5.2",
     "plotly.js-dist-min": "^3.0.1",
     "react": "^18.3.1",
+    "react-apexcharts": "^1.7.0",
     "react-dnd": "^16.0.1",
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^18.3.1",

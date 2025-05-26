@@ -1,75 +1,37 @@
-// DatasetViewer.tsx
-
 import React, { useEffect, useState } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { fetchDataset } from "./api";
+import { fetchDataset, fetchUnpervisedModelOutput, requestAutoEDA } from "./api";
 import { TableColumn, TableRow, ScatterPoint } from "./types";
-import { ToggleButtonGroup, ToggleButton } from "@mui/material";
 
-const DatasetViewer: React.FC = () => {
-  const [columns, setColumns] = useState<TableColumn[]>([]);
-  const [rows, setRows] = useState<TableRow[]>([]);
-  const [scatterData, setScatterData] = useState<ScatterPoint[]>([]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const config = { n_samples: 100, n_features: 2, n_informative: 2, random_state: 3 };
-        const data = await fetchDataset(config);
-        setColumns(data.table.columns);
-        setRows(data.table.rows);
-        setScatterData(data.scatter);
-      } catch (err) {
-        console.error("Failed to fetch dataset:", err);
-      }
-    };
 
-    loadData();
-  }, []);
+// Show 2D and 3D dimensionality reduction visualizations for ( 3+ reg, 4+ class)
+// Cases:
+// Case 1: Problem - Regression, Features - 1 => Single Line Plot (X, y)
+// Case 2: Problem - Regression, Features - 2 => Surface Plot (X1, X2, y)
+// Case 3: Problem - Regression, Features - 3+ => DimRed2D and default to case 2 or DimRed1D and default to case 1
+// Case 4: Problem - Classification, Features - 1 => XY Dot Plot (X, y (classes))
+// Case 5: Problem - Classification, Features - 2 => 2D Scatter Plot (X1, X2, color by class)
+// Case 6: Problem - Classification, Features - 3 => 3D Scatter Plot (X1, X2, X3, color by class)
+// Case 7: Problem - Classification, Features - 4+ => DimRed3D and default to case 6 or DimRed2D and default to case 5
 
-  const [source, setSource] = React.useState<string>('table');
-  const handleChange = (
-      event: React.MouseEvent<HTMLElement>,
-      newSource: string,
-  ) => {
-      setSource(newSource);
-  };
+export interface VisualModelProps {
+  problem : ('regress' | 'classify');
+  features: number;
+}
+
+export const VisualModel: React.FC<VisualModelProps> = ({problem, features}) => {
+  let cc = 1; // This should be determined based on the problem and features
+  if (problem === 'regress' && features === 1) cc = 1;
+  else if (problem === 'regress' && features === 2) cc = 2;
+  else if (problem === 'regress' && features >= 3) cc = 3;
+  else if (problem === 'classify' && features === 1) cc = 4;
+  else if (problem === 'classify' && features === 2) cc = 5;
+  else if (problem === 'classify' && features === 3) cc = 6;
+  else if (problem === 'classify' && features >= 4) cc = 7;
+  else cc = -1;
 
   return (
-      <div className="flex flex-col w-full h-full overflow-y-auto bg-white space-y-2">
-          <ToggleButtonGroup
-              color="primary"
-              value={source}
-              exclusive
-              onChange={handleChange}
-              aria-label="Platform"
-              size="small"
-              fullWidth
-          >
-              <ToggleButton fullWidth value={"table"} aria-label="import">Table</ToggleButton>
-              <ToggleButton fullWidth value={"stats"} aria-label="import">Statistics</ToggleButton>
-              <ToggleButton fullWidth value={"visual"} aria-label="import">Visualize</ToggleButton>
-              <ToggleButton fullWidth value={"dist"} aria-label="generate">Distribution</ToggleButton>
-              <ToggleButton fullWidth value={"corr"} aria-label="generate">Correlation</ToggleButton>
-          </ToggleButtonGroup>
-          {source === "table" && (
-              <div style={{ flex: 1, height: 500 }}>
-                  <DataGrid rows={rows} columns={columns} />
-              </div>
-          )}
-          {source === "dist" && (
-              <ResponsiveContainer width="95%" height="95%">
-              <ScatterChart>
-                  <XAxis dataKey="x" name="UMAP-1" />
-                  <YAxis dataKey="y" name="UMAP-2" />
-                  <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                  <Scatter name="UMAP Projection" data={scatterData} fill="#8884d8" />
-              </ScatterChart>
-              </ResponsiveContainer>
-          )}
-      </div>
+      
   );
 };
-
-export default DatasetViewer;

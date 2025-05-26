@@ -1,4 +1,5 @@
 import {create} from 'zustand';
+import type { EDAData } from './backend_api/types';
 
 export enum ModelType {
   LINEAR_REG = 0,
@@ -57,8 +58,8 @@ export interface AppState {
   removeNyName: (id: string) => Promise<void>
   setCurrent: (wf?: Workflow) => void
   setCurrentByName: (name: string) => void
-
   getByName: (name: string) => Workflow | undefined;
+  getPCDFile: () => Promise<EDAData>;
 }
 
 export const useWorkflowStore = create<AppState>((set, get) => ({
@@ -125,4 +126,11 @@ export const useWorkflowStore = create<AppState>((set, get) => ({
   getByName: (name) => {
     return get().workflows.find((w) => w.name === name);
   },
+
+  getPCDFile: (): Promise<EDAData> => {
+    return window.wfStore.getPCDFile(get().current!.name).then((file) => {
+      if (!file) throw new Error(`PCD file not found for workflow: ${get().current!.name}`);
+      return file;
+    });
+  }
 }))

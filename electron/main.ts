@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { exit } from 'node:process'
 import { Workflow } from '../src/AppState'
+import { EDAData } from '../src/backend_api/types';
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -236,5 +237,22 @@ ipcMain.handle('wf-get-workflow-dir', async (_e, name: string) => {
       console.error('Error creating directory:', error);
       throw new Error(`Failed to create directory for workflow ${name}`);
     }
+  }
+});
+
+
+ipcMain.handle('wf-get-pcd-file', async (_e, name: string) => {
+  await ensureStore();
+  const raw = await fs.readFile(DATA_PATH, 'utf-8');
+  const all: Workflow[] = JSON.parse(raw);
+  const wf = all.find(x => x.name === name);
+  if (wf) {
+    // read the EDA file from the workflow directory
+    const pcdfile_path = path.join(app.getPath('userData'), wf.name, 'eda.json');
+    const raw_bytes = await fs.readFile(pcdfile_path, 'utf-8');
+    const data : EDAData = JSON.parse(raw_bytes);
+    return data;
+  } else {
+    throw new Error(`Workflow ${name} not found`);
   }
 });

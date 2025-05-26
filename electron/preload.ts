@@ -1,5 +1,6 @@
 import { ipcRenderer, contextBridge } from 'electron'
 import { Workflow, UserModel } from '../src/AppState'
+import { EDAData } from '../src/backend_api/types'
 
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
@@ -47,4 +48,5 @@ contextBridge.exposeInMainWorld('wfStore', {
   deleteOne: (id: string): Promise<Workflow[]> => ipcRenderer.invoke('wf-delete-one', id),
   loadModels: (name: string): Promise<UserModel[]> => ipcRenderer.invoke('wf-get-models', name),
   getWfDir: (name: string): Promise<string> => ipcRenderer.invoke('wf-get-workflow-dir', name),
+  getPCDFile: (name: string): Promise<EDAData> => ipcRenderer.invoke('wf-get-pcd-file', name),
 });

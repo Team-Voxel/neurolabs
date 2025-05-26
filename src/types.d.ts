@@ -1,4 +1,5 @@
 import { Workflow, UserModel } from './AppState';
+import { EDAData } from './backend_api/types';
 
 declare global {
   interface Window {
@@ -8,6 +9,7 @@ declare global {
       deleteOne(name: string): Promise<Workflow[]>;
       getModels(name: string): Promise<UserModel[]>;
       getWfDir: (name: string) => Promise<string>;
+      getPCDFile: (name: string) => Promise<EDAData>;
     };
     fsAPI: {
       readFile: (path: string) => Promise<string>;
