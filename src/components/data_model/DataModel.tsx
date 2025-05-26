@@ -28,16 +28,20 @@ export const DataModel: React.FC = () => {
                 <ToggleButton fullWidth value={"visual"} aria-label="import">Visualize</ToggleButton>
             </ToggleButtonGroup>
             {source === "ov" && (
-                <DFOverviewModel />
+                //<DFOverviewModel />
+                <></>
             )}
             {source === "dist" && (
-                <DistributionModel />
+                //<DistributionModel />
+                <></>
             )}
             {source === "rels" && (
-                <RelationsModel />
+                //<RelationsModel />
+                <></>
             )}
             {source === "visual" && (
-                <VisualModel />
+                //<VisualModel />
+                <></>
             )}
         </div>
     );

@@ -32,6 +32,6 @@ export const VisualModel: React.FC<VisualModelProps> = ({problem, features}) => 
   else cc = -1;
 
   return (
-      
+      <></>
   );
 };
