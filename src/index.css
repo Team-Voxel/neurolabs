@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@tailwind base;
-@tailwind components;
+/* @tailwind base;
+@tailwind components; */
 @tailwind utilities;
 
 /*  ---break--- */
@@ -203,6 +203,16 @@ button:focus-visible {
   clip-path: polygon(50% 50%, 0 0, calc(50% - 50% * cos(calc(var(--theta) * 1deg))) calc(50% - 50% * sin(calc(var(--theta) * 1deg))), 50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 0);
 }
 
+
+/* Particle canvas sizing */
+#tsparticles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
 /*  ---break--- */
 
 @theme inline {
