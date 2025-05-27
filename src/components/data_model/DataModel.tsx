@@ -2,9 +2,17 @@ import React, {useState} from "react";
 import {VisualModel} from "./VisualModel";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { Table } from "antd";
+import { DFOverviewModel } from "./DFOverviewModel";
+import { DistributionModel } from "./DistributionModel";
+import { RelationsModel } from "./RelationsModel";
+
 
 export const DataModel: React.FC = () => {
     const [source, setSource] = React.useState<string>('generate');
+    const [model, setModel] = React.useState<string>('overview');
+    const [features, setFeatures] = React.useState<number>(1);
+    const [problem, setProblem] = React.useState<'regress' | 'classify'>('regress');
+
     const handleChange = (
         event: React.MouseEvent<HTMLElement>,
         newSource: string,
@@ -28,20 +36,16 @@ export const DataModel: React.FC = () => {
                 <ToggleButton fullWidth value={"visual"} aria-label="import">Visualize</ToggleButton>
             </ToggleButtonGroup>
             {source === "ov" && (
-                //<DFOverviewModel />
-                <></>
+                <DFOverviewModel />
             )}
             {source === "dist" && (
-                //<DistributionModel />
-                <></>
+                <DistributionModel />
             )}
             {source === "rels" && (
-                //<RelationsModel />
-                <></>
+                <RelationsModel />
             )}
             {source === "visual" && (
-                //<VisualModel />
-                <></>
+                <VisualModel problem={problem} features={features} />
             )}
         </div>
     );

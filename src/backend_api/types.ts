@@ -43,6 +43,8 @@ export interface DFContDist{
   q1: number;
   q2: number;
   q3: number;
+  outliers_lower: number;
+  outliers_upper: number;
 }
 
 export interface DFDiscreteDist {
@@ -50,8 +52,13 @@ export interface DFDiscreteDist {
   uniqueValues: number;
   mode: string;
   modeCount: number;
-  valueCounts: { [key: string]: number };
+  valueCounts: { [column: string]: number };
 }
+
+export interface DFDistribution {
+  type: 'continuous' | 'discrete';
+  spec: {[column: string]: (DFContDist | DFDiscreteDist)};
+};
 
 export interface DFRelationship {
   correlationPearson: {[key: string]: any};
