@@ -180,6 +180,20 @@ ipcMain.handle("wf-get-workflow-dir", async (_e, name) => {
     }
   }
 });
+ipcMain.handle("wf-get-pcd-file", async (_e, name) => {
+  await ensureStore();
+  const raw = await fs.readFile(DATA_PATH, "utf-8");
+  const all = JSON.parse(raw);
+  const wf = all.find((x) => x.name === name);
+  if (wf) {
+    const pcdfile_path = path.join(app.getPath("userData"), wf.name, "eda.json");
+    const raw_bytes = await fs.readFile(pcdfile_path, "utf-8");
+    const data = JSON.parse(raw_bytes);
+    return data;
+  } else {
+    throw new Error(`Workflow ${name} not found`);
+  }
+});
 export {
   MAIN_DIST,
   RENDERER_DIST,
