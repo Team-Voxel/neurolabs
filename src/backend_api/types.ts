@@ -20,6 +20,7 @@ export interface DatasetSummary {
     targetKDEx?: number[];
     targetKDEy?: number[];
     treeMapData?: {name : string, value : number}[];
+    problemType?: string;
 }
 
 export interface DFStats {
@@ -32,7 +33,8 @@ export interface DFStats {
   sampleData: { [key: string]: number[] };
 }
 
-export interface DFContDist{
+// Interface for the statistical properties of a continuous numeric column
+export interface ContinuousDistribution {
   type: 'continuous';
   mean: number;
   std: number;
@@ -41,35 +43,41 @@ export interface DFContDist{
   min: number;
   max: number;
   q1: number;
-  q2: number;
+  q2: number; // Median
   q3: number;
-  outliers_lower: number;
-  outliers_upper: number;
+  outliers_lower: number; // Calculated using IQR
+  outliers_upper: number; // Calculated using IQR
 }
 
-export interface DFDiscreteDist {
+// Interface for the statistical properties of a discrete or non-numeric column
+export interface DiscreteDistribution {
   type: 'discrete';
-  uniqueValues: number;
-  mode: string;
-  modeCount: number;
-  valueCounts: { [column: string]: number };
+  unique_values: number;
+  mode: string | number | boolean | null; // Mode can be various types
+  mode_count: number;
+  // value_counts in Python is a dict where keys are values and values are their normalized frequencies.
+  // In TS, this translates to a record where keys are string representations of values and values are numbers.
+  // We use `string` for keys because JS object keys are always strings, even if the original Python key was a number.
+  value_counts: Record<string, number>;
 }
 
-export interface DFDistribution {
-  type: 'continuous' | 'discrete';
-  spec: {[column: string]: (DFContDist | DFDiscreteDist)};
-};
+// The main interface for the entire 'distributions' object
+// It's a record where keys are column names (strings)
+// and values can be either ContinuousDistribution or DiscreteDistribution.
+export interface ColumnDistributions {
+  [columnName: string]: ContinuousDistribution | DiscreteDistribution;
+}
 
 export interface DFRelationship {
-  correlationPearson: {[key: string]: any};
-  correlationSpearman: {[key: string]: any};
+  correlationPearson: {[column: string]: any};
+  correlationSpearman: {[column: string]: any};
   highCorrelationFeatures: string[];
   interactions: string[];
-  featureImportance: {[key: string]: number};
+  featureImportance: {[feature: string]: number};
 }
 
 export interface EDAData {
   statistics : DFStats;
-  distributions: {[key : string]: (DFContDist | DFDiscreteDist)};
+  distributions: ColumnDistributions;
   relationships: DFRelationship;
 };

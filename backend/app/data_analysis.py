@@ -4,6 +4,7 @@ import umap
 import numpy as np
 from scipy.stats import gaussian_kde
 from data_cleanup import basic_data_cleanup
+from safe_csv import safe_read_csv
 
 
 def compute_feature_summaries(df : pd.DataFrame, target_column : str = None):
@@ -82,7 +83,7 @@ def target_column_summary(df : pd.DataFrame, target_column : str, problem_type :
             'central': f'Mean: {df[target_column].mean():.2f}',
             'dispersion': f'StdDev: {df[target_column].std():.2f}',
             'range': f'Min: {min:.2f} - Max: {max:.2f}',
-        }, x.tolist() , y.tolist()
+        }, x.tolist() , y.tolist(), ('regress' if ttype == 'reg' else 'classify')
     else:
         mode = df[target_column].mode()[0]
         unique_count = df[target_column].nunique()
@@ -99,7 +100,7 @@ def target_column_summary(df : pd.DataFrame, target_column : str, problem_type :
             'central': f"Mode: '{mode}'",
             'dispersion': f'UniqueCount: {unique_count}',
             'range': f'ModeFreq: {mode_freq:.1f}%',
-        }, tree_map_data, None
+        }, tree_map_data, None, ('regress' if ttype == 'reg' else 'classify')
 
 
 def generate_file_summary_report(file_path : str, target_column : str, problem_type : str) -> dict:
@@ -107,7 +108,7 @@ def generate_file_summary_report(file_path : str, target_column : str, problem_t
     Generate a summary report for a given file path.
     """
     # Read the dataset
-    df = pd.read_csv(file_path)
+    df = safe_read_csv(file_path)
 
     # Check if the DataFrame is empty
     if df.empty:
@@ -118,14 +119,15 @@ def generate_file_summary_report(file_path : str, target_column : str, problem_t
     
     # Compute feature summaries and target column summary
     feature_summaries = compute_feature_summaries(df, target_column)
-    taget_sum, arg1, arg2 = target_column_summary(df, target_column, problem_type)
+    taget_sum, arg1, arg2, problem_type = target_column_summary(df, target_column, problem_type)
 
     summary = {
         'featureSummaries': feature_summaries,
         'targetSummary': taget_sum,
         'targetKDEx': arg1,
         'targetKDEy': arg2,
-        'treeMapData': arg1
+        'treeMapData': arg1,
+        'problemType': problem_type
     }
     
     return summary
@@ -140,7 +142,7 @@ def generate_df_summary(df : pd.DataFrame, target_column : str, problem_type : s
         raise ValueError("The DataFrame is empty. Please check the content.")
 
     df, actions = basic_data_cleanup(df)
-    print(f"Actions taken: {actions}")
+    
     # Compute feature summaries and target column summary
     feature_summaries = compute_feature_summaries(df, target_column)
     taget_sum, arg1, arg2 = target_column_summary(df, target_column, problem_type)

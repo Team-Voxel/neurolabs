@@ -14,38 +14,7 @@ import umap
 from typing import Dict, List, Tuple
 import csv
 from io import StringIO
-
-
-def detect_csv_parameters(file_path: str) -> Dict:
-    """
-    Automatically detect CSV file parameters including delimiter and quote character.
-    Returns a dictionary with parameters to use with pd.read_csv
-    """
-    # Read a sample of the file
-    with open(file_path, 'r', encoding='utf-8') as f:
-        sample = ''.join(f.readline() for _ in range(5))  # Read first 5 lines
-    
-    # Use csv.Sniffer to detect parameters
-    sniffer = csv.Sniffer()
-    dialect = sniffer.sniff(sample)
-    has_header = sniffer.has_header(sample)
-    
-    return {
-        'delimiter': dialect.delimiter,
-        'quotechar': dialect.quotechar if dialect.quoting != csv.QUOTE_NONE else None,
-        'header': 0 if has_header else None
-    }
-
-def safe_read_csv(file_path: str) -> pd.DataFrame:
-    """
-    Safely read a CSV file with automatic parameter detection
-    """
-    try:
-        params = detect_csv_parameters(file_path)
-        return pd.read_csv(file_path, **params)
-    except Exception as e:
-        # Fallback to default pandas read_csv if detection fails
-        return pd.read_csv(file_path)
+from safe_csv import safe_read_csv
 
 
 def create_simplified_df_for_unsupervised_clustering(config : Dict):
@@ -82,7 +51,9 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
     # Drop target column if it exists
     df_viz: pd.DataFrame = df_viz.drop(columns=[config.get('target')], errors='ignore')
 
-    df_viz.to_csv(config['unsupervised_clustering_path'], index=False)
+    unsupervised_clustering_path = config.get('wfDir', '') + '\\data_usc.csv'
+
+    df_viz.to_csv(unsupervised_clustering_path, index=False)
     return True
 
 
@@ -122,7 +93,8 @@ def unsupervised_clustering(config : Dict):
     """
     Perform clustering on the data specified in config
     """
-    df = safe_read_csv(config['unsupervised_clustering_path'])
+    unsupervised_clustering_path = config.get('wfDir', '') + '\\data_usc.csv'
+    df = safe_read_csv(unsupervised_clustering_path)
     if len(df) == 0:
         raise ValueError("The DataFrame has no rows. Please check the data path and content.")
 
@@ -274,7 +246,7 @@ def compute_relationships(config : Dict):
     """
     Compute relationships between features in the dataset.
     """
-    df = pd.read_csv(config['data_path'])
+    df = safe_read_csv(config['data_path'])
 
     if df.empty:
         raise ValueError("The DataFrame is empty. Please check the data path and content.")
@@ -329,7 +301,7 @@ def compute_distributions(config : Dict):
     Compute box plots for numerical (continuous) features and
     compute stacked bar charts for categorical (discrete numeric) features.
     """
-    df = pd.read_csv(config['data_path'])
+    df = safe_read_csv(config['data_path'])
 
     if df.empty:
         raise ValueError("The DataFrame is empty. Please check the data path and content.")
@@ -358,7 +330,7 @@ def compute_distributions(config : Dict):
         else:
             distributions[column] = {
                 'type': 'discrete',
-                'unique_values': float(df[column].nunique()),
+                'unique_values': int(df[column].nunique()),
                 'mode': f'{df[column].mode()[0]}',
                 'mode_count': int(df[column].value_counts().iloc[0]),
                 'value_counts': df[column].value_counts(normalize=True).to_dict()
@@ -370,7 +342,6 @@ def compute_distributions(config : Dict):
 '''
 config_example = {
     'data_path': 'path/to/your/data.csv',
-    'stat_path': 'stat_path.json',
     'problem_type': 'regression',  # or 'classification'
     'target': 'target_column_name',  # Optional, only for supervised tasks
     'n_samples': 1000,  # Number of samples to use
@@ -387,7 +358,7 @@ def compute_and_save_dataset_stats(config : Dict):
         distributions = compute_distributions(config)
         relations = compute_relationships(config)
 
-        save_location = config.get('stat_path', 'dataset_stats.json')
+        save_location = config.get('wfDir', '') + '\\edadata.json'
         import json
         # Ensure the directory exists
         import os
@@ -435,9 +406,20 @@ def compute_and_store_dim_redux(config : Dict):
         return False
     
 
+def compute_stats_and_dim_redux(config : Dict):
+    try:
+        stats = compute_and_save_dataset_stats(config)
+        dim_redux = compute_and_store_dim_redux(config)
+        return stats and dim_redux
+    except Exception as e:
+        print(f"Error computing and storing stats and dimensionality reduction: {e}")
+        return False
+
+
+
+""" 
 config_example = {
     'data_path': 'C:\\Users\\Tharuka\\Downloads\\winequality-white.csv',
-    'stat_path': 'C:\\Users\\Tharuka\\Downloads\\test\\stat_path.json',
     'problem_type': 'regression',  # or 'classification'
     'target': 'target_column_name',  # Optional, only for supervised tasks
     'n_samples': 1000,  # Number of samples to use
@@ -447,3 +429,4 @@ config_example = {
 
 
 compute_and_store_dim_redux(config_example)
+ """

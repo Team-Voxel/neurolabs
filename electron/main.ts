@@ -248,7 +248,7 @@ ipcMain.handle('wf-get-pcd-file', async (_e, name: string) => {
   const wf = all.find(x => x.name === name);
   if (wf) {
     // read the EDA file from the workflow directory
-    const pcdfile_path = path.join(app.getPath('userData'), wf.name, 'eda.json');
+    const pcdfile_path = path.join(app.getPath('userData'), wf.name, 'edadata.json');
     const raw_bytes = await fs.readFile(pcdfile_path, 'utf-8');
     const data : EDAData = JSON.parse(raw_bytes);
     return data;

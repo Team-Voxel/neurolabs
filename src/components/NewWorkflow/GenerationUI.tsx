@@ -108,12 +108,12 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
   const [nSamples, setNSamples] = useState<number>(10000);
   const [randomState, setRandomState] = useState<number>(3);
   const [noise, setNoise] = useState<number>(1.0);
-  const [wfDir, setWfDir] = useState<string>('');
+  const [tempDataFile, setTempDataFile] = useState<string>('');
 
   const [regGenStrat, setRegGenStrat] = useState<RegressionGenStrat>(RegressionGenStrat.Linear);
 
   window.fsAPI.getTempDatasetPath().then((tempDataLoc) => {
-    setWfDir(tempDataLoc);
+    setTempDataFile(tempDataLoc);
   });
   
   const onClickGenerate = () => {
@@ -133,7 +133,7 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
           cluster_dispersion: clusterDispersion,
           reg_gen_strat: regGenStrat,
           dimensionality: dimensionality,
-          wfDir : wfDir,
+          wfDir : tempDataFile,
         };
         const data = await generateDatasetPreview(config);
         onGenerate(data);

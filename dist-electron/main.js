@@ -186,7 +186,7 @@ ipcMain.handle("wf-get-pcd-file", async (_e, name) => {
   const all = JSON.parse(raw);
   const wf = all.find((x) => x.name === name);
   if (wf) {
-    const pcdfile_path = path.join(app.getPath("userData"), wf.name, "eda.json");
+    const pcdfile_path = path.join(app.getPath("userData"), wf.name, "edadata.json");
     const raw_bytes = await fs.readFile(pcdfile_path, "utf-8");
     const data = JSON.parse(raw_bytes);
     return data;

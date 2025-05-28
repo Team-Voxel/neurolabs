@@ -78,6 +78,7 @@ def basic_data_cleanup(df: pd.DataFrame) -> pd.DataFrame:
     # ensure at least one feature besides prediction remains
     feature_count = len(df.columns) - len(to_drop) - 1
     if feature_count == 0:
+        print('actions', actions)
         raise ValueError("No features left after basic data cleanup")
 
     # drop flagged columns

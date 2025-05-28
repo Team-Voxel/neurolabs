@@ -8,6 +8,7 @@ import { WorkflowSelection } from './components/WorkflowSelection';
 import SortablePipeline from './components/SortablePipeline';
 import { WorkflowWizard } from './components/NewWorkflow/WorkflowWizard';
 import  MainNavigation from './components/MainNavigation';
+import WaitForComputation from './components/NewWorkflow/WaitForComputation';
 
 // Extend the Window interface to include electronAPI
 declare global {
@@ -32,6 +33,7 @@ return (
       <Route path="/sandbox" element={<MainNavigation/>} />
       <Route path="/explore" element={<div>Explore</div>} />
       <Route path="/settings" element={<div>Settings</div>} />
+      <Route path="/wait-screen" element={<WaitForComputation/>} />
     </Routes>
   </HashRouter>
 );
