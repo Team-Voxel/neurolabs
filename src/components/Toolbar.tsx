@@ -25,7 +25,7 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
 }) => {
   return (
     <div className="relative group">
-      <button
+      <div
         className={`
           w-10 h-10 rounded-md flex items-center justify-center
           ${disabled
@@ -36,22 +36,16 @@ const ToolbarButton: React.FC<ToolbarButtonProps> = ({
           focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2
         `}
         onClick={onClick}
-        disabled={disabled}
         aria-label={label}
       >
         {icon}
-      </button>
+      </div>
       
       {/* Tooltip */}
-      <div
-        className={`
-          absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1
-          text-xs font-medium text-white bg-gray-800 rounded
-          opacity-0 group-hover:opacity-100 pointer-events-none
-          transition-opacity duration-300 delay-300 whitespace-nowrap
-        `}
-        role="tooltip"
-      >
+      <div className="absolute top-full mt-2 px-2 py-1 bg-gray-800 text-white text-sm rounded
+                    opacity-0 group-hover:opacity-100 pointer-events-none
+                    transform -translate-y-1 group-hover:translate-y-0
+                    transition-all duration-200 whitespace-nowrap z-50">
         {label}
       </div>
     </div>

@@ -4,6 +4,8 @@ import { Home, Database, Brain, Cpu } from 'lucide-react';
 import Canvas from "./nodes/Canvas";
 import { DataModel } from './data_model/DataModel';
 import { ReactFlowProvider } from "@xyflow/react";
+import { NNModel } from './modelling/NNModel';
+import { ModelContext } from './modelling/ModelContext';
 
 interface NavButtonProps {
   icon: React.ReactNode;
@@ -21,12 +23,12 @@ const NavButton: React.FC<NavButtonProps> = ({
   isHome = false,
 }) => {
   return (
-    <button
+    <div
       onClick={onClick}
       className={`
         relative group w-full flex items-center justify-center
         ${isHome ? 'h-[60px]' : 'h-[48px]'}
-        ${isSelected ? 'bg-gray-200' : 'hover:bg-gray-300'}
+        ${isSelected ? 'bg-gray-400' : 'hover:bg-gray-300'}
         transition-colors duration-200
       `}
       aria-label={tooltip}
@@ -40,7 +42,7 @@ const NavButton: React.FC<NavButtonProps> = ({
                     transition-all duration-200 whitespace-nowrap z-50">
         {tooltip}
       </div>
-    </button>
+    </div>
   );
 };
 
@@ -61,14 +63,10 @@ const MainNavigation: React.FC = () => {
         );
       case 1:
         return (
-            <>
-                <ReactFlowProvider>
-                <Canvas />
-                </ReactFlowProvider>
-            </>
+            <ModelContext/>
         );
       case 2:
-        return <div className="p-6"><h1 className="text-2xl font-bold">Inference Settings</h1></div>;
+        return <NNModel/>;
       default:
         return <div className="p-6"><h1 className="text-2xl font-bold">Select a tab</h1></div>;
     }

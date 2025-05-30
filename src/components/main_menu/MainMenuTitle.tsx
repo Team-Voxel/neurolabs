@@ -12,7 +12,8 @@ const MainMenuTitle: React.FC<MainMenuTitleProps> = ({ title }) => {
           {title}
         </h1>
       </div>
-      <div className="mt-2 h-1 w-20 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 rounded-full"></div>
+      {/* underline design */}
+      <div className="mt-2 h-1 w-40 bg-gradient-to-r from-gray-700 to-gray-800 flex rounded-full"></div>
     </div>
   );
 };
