@@ -90,12 +90,13 @@ const regAlgorithms = {
 }
 
 interface DataGenerationProps {
+    onSendRequest: () => void;
     onGenerate: (data: DatasetSummary) => void;
     onBack: () => void;
     onNext: () => void;
 }
 
-export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBack, onNext}) => {
+export const DataGeneration : React.FC<DataGenerationProps> = ({onSendRequest, onGenerate, onBack, onNext}) => {
   const [problemType, setProblemType] = useState<'classify' | 'regress'>('classify');
   const [isClusters, setIsClusters] = useState<boolean>(true);
   const [cluserType, setClusterType] = useState<ClusterTypes>(ClusterTypes.Blobs);
@@ -135,6 +136,7 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
           dimensionality: dimensionality,
           wfDir : tempDataFile,
         };
+        onSendRequest();
         const data = await generateDatasetPreview(config);
         onGenerate(data);
       } catch (err) {

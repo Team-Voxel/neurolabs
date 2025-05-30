@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Table, TableColumnsType, Tooltip, Typography } from 'antd';
-import { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
+import type { ColumnsType } from 'antd/es/table';
+import type { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
 import { Area, BarChart, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import { AreaChart, Treemap, Bar } from 'recharts';
+import { X } from 'lucide-react';
 
 export interface DatasetPreviewProps {
     datasetSummary: DatasetSummary;
@@ -12,32 +14,64 @@ export interface DatasetPreviewProps {
     visible: boolean;
 }
 
-const columns: TableColumnsType<DataSummaryEntry> = [
-  {
-    title: 'Feature Name',
-    dataIndex: 'name',
-  },
-  {
-    title: 'Type',
-    dataIndex: 'type',
-  },
-  {
-    title: 'Missing %',
-    dataIndex: 'missing_percent',
-  },
-  {
-    title: 'Cntral Tendency',
-    dataIndex: 'central',
-  },
-  {
-    title: 'Dispersion',
-    dataIndex: 'dispersion',
-  },
-  {
-    title: 'Data Range',
-    dataIndex: 'range',
+
+export function getColumns(): ColumnsType<DataSummaryEntry> {
+    return [
+      {
+        title: 'Feature Name',
+        dataIndex: 'name',
+        key: 'name',
+      },
+      {
+        title: 'Type',
+        dataIndex: 'type',
+        key: 'type',
+      },
+      {
+        title: 'Distribution',
+        key: 'dist',
+        width: 200,
+        render: (_, record) => {return (
+            <div
+                style={{
+                    width: '100%',
+                    height: '80px',
+                    padding: 0,
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1px dashed #d9d9d9',
+                }}
+            >
+            <ResponsiveContainer width="100%" height="100%">
+                {renderChart(record)}
+            </ResponsiveContainer>
+            </div>
+            )},
+      },
+      {
+        title: 'Missing (%)',
+        dataIndex: 'missing_percent',
+        key: 'missing',
+      },
+      {
+        title: 'Central Tendency',
+        dataIndex: 'central',
+        key: 'central',
+      },
+      {
+        title: 'Dispersion',
+        dataIndex: 'dispersion',
+        key: 'dispersion',
+      },
+      {
+        title: 'Data Range',
+        dataIndex: 'range',
+        key: 'range',
+      },
+    ];
   }
-];
 
 export const FeatureOverview: React.FC<DatasetPreviewProps> = ({ 
     datasetSummary,
@@ -60,11 +94,10 @@ export const FeatureOverview: React.FC<DatasetPreviewProps> = ({
             <Typography.Title level={4}>Feature Overview</Typography.Title>
             <Table<DataSummaryEntry>
                 /* rowSelection={{ type: 'checkbox', ...rowSelection }} */
-                columns={columns}
-                dataSource={datasetSummary?.featureSummaries}  
+                columns={getColumns()}
+                dataSource={datasetSummary.featureSummaries}  
                 size='small'
                 pagination={false}
-                scroll={{ y: 40*5 }}
             />
             </>
             )}
@@ -80,41 +113,39 @@ export const FeatureOverview: React.FC<DatasetPreviewProps> = ({
     <Tooltip></Tooltip>
     <Legend></Legend>
 </Treemap> */}
-function renderChart(datasetSummary: DatasetSummary) {
-    switch (datasetSummary?.targetSummary.type) {
+function renderChart(featureData: DataSummaryEntry) {
+    switch (featureData.type) {
         case 'Categorical':
             return (
-                <BarChart data={datasetSummary?.treeMapData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" label='Class' />
-                    <YAxis label='Percent' />
-                    <Tooltip />
-                    <Legend />
+                <BarChart 
+                data={featureData.dist}
+                margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                >
+                    <XAxis hide dataKey="name" tick={false} />
+                    <YAxis hide tick={false} />
                     <Bar dataKey="value" fill="#8884d8" />
                 </BarChart>
             );
         case 'Numeric':
-            const data = datasetSummary.targetKDEx?.map((xVal, i) => ({
-                x: xVal,
-                y: datasetSummary.targetKDEy?.[i]
-              }));
             return (
                 <AreaChart
-                    data={data}
+                    data={featureData.dist}
+                    margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
                 >
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="x" tickFormatter={(tick) => {return tick.toFixed(0)}} />
-                    <YAxis />
+                    {/* <XAxis dataKey="x" tickFormatter={(tick) => {return tick.toFixed(0)}} /> */}
+                    <XAxis hide dataKey="x" tick={false} />
+                    <YAxis hide tick={false}/>
                     <Area type="monotone" dataKey="y" stroke="#8884d8" fill="#8884d8" />
                 </AreaChart>
             );
         default:
-            return (<AreaChart></AreaChart>)
+            return (<div>None</div>)
     }
 }
 
 export const TargetOverview: React.FC<{datasetSummary : DatasetSummary, visible : boolean}> = ({ datasetSummary, visible }) => {
-
+    const idx = datasetSummary.featureSummaries.length - 1;
+    const targetData = datasetSummary.featureSummaries[idx];
     return (
         <div className='flex-1 flex-col gap-4 h-full'>
             {visible && (
@@ -123,25 +154,25 @@ export const TargetOverview: React.FC<{datasetSummary : DatasetSummary, visible 
                 <div className='flex flex-row gap-4 w-full h-full'>
                 <div className='flex flex-col w-1/4 p-4 border-r border-2 border-gray-300'>
                     <Typography.Paragraph>
-                        <strong>Target Name:</strong> {datasetSummary?.targetSummary.name}
+                        <strong>Target Name:</strong> {targetData.name}
                     </Typography.Paragraph>
                     <Typography.Paragraph>
-                        <strong>Type:</strong> {datasetSummary?.targetSummary.type}
+                        <strong>Type:</strong> {targetData.type}
                     </Typography.Paragraph>
                     <Typography.Paragraph>
-                        <strong>Center:</strong> {datasetSummary?.targetSummary.central}
+                        <strong>Center:</strong> {targetData.central}
                     </Typography.Paragraph>
                     <Typography.Paragraph>
-                        <strong>Dispersion:</strong> {datasetSummary?.targetSummary.dispersion}
+                        <strong>Dispersion:</strong> {targetData.dispersion}
                     </Typography.Paragraph>
                     <Typography.Paragraph>
-                        <strong>Range:</strong> {datasetSummary?.targetSummary.range}
+                        <strong>Range:</strong> {targetData.range}
                     </Typography.Paragraph>
                 </div>
                 <div className='flex flex-col w-3/4 h-full'>
                 <Typography.Title level={4}>Target Distribution</Typography.Title>
                 <ResponsiveContainer width='100%' height='100%'>
-                {renderChart(datasetSummary)}
+                {renderChart(targetData)}
                 </ResponsiveContainer>
                 </div>
                 </div>

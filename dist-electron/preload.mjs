@@ -1,5 +1,9 @@
 "use strict";
 const electron = require("electron");
+electron.contextBridge.exposeInMainWorld("electronAPI", {
+  openChildWindow: (options) => electron.ipcRenderer.invoke("open-child-window", options),
+  onChildInit: (cb) => electron.ipcRenderer.on("child-window:init", (_e, data) => cb(data))
+});
 electron.contextBridge.exposeInMainWorld("ipcRenderer", {
   on(...args) {
     const [channel, listener] = args;

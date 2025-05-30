@@ -3,6 +3,20 @@ import { EDAData } from './backend_api/types';
 
 declare global {
   interface Window {
+    electronAPI: {
+      /**
+       * Opens a new child window rendering the specified React component with given props.
+       * @param options.component - The key of the component to render (must match a key in your componentMap).
+       * @param options.props - Props to pass into the rendered component.
+       */
+      openChildWindow(options: { component: string; props: any }): Promise<void>;
+
+      /**
+       * Register a callback to receive initialization data when the child window finishes loading.
+       * @param cb - Function invoked with the data object containing `component` and `props`.
+       */
+      onChildInit(cb: (data: { component: string; props: any }) => void): void;
+    };
     wfStore: {
       loadAll(): Promise<Workflow[]>;
       saveOne(wf: Workflow): Promise<Workflow>;

@@ -18,7 +18,7 @@ import { useWaitForComputationStore } from './WaitForComputation';
 enum SetupSteps {
     Start = 0,
     SelectFile = 1,
-    Finish = 4
+    Finish = 2
 }
 
 
@@ -37,6 +37,8 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   const [problemType, setProblemType] = useState<string>('classify');
 
   const [wfs, setWfs] = useState<Workflow[]>([]);
+
+  const [doneComputingStats, setDoneComputingStats] = useState<boolean>(false);
 
   useEffect(() => {
     setWfs(useWorkflowStore.getState().workflows);
@@ -74,6 +76,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
     setColumnHeaders([]);
     setCsvFile(file);
     setDataSummary(null);
+    setDoneComputingStats(false);
 
     if (file) {
       Papa.parse(file, {
@@ -113,6 +116,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
       const sendSummaryRequest = async () => {
         try {
           const summary = await generateSummaryFromFile(csvFile.path, targetColumn, problemType);
+          setDoneComputingStats(true);
           setDataSummary(summary);
           // Update problem type based on summary if auto was selected
           if (problemType === 'auto' && summary.problemType) {
@@ -128,6 +132,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
 
   const onDataGenerate = (data : DatasetSummary) => {
     setDataSummary(data);
+    setDoneComputingStats(true);
   }
 
   const addNew = async () => {
@@ -239,6 +244,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
           <div className='flex-grow h-full overflow-hidden'>
             {dataSource === 'file' &&
               <FileImportFragment
+                datasetSummary={dataSummary}
                 targetColumn={targetColumn || ''}
                 problemType={problemType}
                 columnHeaders={columnHeaders}
@@ -253,6 +259,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
       
             {dataSource === 'generate' && (
               <DataGeneration
+                onSendRequest={() => {setDoneComputingStats(false)}}
                 onGenerate={onDataGenerate}
                 onBack={handleBack}
                 onNext={() => {setStep(SetupSteps.Finish)}}
@@ -266,11 +273,8 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
         <Splitter.Panel>
         {dataSummary && 
         <div className='w-full h-full flex flex-col'>
-            <div className='flex max-h-1/2 w-full overflow-auto'>
-                <FeatureOverview datasetSummary={dataSummary} visible={true}/>
-            </div>
-            <div className='flex-1 min-h-1/2'>
-                <TargetOverview datasetSummary={dataSummary} visible={true}/>
+            <div className='flex max-h-full w-full overflow-auto'>
+                <FeatureOverview datasetSummary={dataSummary} visible={doneComputingStats}/>
             </div>
         </div>
         }

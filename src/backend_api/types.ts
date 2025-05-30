@@ -8,19 +8,18 @@ export interface DataSummaryEntry {
   key: React.Key;
   name : string;
   type : string;
-  missing_percent : number;
-  central : number;
-  dispersion : number;
+  missing_percent : string;
+  central : string;
+  dispersion : string;
   range : string;
+  dist : Array<Record<string, string | number>>; // This can be a more complex type based on your distribution data
 }
 
 export interface DatasetSummary {
     featureSummaries : DataSummaryEntry[];
-    targetSummary : DataSummaryEntry;
-    targetKDEx?: number[];
-    targetKDEy?: number[];
-    treeMapData?: {name : string, value : number}[];
     problemType?: string;
+    recommendations: string[];
+    outliers: number[];
 }
 
 export interface DFStats {

@@ -9,15 +9,23 @@ import SortablePipeline from './components/SortablePipeline';
 import { WorkflowWizard } from './components/NewWorkflow/WorkflowWizard';
 import  MainNavigation from './components/MainNavigation';
 import WaitForComputation from './components/NewWorkflow/WaitForComputation';
+import { ChildWindowHost } from './components/ChildWindowHost';
 
-// Extend the Window interface to include electronAPI
+/* // Extend the Window interface to include electronAPI
 declare global {
   interface Window {
     electronAPI: {
       openFileDialog: () => void;
     };
   }
-}
+} */
+
+const componentMap: Record<string, React.FC<any>> = {
+  'ProjectSetupWizard': ProjectSetupWizard,
+  'WorkflowWizard': WorkflowWizard,
+  'MainNavigation': MainNavigation,
+  'WaitForComputation': WaitForComputation,
+};
 
 
 function App() {
@@ -34,6 +42,7 @@ return (
       <Route path="/explore" element={<div>Explore</div>} />
       <Route path="/settings" element={<div>Settings</div>} />
       <Route path="/wait-screen" element={<WaitForComputation/>} />
+      <Route path="/child" element={<ChildWindowHost componentMap={componentMap} />} />
     </Routes>
   </HashRouter>
 );

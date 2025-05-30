@@ -3,7 +3,6 @@ import fs from "fs/promises";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { exit } from "node:process";
 const require2 = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
@@ -31,13 +30,9 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
+    const fileUrl = `file://${path.join(RENDERER_DIST, "index.html")}`;
+    win.loadURL(fileUrl);
   }
-  const { contextBridge, ipcRenderer } = require2("electron");
-  contextBridge.exposeInMainWorld("electronAPI", {
-    openFileDialog: () => ipcRenderer.invoke("dialog:openFile"),
-    exit: () => exit(0)
-  });
 }
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
@@ -193,6 +188,34 @@ ipcMain.handle("wf-get-pcd-file", async (_e, name) => {
   } else {
     throw new Error(`Workflow ${name} not found`);
   }
+});
+const childWindows = /* @__PURE__ */ new Set();
+function createCustomWindow(options) {
+  const win2 = new BrowserWindow({
+    width: 500,
+    height: 400,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.mjs"),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+  if (VITE_DEV_SERVER_URL) {
+    win2.loadURL(`${VITE_DEV_SERVER_URL}#/child`);
+  } else {
+    const fileUrl = `file://${path.join(RENDERER_DIST, "index.html")}#/child`;
+    win2.loadURL(fileUrl);
+  }
+  win2.webContents.on("did-finish-load", () => {
+    win2.webContents.send("child-window:init", options);
+  });
+  childWindows.add(win2);
+  win2.on("closed", () => childWindows.delete(win2));
+  win2.webContents.openDevTools({ mode: "detach" });
+  return win2;
+}
+ipcMain.handle("open-child-window", (_evt, options) => {
+  return createCustomWindow(options);
 });
 export {
   MAIN_DIST,
