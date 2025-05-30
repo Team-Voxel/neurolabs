@@ -90,12 +90,13 @@ const regAlgorithms = {
 }
 
 interface DataGenerationProps {
+    onSendRequest: () => void;
     onGenerate: (data: DatasetSummary) => void;
     onBack: () => void;
     onNext: () => void;
 }
 
-export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBack, onNext}) => {
+export const DataGeneration : React.FC<DataGenerationProps> = ({onSendRequest, onGenerate, onBack, onNext}) => {
   const [problemType, setProblemType] = useState<'classify' | 'regress'>('classify');
   const [isClusters, setIsClusters] = useState<boolean>(true);
   const [cluserType, setClusterType] = useState<ClusterTypes>(ClusterTypes.Blobs);
@@ -108,12 +109,12 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
   const [nSamples, setNSamples] = useState<number>(10000);
   const [randomState, setRandomState] = useState<number>(3);
   const [noise, setNoise] = useState<number>(1.0);
-  const [wfDir, setWfDir] = useState<string>('');
+  const [tempDataFile, setTempDataFile] = useState<string>('');
 
   const [regGenStrat, setRegGenStrat] = useState<RegressionGenStrat>(RegressionGenStrat.Linear);
 
   window.fsAPI.getTempDatasetPath().then((tempDataLoc) => {
-    setWfDir(tempDataLoc);
+    setTempDataFile(tempDataLoc);
   });
   
   const onClickGenerate = () => {
@@ -133,8 +134,9 @@ export const DataGeneration : React.FC<DataGenerationProps> = ({onGenerate, onBa
           cluster_dispersion: clusterDispersion,
           reg_gen_strat: regGenStrat,
           dimensionality: dimensionality,
-          wfDir : wfDir,
+          wfDir : tempDataFile,
         };
+        onSendRequest();
         const data = await generateDatasetPreview(config);
         onGenerate(data);
       } catch (err) {

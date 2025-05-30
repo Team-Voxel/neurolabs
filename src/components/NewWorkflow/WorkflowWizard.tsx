@@ -12,12 +12,13 @@ import Papa, {ParseResult} from 'papaparse';
 import { FileImportFragment } from './FileImportFrag';
 import { FeatureOverview, TargetOverview } from './DatasetPreview';
 import { DataGeneration } from './GenerationUI';
+import { useWaitForComputationStore } from './WaitForComputation';
 
 
 enum SetupSteps {
     Start = 0,
     SelectFile = 1,
-    Finish = 4
+    Finish = 2
 }
 
 
@@ -36,6 +37,8 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   const [problemType, setProblemType] = useState<string>('classify');
 
   const [wfs, setWfs] = useState<Workflow[]>([]);
+
+  const [doneComputingStats, setDoneComputingStats] = useState<boolean>(false);
 
   useEffect(() => {
     setWfs(useWorkflowStore.getState().workflows);
@@ -67,40 +70,28 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
     setNameError('none');
   };
 
-  const onImportFile = () => {
-    if (csvFile && targetColumn) {
-      
-      const sendSummaryRequest = async () => {
-        try {
-          const summary = await generateSummaryFromFile(csvFile.path, targetColumn, problemType);
-          setDataSummary(summary);
-        } catch (err) {
-          console.error("Failed to fetch summary:", err);
-        }
-      } 
-      sendSummaryRequest();
-      console.log(dataSummary)
-    }
-  };
-
   const handleFileChange = (file: File | null) => {
     setTargetColumn(null);
     setProblemType('auto');
     setColumnHeaders([]);
     setCsvFile(file);
     setDataSummary(null);
+    setDoneComputingStats(false);
 
     if (file) {
-
       Papa.parse(file, {
         header: true,
         preview: 1,
         skipEmptyLines: true,
         complete: (results: ParseResult<unknown>) => {
           if (results.meta && results.meta.fields && results.meta.fields.length > 0) {
-            setColumnHeaders(results.meta.fields.map(header => ({ value : header })));
+            setColumnHeaders(results.meta.fields.map(header => ({ value: header })));
             setError(null);
-            setTargetColumn(results.meta.fields[results.meta.fields.length - 1] || null);
+            // Set default target column to last column
+            const lastColumn = results.meta.fields[results.meta.fields.length - 1];
+            setTargetColumn(lastColumn);
+            // Set default problem type
+            setProblemType('auto');
           } else if (results.errors && results.errors.length > 0) {
             setError(`Error parsing CSV: ${results.errors[0].message}`);
             setColumnHeaders([]);
@@ -116,17 +107,40 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
         },
       });
       return false; // Prevent auto-upload
-
     } 
     return true; // Allow auto-upload
   };
 
+  const onImportFile = () => {
+    if (csvFile && targetColumn) {
+      const sendSummaryRequest = async () => {
+        try {
+          const summary = await generateSummaryFromFile(csvFile.path, targetColumn, problemType);
+          setDoneComputingStats(true);
+          setDataSummary(summary);
+          // Update problem type based on summary if auto was selected
+          if (problemType === 'auto' && summary.problemType) {
+            setProblemType(summary.problemType);
+          }
+        } catch (err) {
+          console.error("Failed to fetch summary:", err);
+        }
+      } 
+      sendSummaryRequest();
+    }
+  };
+
   const onDataGenerate = (data : DatasetSummary) => {
     setDataSummary(data);
+    setDoneComputingStats(true);
   }
 
   const addNew = async () => {
     const wfDir = await window.wfStore.getWfDir(workflowName);
+    if (!targetColumn) {
+      throw new Error('Target column is required');
+    }
+
     const newWf: Workflow = {
       name: workflowName,
       description: '',
@@ -134,6 +148,8 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
       wfDir: wfDir,
       datafile: `${wfDir}//data.csv`,
       dataType: 'CSV',
+      problemType: problemType,
+      target: targetColumn,
     };
     useWorkflowStore.getState().addNew(newWf);
     useWorkflowStore.getState().setCurrentByName(workflowName);
@@ -141,6 +157,13 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
 
   const handleFinalization = () => {
     // finalize and navigate to the sandbox
+    if (!targetColumn) {
+      throw new Error('Target column is required');
+    }
+    if (!problemType) {
+      throw new Error('Problem type is required');
+    }
+
     addNew();
     if (dataSource === 'file'){
         const ext = csvFile!.name.split('.').pop();
@@ -154,7 +177,28 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
             });
         });
     }
-    navigate('/sandbox');
+    else {
+      // Read generated data from the temporary data file, copy it to the workflow directory
+      window.fsAPI.getTempDatasetPath().then((tempDataLoc) => {
+        window.wfStore.getWfDir(workflowName).then((wfdir) => {
+          window.fsAPI.joinPath(wfdir, `data.csv`).then((newFileName) => {
+            window.fsAPI.copyFile(tempDataLoc, newFileName).then(() => {
+              console.log('File copied successfully');
+            }).catch((error) => {
+              console.error('Error copying file:', error);
+            });
+          });
+        });
+      });
+    }
+    
+    const waitStore = useWaitForComputationStore.getState();
+    window.wfStore.getWfDir(workflowName).then((wfdir) => {
+      console.log('state vals: ', wfdir, problemType, targetColumn, `${wfdir}\\data.csv`);
+      waitStore.setAll(wfdir, problemType, targetColumn, `${wfdir}\\data.csv`);
+    });
+
+    navigate('/wait-screen');
   };
 
   return (
@@ -200,6 +244,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
           <div className='flex-grow h-full overflow-hidden'>
             {dataSource === 'file' &&
               <FileImportFragment
+                datasetSummary={dataSummary}
                 targetColumn={targetColumn || ''}
                 problemType={problemType}
                 columnHeaders={columnHeaders}
@@ -214,6 +259,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
       
             {dataSource === 'generate' && (
               <DataGeneration
+                onSendRequest={() => {setDoneComputingStats(false)}}
                 onGenerate={onDataGenerate}
                 onBack={handleBack}
                 onNext={() => {setStep(SetupSteps.Finish)}}
@@ -227,11 +273,8 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
         <Splitter.Panel>
         {dataSummary && 
         <div className='w-full h-full flex flex-col'>
-            <div className='flex max-h-1/2 w-full overflow-auto'>
-                <FeatureOverview datasetSummary={dataSummary} visible={true}/>
-            </div>
-            <div className='flex-1 min-h-1/2'>
-                <TargetOverview datasetSummary={dataSummary} visible={true}/>
+            <div className='flex max-h-full w-full overflow-auto'>
+                <FeatureOverview datasetSummary={dataSummary} visible={doneComputingStats}/>
             </div>
         </div>
         }

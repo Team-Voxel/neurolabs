@@ -12,28 +12,18 @@ import pandas as pd
 import numpy as np
 import umap
 from typing import Dict, List, Tuple
+import csv
+from io import StringIO
+from safe_csv import safe_read_csv
 
-def convert_ndarray_to_dict(ndarray: np.ndarray, columns: List[str] = None) -> Dict[str, List[float]]:
+
+def create_simplified_df_for_unsupervised_clustering(config : Dict):
     """
-    Convert a NumPy ndarray to a dictionary with column names as keys.
+    Create a simplified 2D dataframe for visualization.
     """
-    if columns is None:
-        columns = [f'C_{i}' for i in range(ndarray.shape[1])]
-
-    if ndarray.ndim != 2 or len(columns) != ndarray.shape[1]:
-        raise ValueError("ndarray must be 2D and match the number of columns provided.")
-    
-    return {columns[i]: ndarray[:, i].tolist() for i in range(ndarray.shape[1])}
-
-
-def unsupervised_clustering(config : Dict):
-    """
-    Perform clustering on the data specified in config
-    """
-
-    df = pd.read_csv(config['data_path'])
-    if df.empty:
-        raise ValueError("The DataFrame is empty. Please check the data path and content.")
+    df = safe_read_csv(config['data_path'])
+    if len(df) == 0:
+        raise ValueError("The DataFrame has no rows. Please check the data path and content.")
 
     # Apply dim-reduction if the feature count is greater than 2
     fc = len(df.columns) - 1 # -1 for target column
@@ -61,46 +51,19 @@ def unsupervised_clustering(config : Dict):
     # Drop target column if it exists
     df_viz: pd.DataFrame = df_viz.drop(columns=[config.get('target')], errors='ignore')
 
-    '''
-    Method used to compute the unsupervised model.
-    Supported methods: 'kmeans', 'agglomerative', 'dbscan', 'birch'
-    '''
-    method = config['method']
-    nclusters = config.get('n_clusters', 3)
-    result = {
-        'x1' : df_viz['PC1'].tolist(),
-        'x2' : df_viz['PC2'].tolist()
-    }
-    if method == 'kmeans':
-        kmc = skc.KMeans(n_clusters=nclusters)
-        y = kmc.fit_predict(X=df_viz)
-        result['y'] = y.tolist()
-        return result
-    elif method == 'agglomerative':
-        agg = skc.AgglomerativeClustering(n_clusters=nclusters)
-        y = agg.fit_predict(df_viz)
-        result['y'] = y.tolist()
-        return result
-    elif method == 'dbscan':
-        dbscan = skc.HDBSCAN()
-        y = dbscan.fit_predict(df_viz)
-        result['y'] = y.tolist()
-        return result
-    elif method == 'birch':
-        birch = skc.Birch(n_clusters=nclusters)
-        y = birch.fit_predict(df_viz)
-        result['y'] = y.tolist()
-        return result
+    unsupervised_clustering_path = config.get('wfDir', '') + '\\data_usc.csv'
+
+    df_viz.to_csv(unsupervised_clustering_path, index=False)
+    return True
 
 
-def dimensionality_reduction(config : Dict):
+def create_a_sample_df(config : Dict):
     """
-    Perform dimensionality reduction on the given configuration.
+    Create a sample dataframe for visualization.
     """
-    
-    df = pd.read_csv(config['data_path'])
-    if df.empty:
-        raise ValueError("The DataFrame is empty. Please check the data path and content.")
+    df = safe_read_csv(config['data_path'])
+    if len(df) == 0:
+        raise ValueError("The DataFrame has no rows. Please check the data path and content.")
 
     # Re-Sample the dataframe to reduce size if necessary
     if config['problem_type'] == 'regression':
@@ -110,6 +73,84 @@ def dimensionality_reduction(config : Dict):
     
     # Drop target column if it exists
     df : pd.DataFrame = df.drop(columns=[config.get('target')], errors='ignore') 
+    return df
+
+
+def convert_ndarray_to_dict(ndarray: np.ndarray, columns: List[str] = None) -> Dict[str, List[float]]:
+    """
+    Convert a NumPy ndarray to a dictionary with column names as keys.
+    """
+    if columns is None:
+        columns = [f'C_{i}' for i in range(ndarray.shape[1])]
+
+    if ndarray.ndim != 2 or len(columns) != ndarray.shape[1]:
+        raise ValueError("ndarray must be 2D and match the number of columns provided.")
+    
+    return {columns[i]: ndarray[:, i].tolist() for i in range(ndarray.shape[1])}
+
+
+def unsupervised_clustering(config : Dict):
+    """
+    Perform clustering on the data specified in config
+    """
+    unsupervised_clustering_path = config.get('wfDir', '') + '\\data_usc.csv'
+    df = safe_read_csv(unsupervised_clustering_path)
+    if len(df) == 0:
+        raise ValueError("The DataFrame has no rows. Please check the data path and content.")
+
+
+    '''
+    Method used to compute the unsupervised model.
+    Supported methods: 'kmeans', 'agglomerative', 'dbscan', 'birch'
+    '''
+    method = config['method']
+    nclusters = config.get('n_clusters', 3)
+    result = {
+        'x1' : df['PC1'].tolist(),
+        'x2' : df['PC2'].tolist()
+    }
+    if method == 'kmeans':
+        kmc = skc.KMeans(n_clusters=nclusters)
+        y = kmc.fit_predict(X=df)
+        result['y'] = y.tolist()
+        return result
+    elif method == 'agglomerative':
+        agg = skc.AgglomerativeClustering(n_clusters=nclusters)
+        y = agg.fit_predict(df)
+        result['y'] = y.tolist()
+        return result
+    elif method == 'dbscan':
+        dbscan = skc.HDBSCAN()
+        y = dbscan.fit_predict(df)
+        result['y'] = y.tolist()
+        return result
+    elif method == 'birch':
+        birch = skc.Birch(n_clusters=nclusters)
+        y = birch.fit_predict(df)
+        result['y'] = y.tolist()
+        return result
+    else:
+        raise ValueError(f"Unsupported method: {method}. Supported methods are 'kmeans', 'agglomerative', 'dbscan', 'birch'.")
+
+
+def dimensionality_reduction(config : Dict, df : pd.DataFrame = None):
+    """
+    Perform dimensionality reduction on the given configuration.
+    """
+    
+    if df is None:
+        df = safe_read_csv(config['data_path'])
+        if len(df) == 0:
+            raise ValueError("The DataFrame has no rows. Please check the data path and content.")
+
+        # Re-Sample the dataframe to reduce size if necessary
+        if config['problem_type'] == 'regression':
+            df = df.sample(n=config['n_samples'], random_state=config['random_state'])
+        else:
+            df, _ = train_test_split(df, stratify=df[config['target']],train_size=config['n_samples'], random_state=config['random_state'])
+        
+        # Drop target column if it exists
+        df : pd.DataFrame = df.drop(columns=[config.get('target')], errors='ignore') 
 
     '''
     Method used to compute the unsupervised model.
@@ -120,7 +161,7 @@ def dimensionality_reduction(config : Dict):
     if method == 'umap':
         # Ensure 'n_components' is set, default to 2 if not provided
         n_components = config.get('n_components', 2)
-        reducer = umap.UMAP(n_components=n_components, random_state=config['random_state'])
+        reducer = umap.UMAP(n_components=n_components, n_jobs=-1)
         embedding = reducer.fit_transform(df)
         cols = [f'Dim_{i}' for i in range(n_components)]
         return {
@@ -165,24 +206,23 @@ def dimensionality_reduction(config : Dict):
         }
     elif method == 'mds':
         n_components = config.get('n_components', 2)
-        mds = skm.MDS(n_components=n_components, n_jobs=-1, random_state=config['random_state'])
+        mds = skm.MDS(n_components=n_components, n_jobs=-1)
         embedding = mds.fit_transform(df)
         cols = [f'Dim_{i}' for i in range(n_components)]
         return {
             'embedded': convert_ndarray_to_dict(embedding, cols),
         }
     else:
-        raise ValueError(f"Unsupported method: {method}. Supported methods are 'umap', 'pca', 'kmeans'.")
+        raise ValueError(f"Unsupported method: {method}. Supported methods are 'umap', 'pca', 'ica', 'isomap', 'lle', 'mds'.")
 
 
 def compute_dataset_statistics(config : Dict):
     """
     Compute basic statistics of the dataset.
     """
-    df = pd.read_csv(config['data_path'])
-
-    if df.empty:
-        raise ValueError("The DataFrame is empty. Please check the data path and content.")
+    df = safe_read_csv(config['data_path'])
+    if len(df) == 0:
+        raise ValueError("The DataFrame has no rows. Please check the data path and content.")
     dtypes = {}
     for col in df.columns:
         if pd.api.types.is_numeric_dtype(df[col]) and df[col].nunique() >= 20:
@@ -206,7 +246,7 @@ def compute_relationships(config : Dict):
     """
     Compute relationships between features in the dataset.
     """
-    df = pd.read_csv(config['data_path'])
+    df = safe_read_csv(config['data_path'])
 
     if df.empty:
         raise ValueError("The DataFrame is empty. Please check the data path and content.")
@@ -261,7 +301,7 @@ def compute_distributions(config : Dict):
     Compute box plots for numerical (continuous) features and
     compute stacked bar charts for categorical (discrete numeric) features.
     """
-    df = pd.read_csv(config['data_path'])
+    df = safe_read_csv(config['data_path'])
 
     if df.empty:
         raise ValueError("The DataFrame is empty. Please check the data path and content.")
@@ -270,6 +310,9 @@ def compute_distributions(config : Dict):
     
     for column in df.columns:
         if pd.api.types.is_numeric_dtype(df[column]) and df[column].nunique() >= 20:
+            q1 = float(df[column].quantile(0.25))
+            q2 = float(df[column].quantile(0.5))
+            q3 = float(df[column].quantile(0.75))
             distributions[column] = {
                 'type': 'continuous',
                 'mean': float(df[column].mean()),
@@ -278,14 +321,16 @@ def compute_distributions(config : Dict):
                 'kurtosis': float(df[column].kurtosis()),
                 'min': float(df[column].min()),
                 'max': float(df[column].max()),
-                'q1' : float(df[column].quantile(0.25)),
-                'q2' : float(df[column].quantile(0.5)),
-                'q3' : float(df[column].quantile(0.75))
+                'q1' : q1,
+                'q2' : q2,
+                'q3' : q3,
+                'outliers_lower' : q2 - 1.5 * (q3 - q1),
+                'outliers_upper' : q2 + 1.5 * (q3 - q1)
             }
         else:
             distributions[column] = {
                 'type': 'discrete',
-                'unique_values': float(df[column].nunique()),
+                'unique_values': int(df[column].nunique()),
                 'mode': f'{df[column].mode()[0]}',
                 'mode_count': int(df[column].value_counts().iloc[0]),
                 'value_counts': df[column].value_counts(normalize=True).to_dict()
@@ -297,7 +342,6 @@ def compute_distributions(config : Dict):
 '''
 config_example = {
     'data_path': 'path/to/your/data.csv',
-    'stat_path': 'stat_path.json',
     'problem_type': 'regression',  # or 'classification'
     'target': 'target_column_name',  # Optional, only for supervised tasks
     'n_samples': 1000,  # Number of samples to use
@@ -314,7 +358,7 @@ def compute_and_save_dataset_stats(config : Dict):
         distributions = compute_distributions(config)
         relations = compute_relationships(config)
 
-        save_location = config.get('stat_path', 'dataset_stats.json')
+        save_location = config.get('wfDir', '') + '\\edadata.json'
         import json
         # Ensure the directory exists
         import os
@@ -337,24 +381,52 @@ def compute_and_save_dataset_stats(config : Dict):
 
 def compute_and_store_dim_redux(config : Dict):
 
-
     methods = 'umap', 'pca', 'ica', 'isomap', 'lle', 'mds'
     try:
+        common_df = create_a_sample_df(config)
         for method in methods:
-            config['method'] = method
-            embedding = dimensionality_reduction(config)
-            save_location = config.get('embedding_path', 'embedding.json')
-            import json
-            # Ensure the directory exists
-            import os
-            os.makedirs(os.path.dirname(save_location), exist_ok=True)
+            for n_components in (2,3):
+                config['method'] = method
+                config['n_components'] = n_components
+                embedding = dimensionality_reduction(config, common_df)
+                save_location = config.get('wfDir', '') + f'/{method}_{n_components}d.json'
+                import json
+                # Ensure the directory exists
+                import os
+                os.makedirs(os.path.dirname(save_location), exist_ok=True)
 
-            json = json.dumps(embedding)
-            with open(save_location, 'w') as f:
-                f.write(json)
+                json = json.dumps(embedding)
+                with open(save_location, 'w') as f:
+                    f.write(json)
 
-            return True
+        return True
 
     except Exception as e:
         print(f"Error computing and storing dimensionality reduction: {e}")
         return False
+    
+
+def compute_stats_and_dim_redux(config : Dict):
+    try:
+        stats = compute_and_save_dataset_stats(config)
+        dim_redux = compute_and_store_dim_redux(config)
+        return stats and dim_redux
+    except Exception as e:
+        print(f"Error computing and storing stats and dimensionality reduction: {e}")
+        return False
+
+
+
+""" 
+config_example = {
+    'data_path': 'C:\\Users\\Tharuka\\Downloads\\winequality-white.csv',
+    'problem_type': 'regression',  # or 'classification'
+    'target': 'target_column_name',  # Optional, only for supervised tasks
+    'n_samples': 1000,  # Number of samples to use
+    'random_state': 42,
+    'wfDir': 'C:\\Users\\Tharuka\\Downloads\\test',
+}
+
+
+compute_and_store_dim_redux(config_example)
+ """

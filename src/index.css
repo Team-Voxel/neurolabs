@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* @tailwind base;
-@tailwind components; */
+@tailwind base;
+@tailwind components;
 @tailwind utilities;
 
 /*  ---break--- */
@@ -298,4 +298,13 @@ button:focus-visible {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+.animate-blink {
+    animation: blink 1s infinite;
 }

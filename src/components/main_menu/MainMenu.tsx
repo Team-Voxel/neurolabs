@@ -13,7 +13,7 @@ const MainMenu: React.FC = () => {
     { label: 'Start', onClick: () => navigate('/workflow-selection') },
     { label: 'Explore', onClick: () => console.log('Explore clicked') },
     { label: 'Settings', onClick: () => console.log('Settings clicked') },
-    { label: 'Exit', onClick: () => window.electronAPI.exit() },
+    { label: 'Exit', onClick: () => {window.electronAPI.openChildWindow({component: 'WaitForComputation', props: {}}); console.log('Open Component') }},
   ];
 
   // Initialize tsParticles
@@ -43,7 +43,6 @@ const MainMenu: React.FC = () => {
           particles: {
             color: {
               value: "#ffffff",
-              opacity: 0.5, // Slightly transparent particles
             },
             links: {
               color: "#ffffff",

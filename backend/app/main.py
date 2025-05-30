@@ -9,6 +9,7 @@ import pandas as pd
 import umap
 from data_analysis import generate_file_summary_report
 from data_generation import generate_and_save_data_return_stats
+from data_processing import *
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -86,6 +87,31 @@ async def generate_summary_from_file(request : FilePathRequest):
     if summary is None:
         raise HTTPException(status_code=404, detail="File not found or empty")
     return JSONResponse(content=summary)
+
+
+@app.post("/unsupervised-output")
+async def unsupervised_output(config: Dict):
+    return JSONResponse(content=config)
+
+
+@app.post("/compute-stats")
+async def compute_stats(config: Dict):
+    create_simplified_df_for_unsupervised_clustering(config)
+    success = compute_and_save_dataset_stats(config)
+    return JSONResponse(content={'success': success})
+
+
+@app.post("/dim-redux")
+async def dim_redux(config: Dict):
+    success = compute_and_store_dim_redux(config)
+    return JSONResponse(content={'success': success})
+
+
+@app.post("/auto-eda")
+async def auto_eda(config: Dict):
+    create_simplified_df_for_unsupervised_clustering(config)
+    success = compute_and_save_dataset_stats(config)
+    return JSONResponse(content={'success': success})
 
 
 if __name__ == "__main__":

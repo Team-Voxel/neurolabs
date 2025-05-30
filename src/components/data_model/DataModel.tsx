@@ -1,10 +1,32 @@
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import {VisualModel} from "./VisualModel";
 import { ToggleButton, ToggleButtonGroup } from "@mui/material";
-import { Table } from "antd";
+import { DFOverviewModel } from "./DFOverviewModel";
+import { DistributionModel } from "./DistributionModel";
+import { RelationsModel } from "./RelationsModel";
+import type { EDAData, DFRelationship, DFStats } from "../../backend_api/types";
+import { useWorkflowStore } from "../../AppState";
+
 
 export const DataModel: React.FC = () => {
-    const [source, setSource] = React.useState<string>('generate');
+    const [source, setSource] = useState<string>('generate');
+    const [overview, setOverview] = useState<string>('overview');
+    const [features, setFeatures] = useState<number>(1);
+    const [problem, setProblem] = useState<'regress' | 'classify'>('regress');
+    const [data, setData] = useState<EDAData | null>(null);
+
+    // Use the hook to subscribe to state changes
+    const wfStore = useWorkflowStore();
+
+    useEffect(() => {
+        const workflow = wfStore.current;
+        if (workflow) {
+            window.wfStore.getPCDFile(workflow.name).then((pcd) => {
+                setData(pcd);
+            });
+        }
+    }, []);
+
     const handleChange = (
         event: React.MouseEvent<HTMLElement>,
         newSource: string,
@@ -28,20 +50,16 @@ export const DataModel: React.FC = () => {
                 <ToggleButton fullWidth value={"visual"} aria-label="import">Visualize</ToggleButton>
             </ToggleButtonGroup>
             {source === "ov" && (
-                //<DFOverviewModel />
-                <></>
+                <DFOverviewModel />
             )}
             {source === "dist" && (
-                //<DistributionModel />
-                <></>
+                <DistributionModel data={data!.distributions} />
             )}
             {source === "rels" && (
-                //<RelationsModel />
-                <></>
+                <RelationsModel />
             )}
             {source === "visual" && (
-                //<VisualModel />
-                <></>
+                <VisualModel problem={problem} features={features} />
             )}
         </div>
     );

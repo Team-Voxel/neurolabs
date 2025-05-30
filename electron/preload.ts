@@ -2,6 +2,12 @@ import { ipcRenderer, contextBridge } from 'electron'
 import { Workflow, UserModel } from '../src/AppState'
 import { EDAData } from '../src/backend_api/types'
 
+
+contextBridge.exposeInMainWorld('electronAPI', {
+  openChildWindow: (options) => ipcRenderer.invoke('open-child-window', options),
+  onChildInit: (cb) => ipcRenderer.on('child-window:init', (_e, data) => cb(data)),
+});
+
 // --------- Expose some API to the Renderer process ---------
 contextBridge.exposeInMainWorld('ipcRenderer', {
   on(...args: Parameters<typeof ipcRenderer.on>) {

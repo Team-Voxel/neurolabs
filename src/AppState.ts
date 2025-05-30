@@ -38,6 +38,8 @@ export interface UserModel {
 
 export interface Workflow {
   name: string;
+  problemType: string;
+  target: string;
   description: string;
   userModels: UserModel[];
   wfDir: string; // path to the workflow directory

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { DataGrid } from "@mui/x-data-grid";
-import { fetchDataset, fetchUnpervisedModelOutput, requestAutoEDA } from "./api";
 import { TableColumn, TableRow, ScatterPoint } from "./types";
 
 

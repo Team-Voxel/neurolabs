@@ -51,17 +51,19 @@ function createWindow() {
   })
 
   if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
+    // Dev
+    win.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
+    // Prod: load the built index.html and add the hash fragment
+    const fileUrl = `file://${path.join(RENDERER_DIST, 'index.html')}`;
+    win.loadURL(fileUrl);
   }
-  const { contextBridge, ipcRenderer } = require('electron');
+  //const { contextBridge, ipcRenderer } = require('electron');
 
-contextBridge.exposeInMainWorld('electronAPI', {
+/* contextBridge.exposeInMainWorld('electronAPI', {
   openFileDialog: () => ipcRenderer.invoke('dialog:openFile'),
   exit: () => exit(0),
-});
+}); */
 }
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -248,11 +250,58 @@ ipcMain.handle('wf-get-pcd-file', async (_e, name: string) => {
   const wf = all.find(x => x.name === name);
   if (wf) {
     // read the EDA file from the workflow directory
-    const pcdfile_path = path.join(app.getPath('userData'), wf.name, 'eda.json');
+    const pcdfile_path = path.join(app.getPath('userData'), wf.name, 'edadata.json');
     const raw_bytes = await fs.readFile(pcdfile_path, 'utf-8');
     const data : EDAData = JSON.parse(raw_bytes);
     return data;
   } else {
     throw new Error(`Workflow ${name} not found`);
   }
+});
+
+
+const childWindows = new Set<BrowserWindow>();
+
+function createCustomWindow(options: { component: string; props: any }) {
+  const win = new BrowserWindow({
+    width: 500, height: 400,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.mjs'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  // Point all custom windows to the same entry (e.g. "#child")
+  /* const entryUrl = process.env.VITE_DEV_SERVER_URL
+    ? `${process.env.VITE_DEV_SERVER_URL}/child`
+    : `file://${path.join(__dirname, '../dist/index.html')}#child`;
+
+  win.loadURL(entryUrl); */
+  
+  if (VITE_DEV_SERVER_URL) {
+    // Dev
+    win.loadURL(`${VITE_DEV_SERVER_URL}#/child`);
+  } else {
+    // Prod: load the built index.html and add the hash fragment
+    const fileUrl = `file://${path.join(RENDERER_DIST, 'index.html')}#/child`;
+    win.loadURL(fileUrl);
+  }
+
+  win.webContents.on('did-finish-load', () => {
+    // Send both the component key and its props
+    win.webContents.send('child-window:init', options);
+  });
+
+  childWindows.add(win);
+  win.on('closed', () => childWindows.delete(win));
+
+  // Open developer console for debugging
+  win.webContents.openDevTools({ mode: 'detach' });
+
+  return win;
+}
+
+ipcMain.handle('open-child-window', (_evt, options) => {
+  return createCustomWindow(options);
 });

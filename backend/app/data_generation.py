@@ -242,7 +242,7 @@ def generate_and_save_data_return_stats(config: Dict) -> Dict:
     Generate synthetic data, save it to a CSV file, and return basic statistics.
     """
     df = generate_data_into_dataframe(config)
-    print(config)
+
     # Save DataFrame to CSV
     file_path = config.get('wfDir', 'generated_data.csv')
     df.to_csv(file_path, index=False)
