@@ -1,12 +1,69 @@
 import React, {useState, useEffect} from "react";
 import {VisualModel} from "./VisualModel";
-import { ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { DFOverviewModel } from "./DFOverviewModel";
 import { DistributionModel } from "./DistributionModel";
 import { RelationsModel } from "./RelationsModel";
 import type { EDAData, DFRelationship, DFStats } from "../../backend_api/types";
 import { useWorkflowStore } from "../../AppState";
+import { Flex, Radio } from 'antd';
+import SelectableIconButton from "../SelectableIconButton";
+import ImageButton from "../ImageButton";
+import { HomeOutlined, ClusterOutlined, ShrinkOutlined } from "@ant-design/icons";
+import { Tabs, Dropdown, MenuProps, Button } from 'antd'
 
+const { TabPane } = Tabs;
+
+const items = [
+    {
+      label: 'Tab 1',
+      key: '1',
+      children: 'Content of editable tab 1',
+    },
+    {
+      label: 'Tab 2',
+      key: '2',
+      children: 'Content of editable tab 2',
+    },
+    {
+      label: 'Tab 3',
+      key: '3',
+      children: 'Content of editable tab 3',
+    },
+  ];
+
+  const tab_items = [
+    {
+      key: '1',
+      label: (
+        <a target="_blank" rel="noopener noreferrer" href="https://www.antgroup.com">
+          1st menu item
+        </a>
+      ),
+    },
+    {
+      key: '2',
+      label: (
+        <a target="_blank" rel="noopener noreferrer" href="https://www.aliyun.com">
+          2nd menu item (disabled)
+        </a>
+      ),
+      disabled: true,
+    },
+    {
+      key: '3',
+      label: (
+        <a target="_blank" rel="noopener noreferrer" href="https://www.luohanacademy.com">
+          3rd menu item (disabled)
+        </a>
+      ),
+      disabled: true,
+    },
+    {
+      key: '4',
+      danger: true,
+      label: 'a danger item',
+    },
+  ];
 
 export const DataModel: React.FC = () => {
     const [source, setSource] = useState<string>('generate');
@@ -14,7 +71,8 @@ export const DataModel: React.FC = () => {
     const [features, setFeatures] = useState<number>(1);
     const [problem, setProblem] = useState<'regress' | 'classify'>('regress');
     const [data, setData] = useState<EDAData | null>(null);
-
+    
+    const [selected, setSelected] = useState<boolean>(false);
     // Use the hook to subscribe to state changes
     const wfStore = useWorkflowStore();
 
@@ -27,40 +85,39 @@ export const DataModel: React.FC = () => {
         }
     }, []);
 
+    const onEdit = (targetKey, action) => {
+        if (action === "remove") {
+          console.log("Remove tab", targetKey);
+        }
+        // Don't handle "add" here, since we're overriding it with the dropdown
+      };
+    
+      const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
+        console.log(`Selected: ${key}`);
+        // Do your logic here: open modal, create tab, etc.
+      };
+
     const handleChange = (
         event: React.MouseEvent<HTMLElement>,
         newSource: string,
     ) => {
         setSource(newSource);
     };
+
+    const addButton = (
+        <Dropdown  placement="topLeft">
+        <Button>topLeft</Button>
+      </Dropdown>
+      );
+
     return (
-        <div className="flex flex-col w-full h-full overflow-y-auto bg-white space-y-2">
-            <ToggleButtonGroup
-                color="primary"
-                value={source}
-                exclusive
-                onChange={handleChange}
-                aria-label="Platform"
-                size="small"
-                fullWidth
+        <Flex dir="column" style={{ width: '100%' }} className="gap-4">
+            <Tabs
+            type="editable-card"
+            onEdit={onEdit}
+            addIcon={addButton}
             >
-                <ToggleButton fullWidth value={"ov"} aria-label="import">Overview</ToggleButton>
-                <ToggleButton fullWidth value={"dist"} aria-label="generate">Distributions</ToggleButton>
-                <ToggleButton fullWidth value={"rels"} aria-label="import">Relationships</ToggleButton>
-                <ToggleButton fullWidth value={"visual"} aria-label="import">Visualize</ToggleButton>
-            </ToggleButtonGroup>
-            {source === "ov" && (
-                <DFOverviewModel />
-            )}
-            {source === "dist" && (
-                <DistributionModel data={data!.distributions} />
-            )}
-            {source === "rels" && (
-                <RelationsModel />
-            )}
-            {source === "visual" && (
-                <VisualModel problem={problem} features={features} />
-            )}
-        </div>
+            </Tabs>
+        </Flex>
     );
 }
