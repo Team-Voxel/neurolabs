@@ -1,39 +1,11 @@
-from stage import *
-
-import pandas as pd
+from sklearn.datasets import make_regression
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-import torch.nn as nn
+from torchmlp import TorchMLP
 
-df = pd.read_csv('qsar-biodeg.csv')
-dnn_config = [
-    {
-        'type':'Linear',
-        'param': {
-            'in_features' : 41,
-            'out_features': 80,
-            'activation' : 'relu'
-        }
-    },
-    {
-        'type':'Linear',
-        'param': {
-            'in_features' : 80,
-            'out_features': 2,
-            'activation' : 'relu'
-        }
-    }
-]
+X, y = make_regression(n_samples=500, n_features=10, noise=5.0)
+X_train, X_test, y_train, y_test = train_test_split(X, y)
 
-dnn = DNN(dnn_config, 'test')
-scaler = StandardScaler()
-features = df.drop(['Class'], axis=1).values
+model = TorchMLP(is_classification=False, hidden_layer_sizes=(64, 32), max_iter=100, verbose=True)
+model.fit(X_train, y_train)
 
-features = scaler.fit_transform(features)
-classes = df['Class'].values
-
-X_train, X_test, y_train, y_test = train_test_split(features, classes, test_size=0.2)
-print(X_test)
-result = dnn.fit(X_train, y_train, X_test, y_test, batch_size=32, lr=1e-3, epochs=10)
-
-print(result)
+print("R^2 Score:", model.score(X_test, y_test))
