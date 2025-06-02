@@ -1,3 +1,4 @@
+import scipy.stats
 import sklearn.cluster as skc
 import sklearn.preprocessing as skp
 import sklearn.utils as sku
@@ -12,8 +13,6 @@ import pandas as pd
 import numpy as np
 import umap
 from typing import Dict, List, Tuple
-import csv
-from io import StringIO
 from safe_csv import safe_read_csv
 
 
@@ -93,11 +92,11 @@ def unsupervised_clustering(config : Dict):
     """
     Perform clustering on the data specified in config
     """
-    unsupervised_clustering_path = config.get('wfDir', '') + '\\data_usc.csv'
+    data_file = '\\data_usc.csv' if config.get('dim', 2) == 2 else '\\pca_2d.csv'
+    unsupervised_clustering_path = config.get('wfDir', '') + data_file
     df = safe_read_csv(unsupervised_clustering_path)
     if len(df) == 0:
         raise ValueError("The DataFrame has no rows. Please check the data path and content.")
-
 
     '''
     Method used to compute the unsupervised model.

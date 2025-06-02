@@ -231,15 +231,14 @@ def generate_df_summary(df : pd.DataFrame, target_column : str, problem_type : s
     df, actions = basic_data_cleanup(df)
     
     # Compute feature summaries and target column summary
-    feature_summaries = compute_feature_summaries(df, target_column)
-    taget_sum, arg1, arg2 = target_column_summary(df, target_column, problem_type)
+    feature_summaries, all_recs, outlier_list = compute_feature_summaries(df, target_column)
+    problem_type = target_column_summary(df, target_column, problem_type)
 
     summary = {
         'featureSummaries': feature_summaries,
-        'targetSummary': taget_sum,
-        'targetKDEx': arg1,
-        'targetKDEy': arg2,
-        'treeMapData': arg1
+        'problemType': problem_type,
+        'recommendations': all_recs,
+        'outliers': outlier_list,
     }
     
     return summary

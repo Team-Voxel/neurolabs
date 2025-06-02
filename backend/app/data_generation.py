@@ -1,3 +1,7 @@
+'''
+
+'''
+
 import scipy.stats as stats
 import pandas as pd
 from typing import Dict, List, Tuple
@@ -60,8 +64,7 @@ def rbf_kernel(X1, X2, length_scale=1.0):
     sq_dists = np.sum(diffs**2, axis=2)
     return np.exp(-sq_dists / (2 * length_scale**2))
 
-X = np.linspace(-3, 3, 100).reshape(-1,1)
-y = make_gp_sample(X, lambda A,B: rbf_kernel(A,B,0.5), noise_std=0.05)
+
 
 def make_gp_data(n_samples = 100, n_features = 1, noise_std = 0.01, random_seed = 12) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -145,11 +148,37 @@ def generate_classification(config: Dict) -> Tuple[np.ndarray, np.ndarray]:
 
 
 def generate_regression(config: Dict) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Generate a synthetic regression dataset.
-    """
+    '''
+    Generate a synthetic regression dataset based on the specified configuration.
+    Parameters:
+        config (Dict): A dictionary containing the configuration for dataset generation. 
+            Keys:
+                - 'reg_gen_strat' (str): The strategy for generating the regression dataset. 
+                  Options include:
+                    - 'lin': Linear regression.
+                    - 'fr1': Friedman's regression function 1.
+                    - 'fr2': Friedman's regression function 2.
+                    - 'fr3': Friedman's regression function 3.
+                    - 'gp': Gaussian process regression.
+                    - 'sin': Sinusoidal regression.
+                  Default is 'lin'.
+                - 'n_samples' (int): The number of samples to generate.
+                - 'n_features' (int): The number of features for the dataset.
+                - 'n_informative' (int, optional): The number of informative features (used for 'lin' strategy). Default is 2.
+                - 'noise' (float, optional): The standard deviation of the noise to add to the output. Default is 0.1.
+                - 'random_state' (int, optional): The seed for random number generation. Default is 42.
+                - 'm_waves' (int, optional): The number of sinusoidal waves (used for 'sin' strategy). Default is 5.
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: A tuple containing:
+            - X (np.ndarray): The generated feature matrix.
+            - y (np.ndarray): The target values.
+    Raises:
+        KeyError: If required keys are missing in the configuration dictionary.
+        ValueError: If an unsupported generation strategy is specified.
+    Notes:
+        - Strategies 'rbf' (Gaussian radial basis function) and 'rff' (random Fourier features) are not implemented.
+    '''
 
-    # determine generation strategy
     """
     lin: linear regression
     fr1,fr2,fr3: friedman's regression functions
