@@ -405,6 +405,32 @@ def compute_and_store_dim_redux(config : Dict):
         return False
     
 
+def create_store_train_test_split(config : Dict):
+    df = safe_read_csv(config['data_path'])
+    if df.empty:
+        raise ValueError("The DataFrame is empty. Please check the data path and content.")
+    
+    
+    X = df.drop(columns=[config.get('target')], errors='ignore')
+    y = df[config.get('target')]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=config['random_state'])
+
+    Xtrain_loc = config.get('wfDir', '') + '\\Xtrain.csv'
+    Xtest_loc = config.get('wfDir', '') + '\\Xtest.csv'
+    ytrain_loc = config.get('wfDir', '') + '\\ytrain.csv'
+    ytest_loc = config.get('wfDir', '') + '\\ytest.csv'
+
+    X_train.to_csv(Xtrain_loc, index=False)
+    X_test.to_csv(Xtest_loc, index=False)
+    y_train.to_csv(ytrain_loc, index=False)
+    y_test.to_csv(ytest_loc, index=False)
+
+    return True
+    
+    
+    
+
 def compute_stats_and_dim_redux(config : Dict):
     try:
         stats = compute_and_save_dataset_stats(config)

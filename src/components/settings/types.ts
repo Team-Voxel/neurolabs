@@ -1,4 +1,4 @@
-export type ControlType = 'slider' | 'switch' | 'select' | 'number';
+export type ControlType = 'slider' | 'switch' | 'select' | 'number' | 'list';
 
 export interface SelectOption {
   label: string;
@@ -41,11 +41,18 @@ export interface NumberSettingControl extends BaseSettingControl {
   step?: number;
 }
 
+export interface ListSettingControl extends BaseSettingControl {
+  type: 'list';
+  value: number[];
+  onChange: (value: number[]) => void;
+}
+
 export type SettingControl =
   | SliderSettingControl
   | SwitchSettingControl
   | SelectSettingControl
-  | NumberSettingControl;
+  | NumberSettingControl
+  | ListSettingControl;
 
 export interface SettingsProps {
   controls: SettingControl[];

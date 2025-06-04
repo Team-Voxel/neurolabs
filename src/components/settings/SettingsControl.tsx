@@ -2,7 +2,7 @@ import React from 'react';
 import { Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { SettingControl as SettingControlType } from './types';
-import {SliderControl, SwitchControl, SelectControl, NumberControl} from './Controls';
+import {SliderControl, SwitchControl, SelectControl, NumberControl, ListControl} from './Controls';
 
 interface SettingControlProps {
   control: SettingControlType;
@@ -21,6 +21,8 @@ const SettingControl: React.FC<SettingControlProps> = ({ control }) => {
         return <SelectControl control={control} />;
       case 'number':
         return <NumberControl control={control} />;
+      case 'list':
+        return <ListControl control={control} />;
       default:
         return null;
     }

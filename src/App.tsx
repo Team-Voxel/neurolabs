@@ -10,6 +10,9 @@ import { WorkflowWizard } from './components/NewWorkflow/WorkflowWizard';
 import  MainNavigation from './components/MainNavigation';
 import WaitForComputation from './components/NewWorkflow/WaitForComputation';
 import { ChildWindowHost } from './components/ChildWindowHost';
+import { LearnInterface } from './components/learn/LearnInterface';
+import { AppWithSVM } from './components/plotting/SVCScatter';
+import { LinearProgress } from '@mui/material';
 
 /* // Extend the Window interface to include electronAPI
 declare global {
@@ -33,7 +36,7 @@ function App() {
 return (
   <HashRouter>
     <Routes>
-      <Route path="/" element={<MainMenu />} />
+      <Route path="/" element={<LearnInterface />} />
       <Route path="/project-selection" element={<ProjectSelection />} />
       <Route path="/new-workflow" element={<WorkflowWizard />} />
       <Route path="/workflow-selection" element={<WorkflowSelection/>} />

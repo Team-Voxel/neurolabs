@@ -80,3 +80,22 @@ export interface EDAData {
   distributions: ColumnDistributions;
   relationships: DFRelationship;
 };
+
+export interface SimpleDataset {
+  X: number[][];
+  y: number[];
+}
+
+export interface ModelTrainingInfo {
+  decisionBoundary: number[][];
+  predictedClasses: number[];
+  baseAccuracy: number;
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  confusionMatrix: number[][];
+  trainedCoefficients: number[];
+  trainedIntercept: number;
+  trainedSupportVectors: number[][];
+}

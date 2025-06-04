@@ -280,3 +280,54 @@ def generate_and_save_data_return_stats(config: Dict) -> Dict:
     stats = generate_df_summary(df, 'target', problem_type=config.get('problem_type', 'classify'))
     
     return stats
+
+
+def generate_random_2D(n_classes, wfDir):
+    """
+    Generate a random 2D dataset with n_classes for classification.
+    """
+    cols = ['x1', 'x2']
+    import random
+    clusters = ['blobs', 'moons', 'circles', 's-curve', 'swiss_roll']
+    cluster_type = random.choice(clusters)
+    is_clusters = random.randint(0, 1) == 1 or n_classes >= 5
+    if n_classes == 4 or n_classes == 3:
+        clusters_per_class = 1
+    elif n_classes == 2:
+        clusters_per_class = 2
+    else:
+        clusters_per_class = 4
+    config = {
+        'n_samples': 1000,
+        'n_features': 2,
+        'n_clusters': n_classes,
+        'cluster_type': cluster_type,
+        'is_clusters': is_clusters,
+        'n_informative': 2,
+        'n_redundant': 0,
+        'n_clusters_per_class': clusters_per_class,
+        'cluster_dispersion': 1.0,
+        'factor': random.uniform(0.0, 1.0),
+        'noise': random.uniform(0.1, 0.5),
+        'cluster_dispersion': random.uniform(0.5, 3.5),
+        'random_state': random.randint(0, 1000000)
+    }
+
+    X, y = generate_classification(config)
+    
+    if X.shape[1] != 2:
+        #randomly select two columns
+        X = X[:, np.random.randint(0, X.shape[1], 2)]
+    
+    df = pd.DataFrame(X, columns=cols)
+    df['y'] = y.astype(int)
+
+    file_path = wfDir
+    df.to_csv(file_path, index=False)
+    
+    return {
+        'X': X.tolist(),
+        'y': y.tolist()
+    }
+    
+        

@@ -1,5 +1,5 @@
 import axios from "axios";
-import {DatasetSummary, EDAData} from "./types";
+import {DatasetSummary, EDAData, ModelTrainingInfo, SimpleDataset} from "./types";
 import { DatasetResponse } from "../components/data_model/types";
 
 
@@ -74,6 +74,33 @@ export async function requestDimRedux(config: Record<string, any>): Promise<bool
 export async function fetchUnpervisedModelOutput(config: Record<string, any>): Promise<any> {
   const response = await axios.post(
     "http://localhost:8000/unsupervised-output",
+    config,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
+}
+
+export async function getDatasetSimple(nclasses: number, wfDir: string): Promise<SimpleDataset> {
+  const response = await axios.post(
+    "http://localhost:8000/get-dataset-simple",
+    {nclasses, wfDir},
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
+}
+
+
+export async function trainModelSimple(config: Record<string, any>): Promise<ModelTrainingInfo> {
+  const response = await axios.post(
+    "http://localhost:8000/train-model-simple",
     config,
     {
       headers: {

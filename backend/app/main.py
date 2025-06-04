@@ -114,6 +114,21 @@ async def auto_eda(config: Dict):
     return JSONResponse(content={'success': success})
 
 
+@app.post("/get-dataset-simple")
+async def get_dataset_simple(config: Dict):
+    from data_generation import generate_random_2D
+    data = generate_random_2D(config.get('n_classes', 2), config.get('wfDir', 'generated_data.csv'))
+    return JSONResponse(content=data)
+
+
+@app.post("/train-model-simple")
+async def train_model_simple(config: Dict):
+    from models import make_train_and_evaluate_model
+    data = make_train_and_evaluate_model(config)
+    return JSONResponse(content=data)
+
+
+
 if __name__ == "__main__":
     import asyncio
     import uvicorn
