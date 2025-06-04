@@ -36,7 +36,7 @@ function App() {
 return (
   <HashRouter>
     <Routes>
-      <Route path="/" element={<LearnInterface />} />
+      <Route path="/" element={<MainMenu />} />
       <Route path="/project-selection" element={<ProjectSelection />} />
       <Route path="/new-workflow" element={<WorkflowWizard />} />
       <Route path="/workflow-selection" element={<WorkflowSelection/>} />
@@ -46,6 +46,7 @@ return (
       <Route path="/settings" element={<div>Settings</div>} />
       <Route path="/wait-screen" element={<WaitForComputation/>} />
       <Route path="/child" element={<ChildWindowHost componentMap={componentMap} />} />
+      <Route path="/learn" element={<LearnInterface />} />
     </Routes>
   </HashRouter>
 );
