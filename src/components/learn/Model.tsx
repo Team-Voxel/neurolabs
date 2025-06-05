@@ -282,8 +282,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
             }
         }
         fetchModelInfo();
-        console.log(modelInfo?.decisionBoundary);
-        console.log(modelInfo?.predictedClasses);
+        console.log(modelInfo?.confusionMatrix)
         console.log('Model trained');
     }
     
@@ -323,19 +322,19 @@ export const Model: React.FC<ModelProps> = ({type}) => {
                                         />
                                     </Card>
                                     <Card variant="borderless" size='small'>
-                                        <Statistic title="Base Accuracy" value={modelInfo.baseAccuracy * 100} suffix='%' precision={2}/>
+                                        <Statistic title="Base Accuracy" valueStyle={{fontSize:'20px'}} value={modelInfo.baseAccuracy * 100} suffix='%' precision={2}/>
                                     </Card>
                                     <Card variant="borderless" size='small'>
-                                        <Statistic title="Accuracy" value={modelInfo.accuracy * 100} suffix='%' precision={2}/>
+                                        <Statistic title="Accuracy" valueStyle={{fontSize:'20px'}}  value={modelInfo.accuracy * 100} suffix='%' precision={2}/>
                                     </Card>
                                     <Card variant="borderless" size='small'>
-                                        <Statistic title="Precision" value={modelInfo.precision * 100} suffix='%' precision={2}/>
+                                        <Statistic title="Precision" valueStyle={{fontSize:'20px'}}  value={modelInfo.precision * 100} suffix='%' precision={2}/>
                                     </Card>
                                     <Card variant="borderless" size='small'>
-                                        <Statistic title="Recall" value={modelInfo.recall * 100} suffix='%' precision={2}/>
+                                        <Statistic title="Recall" valueStyle={{fontSize:'20px'}}  value={modelInfo.recall * 100} suffix='%' precision={2}/>
                                     </Card>
                                     <Card variant="borderless" size='small'>
-                                        <Statistic title="F1 Score" value={modelInfo.f1Score * 100} suffix='%' precision={2}/>
+                                        <Statistic title="F1 Score" valueStyle={{fontSize:'20px'}}  value={modelInfo.f1Score * 100} suffix='%' precision={2}/>
                                     </Card>
                                 </div>
                             ) :

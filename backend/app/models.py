@@ -5,6 +5,7 @@ import sklearn.neighbors as neighbors
 import sklearn.linear_model as lm
 import sklearn.neural_network as nn
 from torchmlp import TorchMLP
+from sklearn.neural_network import MLPClassifier
 from safe_csv import safe_read_csv
 import numpy as np
 from sklearn.metrics import confusion_matrix   
@@ -148,6 +149,22 @@ def create_model_simple(config: dict):
         model = neighbors.KNeighborsClassifier(n_neighbors=config.get("nNeighbors", 5),
                                                 metric=config.get("metric", 'minkowski'),
                                                 p=config.get("p", 2))
+        
+    elif model_type == 'nn':
+        from torchmlp import TorchMLP
+        """ model = TorchMLP(is_classification=True,
+                         hidden_layer_sizes=config.get("hiddenLayers", (100,)),
+                         activation=config.get("activation", "relu"),
+                         optimizer=config.get("optimizer", "adam"),
+                         learning_rate=config.get("learningRate", 0.001),
+                         max_iter=epochs,
+                         batch_size=config.get("batchSize", 32)) """
+        model = MLPClassifier(hidden_layer_sizes=config.get("hiddenLayers", (100,)),
+                              activation=config.get("activation", "relu"),
+                                solver=config.get("optimizer", "adam"),
+                                learning_rate_init=config.get("learningRate", 0.001),
+                                max_iter=epochs,
+                                batch_size=config.get("batchSize", 32))
 
     return model
 

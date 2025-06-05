@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import ContourPlot from '../plotting/ContourPlot';
 import { Splitter, Flex, Typography, Switch, Checkbox, Slider, Button, Tabs, TabsProps, Divider} from 'antd';
@@ -11,6 +12,7 @@ import ModelModal from './ModelModal';
 import './LearnInterface.css';
 
 
+
 type TargetKey = React.MouseEvent | React.KeyboardEvent | string;
 
 
@@ -19,7 +21,7 @@ export const Models = () => {
     const [activeKey, setActiveKey] = useState('1');
     const [selectedModel, setSelectedModel] = useState<string>('None');
     const [modelModal, setModelModal] = useState<boolean>(false);
-
+    
     const onAddNew = (model: string) => {
         if (models) {
             setModels([...models, {
@@ -87,6 +89,7 @@ export const LearnInterface: React.FC = () => {
     const [nClasses, setNClasses] = useState(2);
     const [dataset, setDataset] = useState<SimpleDataset | null>(null);
     const [tempDataFile, setTempDataFile] = useState<string>('');
+    const navigate = useNavigate();
 
     window.fsAPI.getTempDatasetPath().then((tempDataLoc) => {
         setTempDataFile(tempDataLoc);
@@ -106,10 +109,10 @@ export const LearnInterface: React.FC = () => {
 
     return (
         <Splitter style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}>
-            <Splitter.Panel min="20%">
+            <Splitter.Panel min="20%" max='30%' className='flex flex-col'>
             {/** Left Panel */}
             <Splitter layout="vertical">
-                <Splitter.Panel min="20%">
+                <Splitter.Panel min="70%">
                 {/** Top Left Panel */}
                     <Flex vertical>
                         <Flex justify='flex-start' align='flex-start'>
@@ -125,13 +128,13 @@ export const LearnInterface: React.FC = () => {
                 <Splitter.Panel min="20%">
                 {/** Bottom Left Panel */}
                     <Flex vertical style={{padding: '10px',gap: '10px'}}>
-                    <Typography.Title level={4}>Bottom Left</Typography.Title>
                     <div className='flex flex-row gap-2 mx-2 items-center'>
                         <Typography.Text>Number of Classes</Typography.Text>
                         <div className='w-40'>
                         <Slider min={0} max={10} value={nClasses} onChange={(value) => setNClasses(value)} step={1}/>
                         </div>
                     </div>
+                    <Button type='primary' onClick={() => navigate('/')}>Back</Button>
                     <Button type='primary' onClick={onClickGenerate}>Generate Data</Button>
                     </Flex>
                 </Splitter.Panel>
