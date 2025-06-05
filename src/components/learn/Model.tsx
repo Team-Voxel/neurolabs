@@ -312,7 +312,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
                         </Splitter>
                     </Splitter.Panel>
                     <Splitter.Panel max="40%" min='20%'>
-                        <div className='h-full w-full'>
+                        <div className='h-full w-1/2'>
                             {modelInfo ? 
                             (
                                 <div className='grid grid-cols-3 md:grid-cols-4 gap-4'>

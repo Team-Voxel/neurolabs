@@ -202,9 +202,9 @@ def make_train_and_evaluate_model(config: dict):
 
     # trained coefficients and intercept are the coefficients and intercept of the model
     # only relevant for linear models
-    if config.get('model_type') == 'linear':
-        trained_coefficients = model.coef_
-        trained_intercept = model.intercept_
+    if config.get('model_type') == 'logistic':
+        trained_coefficients = model.coef_.tolist()
+        trained_intercept = model.intercept_.tolist()
     else:
         trained_coefficients = None
         trained_intercept = None
@@ -212,7 +212,7 @@ def make_train_and_evaluate_model(config: dict):
     # trained support vectors are the support vectors of the model
     # only relevant for SVMs
     if config.get('model_type') == 'svm':
-        trained_support_vectors = model.support_vectors_
+        trained_support_vectors = model.support_vectors_.tolist()
     else:
         trained_support_vectors = None
 
