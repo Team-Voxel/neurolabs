@@ -31,6 +31,10 @@ const ModelModal: React.FC<ModelModalProps> = ({ visible, onClose, onSelect }) =
             value: 'forest',
         },
         {
+            label: 'Gradient Boosting',
+            value: 'boost',
+        },
+        {
             label: 'K-Nearest Neighbors',
             value: 'knn',
         },
@@ -55,7 +59,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ visible, onClose, onSelect }) =
         >
             <div className="flex flex-row items-center justify-center h-full w-full">
                 <div className="flex flex-col items-center justify-center h-full w-1/3">
-                    <Segmented  options={options} onChange={(value) => setSelectedModel(value.toString())} value={selectedModel} vertical/>
+                    <Segmented  options={options} onChange={(value) => setSelectedModel(value.toString())} value={selectedModel} vertical block/>
                 </div>
                 <div className="flex flex-col items-center justify-center h-full w-2/3">
                     <div>

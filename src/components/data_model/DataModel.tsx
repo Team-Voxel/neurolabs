@@ -5,119 +5,104 @@ import { DistributionModel } from "./DistributionModel";
 import { RelationsModel } from "./RelationsModel";
 import type { EDAData, DFRelationship, DFStats } from "../../backend_api/types";
 import { useWorkflowStore } from "../../AppState";
-import { Flex, Radio } from 'antd';
+import { Flex, Menu, Radio } from 'antd';
 import SelectableIconButton from "../SelectableIconButton";
 import ImageButton from "../ImageButton";
-import { HomeOutlined, ClusterOutlined, ShrinkOutlined } from "@ant-design/icons";
+import { HomeOutlined, ClusterOutlined, ShrinkOutlined, BoxPlotOutlined, BarChartOutlined } from "@ant-design/icons";
 import { Tabs, Dropdown, MenuProps, Button } from 'antd'
 
-const { TabPane } = Tabs;
+type MenuItem = Required<MenuProps>['items'][number];
 
-const items = [
+const items: MenuItem[] = [
     {
-      label: 'Tab 1',
-      key: '1',
-      children: 'Content of editable tab 1',
+      key: 'overview',
+      label: 'Overview',
+      icon: <HomeOutlined />,
     },
     {
-      label: 'Tab 2',
-      key: '2',
-      children: 'Content of editable tab 2',
+      key: 'distribution',
+      label: 'Distribution',
+      children: [
+        {
+          key: 'numeric',
+          label: 'Numeric',
+          icon: <BoxPlotOutlined />,
+        },
+        {
+          key: 'categorical',
+          label: 'Categorical',
+          icon: <BarChartOutlined />,
+        }
+      ]
     },
     {
-      label: 'Tab 3',
-      key: '3',
-      children: 'Content of editable tab 3',
-    },
-  ];
-
-  const tab_items = [
-    {
-      key: '1',
-      label: (
-        <a target="_blank" rel="noopener noreferrer" href="https://www.antgroup.com">
-          1st menu item
-        </a>
-      ),
-    },
-    {
-      key: '2',
-      label: (
-        <a target="_blank" rel="noopener noreferrer" href="https://www.aliyun.com">
-          2nd menu item (disabled)
-        </a>
-      ),
-      disabled: true,
+      key: 'relations',
+      label: 'Relations',
+      children: [
+        {
+          key: 'correlation',
+          label: 'Correlation',
+        },
+        {
+          key: 'feature-importance',
+          label: 'Feature Importance',
+          icon: <ShrinkOutlined />,
+        },
+      ]
     },
     {
-      key: '3',
-      label: (
-        <a target="_blank" rel="noopener noreferrer" href="https://www.luohanacademy.com">
-          3rd menu item (disabled)
-        </a>
-      ),
-      disabled: true,
+      key: 'visualization',
+      label: 'Visualization',
+      children: [
+        {
+          key: 'projection',
+          label: 'XY Projection',
+        },
+      ]
     },
     {
-      key: '4',
-      danger: true,
-      label: 'a danger item',
-    },
-  ];
+      key: 'unsupervised',
+      label: 'Unsupervised',
+        children: [
+          {
+            key: 'clustering',
+            label: 'Clustering',
+            icon: <ClusterOutlined />,
+          },
+          {
+            key: 'dim-redux',
+            label: 'Dimensionality Reduction',
+            icon: <ShrinkOutlined />,
+          },
+          {
+            key: 'gmm',
+            label: 'Gaussian Mixture Model',
+            icon: <ClusterOutlined />,
+          },
+          {
+            key: 'brbm',
+            label: 'Restricted Boltzmann Machine',
+            icon: <ClusterOutlined />,
+          },
+      ]
+    }
+]
 
 export const DataModel: React.FC = () => {
-    const [source, setSource] = useState<string>('generate');
-    const [overview, setOverview] = useState<string>('overview');
-    const [features, setFeatures] = useState<number>(1);
-    const [problem, setProblem] = useState<'regress' | 'classify'>('regress');
-    const [data, setData] = useState<EDAData | null>(null);
     
-    const [selected, setSelected] = useState<boolean>(false);
-    // Use the hook to subscribe to state changes
-    const wfStore = useWorkflowStore();
-
-    useEffect(() => {
-        const workflow = wfStore.current;
-        if (workflow) {
-            window.wfStore.getPCDFile(workflow.name).then((pcd) => {
-                setData(pcd);
-            });
-        }
-    }, []);
-
-    const onEdit = (targetKey, action) => {
-        if (action === "remove") {
-          console.log("Remove tab", targetKey);
-        }
-        // Don't handle "add" here, since we're overriding it with the dropdown
-      };
-    
-      const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
-        console.log(`Selected: ${key}`);
-        // Do your logic here: open modal, create tab, etc.
-      };
-
-    const handleChange = (
-        event: React.MouseEvent<HTMLElement>,
-        newSource: string,
-    ) => {
-        setSource(newSource);
-    };
-
-    const addButton = (
-        <Dropdown  placement="topLeft">
-        <Button>topLeft</Button>
-      </Dropdown>
-      );
 
     return (
-        <Flex dir="column" style={{ width: '100%' }} className="gap-4">
-            <Tabs
-            type="editable-card"
-            onEdit={onEdit}
-            addIcon={addButton}
-            >
-            </Tabs>
-        </Flex>
+        <div className="flex flex-col h-full w-full">
+            <div className="flex flex-col h-full w-1/5">
+              <Menu 
+              items={items} 
+              defaultSelectedKeys={['overview']} 
+              defaultOpenKeys={['distribution']}
+              mode="inline"
+              theme="light"
+              inlineCollapsed={false}
+              />
+            </div>
+        </div>
     );
 }
