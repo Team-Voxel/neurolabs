@@ -8,6 +8,9 @@ from typing import Dict, List, Tuple
 import sklearn.datasets as skd
 import numpy as np
 from data_analysis import generate_df_summary
+from enum import Enum
+import random
+from sklearn.preprocessing import StandardScaler
 
 
 def convert_manifold_to_classes(config: Dict, tm):
@@ -141,8 +144,13 @@ def generate_classification(config: Dict) -> Tuple[np.ndarray, np.ndarray]:
             n_features=config['n_features'],
             n_informative=config.get('n_informative', 2),
             n_redundant=config.get('n_redundant', 0),
+            n_classes=config.get('n_classes', 2),
             n_clusters_per_class=config.get('n_clusters_per_class', 1),
-            random_state=config.get('random_state', 42)
+            random_state=config.get('random_state', 42),
+            class_sep=config.get('class_sep', 1.0),
+            weights=config.get('class_balance', None),
+            hypercube=config.get('hypercube', True),
+            flip_y=config.get('noise', 0.0)*0.1,
         )
         return X, y
 
@@ -282,15 +290,24 @@ def generate_and_save_data_return_stats(config: Dict) -> Dict:
     return stats
 
 
-def generate_random_2D(n_classes, wfDir):
+def generate_random_2D(n_classes, noise, wfDir):
     """
     Generate a random 2D dataset with n_classes for classification.
     """
     cols = ['x1', 'x2']
     import random
-    clusters = ['blobs', 'moons', 'circles', 's-curve', 'swiss_roll']
+    
+    if n_classes > 2:
+        clusters = ['blobs', 's-curve', 'swiss_roll']
+    else:
+        clusters = ['blobs', 'moons', 'circles', 's-curve', 'swiss_roll']
+
     cluster_type = random.choice(clusters)
     is_clusters = random.randint(0, 1) == 1 or n_classes >= 5
+
+    # generate an array of n_classes-1 random numbers that sum to 1
+    class_balance = None
+
     if n_classes == 4 or n_classes == 3:
         clusters_per_class = 1
     elif n_classes == 2:
@@ -308,8 +325,11 @@ def generate_random_2D(n_classes, wfDir):
         'n_clusters_per_class': clusters_per_class,
         'cluster_dispersion': 1.0,
         'factor': random.uniform(0.0, 1.0),
-        'noise': random.uniform(0.1, 0.5),
-        'cluster_dispersion': random.uniform(0.5, 3.5),
+        'noise': noise,
+        'cluster_dispersion': random.uniform(0.5, 3.5)*noise,
+        'class_balance': class_balance,
+        'class_sep': random.uniform(0.5, 3.5),
+        'hypercube': random.randint(0, 1) == 1,
         'random_state': random.randint(0, 1000000)
     }
 
@@ -330,4 +350,144 @@ def generate_random_2D(n_classes, wfDir):
         'y': y.tolist()
     }
     
+
+class DifficultyLevel(Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    VERY_HIGH = "very_high"
+
+def get_difficulty_config(difficulty: DifficultyLevel) -> dict:
+    """
+    Get dataset generation configuration based on difficulty level.
+    """
+    base_config = {
+        'n_samples': 1000,
+        'n_features': 2,
+        'n_informative': 2,
+        'n_redundant': 0,
+        'random_state': random.randint(0, 1000000)
+    }
+    
+    if difficulty == DifficultyLevel.LOW:
+        return {
+            **base_config,
+            'n_classes': 2,
+            'n_clusters_per_class': 1,
+            'class_sep': 3.0,
+            'cluster_dispersion': 0.5,
+            'noise': 0.05,
+            'cluster_type': 'blobs',
+            'is_clusters': True,
+        }
+    elif difficulty == DifficultyLevel.MEDIUM:
+        return {
+            **base_config,
+            'n_classes': random.choice([2, 3]),
+            'n_clusters_per_class': 2,
+            'class_sep': 2.0,
+            'cluster_dispersion': 1.0,
+            'noise': 0.1,
+            'cluster_type': random.choice(['blobs', 'moons', 'circles']),
+            'is_clusters': random.choice([True, False]),
+        }
+    elif difficulty == DifficultyLevel.HIGH:
+        return {
+            **base_config,
+            'n_classes': random.choice([3, 4]),
+            'n_clusters_per_class': random.choice([2, 3]),
+            'class_sep': 1.0,
+            'cluster_dispersion': 2.0,
+            'noise': 0.2,
+            'cluster_type': random.choice(['moons', 'circles', 's-curve']),
+            'is_clusters': random.choice([True, False]),
+        }
+    else:  # VERY_HIGH
+        return {
+            **base_config,
+            'n_classes': random.choice([4, 5]),
+            'n_clusters_per_class': random.choice([3, 4]),
+            'class_sep': 0.5,
+            'cluster_dispersion': 3.0,
+            'noise': 0.3,
+            'cluster_type': random.choice(['s-curve', 'swiss_roll']),
+            'is_clusters': True,
+        }
+
+def generate_dataset(difficulty: str = "medium") -> tuple:
+    """
+    Generate a random 2D dataset with specified difficulty level for classification.
+    
+    Parameters:
+    -----------
+    difficulty : str
+        One of "low", "medium", "high", or "very_high"
+        
+    Returns:
+    --------
+    tuple : (X, y)
+        X : numpy array of shape (n_samples, 2)
+        y : numpy array of shape (n_samples,)
+    """
+    try:
+        difficulty_level = DifficultyLevel(difficulty.lower())
+    except ValueError:
+        raise ValueError("Difficulty must be one of: low, medium, high, very_high")
+    
+    config = get_difficulty_config(difficulty_level)
+    
+    X, y = generate_classification(config)
+    
+    # Ensure we always have 2D data
+    if X.shape[1] != 2:
+        X = X[:, :2]
+    
+    # Standardize the features
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+    
+    # Add some randomness to feature rotation
+    if random.random() < 0.5:
+        angle = random.uniform(0, 2 * np.pi)
+        rotation_matrix = np.array([
+            [np.cos(angle), -np.sin(angle)],
+            [np.sin(angle), np.cos(angle)]
+        ])
+        X = X @ rotation_matrix
+    
+    return X, y
+    
+
+def generate_simple_dataset(n_classes: int = 2, noise: float = 0.1) -> dict:
+    """
+    Generate a simple dataset for classification.
+    
+    Parameters:
+    -----------
+    n_classes : int
+        Number of classes (deprecated, use difficulty parameter instead)
+    noise : float
+        Noise level (deprecated, use difficulty parameter instead)
+        
+    Returns:
+    --------
+    dict
+        Dictionary containing the dataset information
+    """
+    # Map the old parameters to difficulty levels
+    if n_classes <= 2 and noise <= 0.1:
+        difficulty = "low"
+    elif n_classes <= 3 and noise <= 0.2:
+        difficulty = "medium"
+    elif n_classes <= 4 and noise <= 0.3:
+        difficulty = "high"
+    else:
+        difficulty = "very_high"
+    
+    X, y = generate_dataset(difficulty)
+    
+    return {
+        'X': X.tolist(),
+        'y': y.tolist()
+    }
         

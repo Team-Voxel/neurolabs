@@ -82,7 +82,7 @@ export const MulticlassScatterPlot: React.FC<MulticlassScatterProps> = ({
     margin: {
       l: 20, // Adjust as needed for y-axis labels/ticks
       r: 20, // Adjust as needed for legend or if no elements on right
-      t: 20, // Adjust as needed for title
+      t: 0, // Adjust as needed for title
       b: 20, // Adjust as needed for x-axis labels/ticks
       pad: 0   // Minimal padding around the plot area itself
     },

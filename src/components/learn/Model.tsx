@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import ContourPlot from '../plotting/ContourPlot';
-import { Splitter, Flex, Typography, Switch, Checkbox, Slider, Button, Tabs, TabsProps, Divider, Statistic, Card} from 'antd';
+import { Splitter, Flex, Typography, Switch, Checkbox, Slider, Button, Tabs, TabsProps, Divider, Statistic, Card, Popover, Segmented} from 'antd';
 import type { ModelTrainingInfo } from '../../backend_api/types';
 import Settings from '../../components/settings/Settings';
 import { SettingControl as SettingControlType, SelectOption } from '../../components/settings/types';
 import { trainModelSimple } from '../../backend_api/data_api';
+import { Curve } from 'recharts';
 
 interface ModelProps {
     type: string;
@@ -288,55 +289,133 @@ export const Model: React.FC<ModelProps> = ({type}) => {
     
     return (
             <div className='h-full w-full flex flex-col' style={{ minHeight: '100%' }}>
-                <Splitter layout="vertical" style={{ height: '100%' }}>
-                    <Splitter.Panel min="50%">
-                        <Splitter layout='horizontal' style={{ height: '100%' }}>
-                            <Splitter.Panel min="60%">
-                                <div className='h-full w-full'>
-                                {modelInfo ? <ContourPlot X={modelInfo.decisionBoundary} zValues={modelInfo.predictedClasses} xLabel='x1' yLabel='x2'/> : 
-                                <div className='flex justify-center items-center h-full w-full border-2 border-dashed border-gray-300 rounded-md'>
-                                    <Typography.Title level={4}>Train the model to see the decision boundary</Typography.Title>
-                                </div>}
-                                </div>
-                            </Splitter.Panel>
-                            <Splitter.Panel min="30%">
-                            {/*Training Parameters*/}
-                            <div className='flex-1 flex-col gap-4 items-center mt-4 justify-between pr-4'>
-                            <Settings controls={trainingParams} />
-                            <div className='flex flex-row justify-items-stretch gap-4 mt-8'>
-                                <Button block type="primary" onClick={onClickTrain}>Train Model</Button>
+                <div className='flex flex-col h-6/10 w-full'>
+                    <Splitter layout='horizontal' style={{ height: '100%' }}>
+                        <Splitter.Panel min="60%">
+                            <div className='h-full w-full p-2'>
+                            {modelInfo ? <ContourPlot 
+                                            X={modelInfo.decisionBoundary} 
+                                            zValues={modelInfo.predictedClasses} 
+                                            xLabel='x1' 
+                                            yLabel='x2'
+                                            lineWidth={1.0}
+                                            title='Decision Boundary'
+                                        /> : 
+                            <div className='flex justify-center items-center h-full w-full border-2 border-dashed border-gray-300 rounded-md'>
+                                <Typography.Title level={4}>Train the model to see the decision boundary</Typography.Title>
+                            </div>}
                             </div>
-                            </div>
-                            </Splitter.Panel>
-                        </Splitter>
-                    </Splitter.Panel>
-                    <Splitter.Panel max="40%" min='20%'>
-                        <div className='h-full w-1/2'>
+                        </Splitter.Panel>
+                        <Splitter.Panel min="30%" size='40%'>
+                        {/*Training Parameters*/}
+                        <div className='flex-1 flex-col gap-4 items-center mt-4 justify-between pr-4'>
+                            <Typography.Title level={4}>Training Parameters</Typography.Title>
+                        <Settings controls={trainingParams} />
+                        <div className='flex flex-row justify-items-stretch gap-4 mt-8 pl-4'>
+                            <Button block type="primary" onClick={onClickTrain}>Train Model</Button>
+                        </div>
+                        </div>
+                        </Splitter.Panel>
+                    </Splitter>
+                </div>
+                <div className='h-4/10 w-full border-t-2 border-gray-400 pr-2 flex'>
+                {modelInfo ? (
+                    <div className='flex-1 flex overflow-hidden'>
+                        <Tabs
+                            tabPosition='right'
+                            className='w-full flex-1 flex'
+                            style={{ display: 'flex', flexDirection: 'row' }}
+                            items={[
+                                {
+                                    label: 'Performance Metrics',
+                                    key: 'performance',
+                                    children: <div className='h-full w-full p-2'><PerformanceMetrics type={type} modelInfo={modelInfo} /></div>
+                                },
+                                {
+                                    label: 'Confusion Matrix',
+                                    key: 'confusion',
+                                    children: <div className='h-full w-full p-2'><ConfusionMatrix type={type} modelInfo={modelInfo} /></div>
+                                },
+                                {
+                                    label: 'Precision-Recall Curve',
+                                    key: 'precision-recall',
+                                    children: <div className='h-full w-full p-2'><PrecisionRecallCurve type={type} modelInfo={modelInfo} /></div>
+                                }
+                            ]}
+                        />
+                    </div>
+                ) : (
+                    <div className='flex justify-center items-center h-full w-full border-2 border-dashed border-gray-300 rounded-md'>
+                        <Typography.Title level={4}>Train the model to see the performance metrics</Typography.Title>
+                    </div>
+                )}
+                </div>
+            </div>
+    )
+}
+
+
+
+export const PerformanceMetrics: React.FC<{type: string, modelInfo: ModelTrainingInfo}> = ({type, modelInfo}) => {
+    return (
+        <div className='grid grid-cols-3 gap-4'>
+            <Popover content='Type of model used to train the data' title="Model Type" placement='top' mouseEnterDelay={0.5}>
+                <Card variant="borderless" size='default'>
+                    <Statistic title="Model Type" value={type} valueStyle={{fontSize:'20px'}} />
+                </Card>
+            </Popover>
+            <Popover content={<>This is the accuracy of the model if it always predicted the most common class.<br/> Your model has to beat this accuracy.</>} title="Base Accuracy" placement='top' mouseEnterDelay={0.7}>
+                <Card variant="borderless" size='default'>
+                    <Statistic title="Base Accuracy" valueStyle={{fontSize:'20px'}} value={modelInfo.baseAccuracy * 100} suffix='%' precision={2}/>
+                </Card>
+            </Popover>
+            <Popover content='It is the number of correct predictions divided by the total number of predictions.' title="Accuracy" placement='top' mouseEnterDelay={0.7}>
+                <Card variant="borderless" size='default'>
+                    <Statistic title="Accuracy" valueStyle={{fontSize:'20px'}}  value={modelInfo.accuracy * 100} suffix='%' precision={2}/>
+                </Card>
+            </Popover>
+            <Popover content='It is the number of true positives divided by the number of true positives and false positives.' title="Precision" placement='top' mouseEnterDelay={0.7}>
+                <Card variant="borderless" size='default'>
+                    <Statistic title="Precision" valueStyle={{fontSize:'20px'}}  value={modelInfo.precision * 100} suffix='%' precision={2}/>
+                </Card>
+            </Popover>
+            <Popover content='It is the number of true positives divided by the number of true positives and false negatives.' title="Recall" placement='top' mouseEnterDelay={0.7}>
+                <Card variant="borderless" size='default'>
+                    <Statistic title="Recall" valueStyle={{fontSize:'20px'}}  value={modelInfo.recall * 100} suffix='%' precision={2}/>
+                </Card>
+            </Popover>
+            <Popover content='It is the harmonic mean of the precision and recall.' title="F1 Score" placement='top' mouseEnterDelay={0.7}>
+                <Card variant="borderless" size='default'>
+                    <Statistic title="F1 Score" valueStyle={{fontSize:'20px'}}  value={modelInfo.f1Score * 100} suffix='%' precision={2}/>
+                </Card>
+            </Popover>
+        </div>
+    )
+}
+
+export const ConfusionMatrix: React.FC<{type: string, modelInfo: ModelTrainingInfo}> = ({}) => {
+    return (
+        <div>
+            <Typography.Title level={4}>Confusion Matrix</Typography.Title>
+        </div>
+    )
+}
+
+
+export const PrecisionRecallCurve: React.FC<{type: string, modelInfo: ModelTrainingInfo}> = ({}) => {
+    return (
+        <div>
+            <Typography.Title level={4}>Precision-Recall Curve</Typography.Title>
+        </div>
+    )
+}
+
+/**
+ * 
+ *             <div className='flex h-full w-8/10 p-2'>
                             {modelInfo ? 
                             (
-                                <div className='grid grid-cols-3 md:grid-cols-4 gap-4'>
-                                    <Card variant="borderless" size='small'>
-                                        <Statistic
-                                            title="Model Type"
-                                            value={type}
-                                        />
-                                    </Card>
-                                    <Card variant="borderless" size='small'>
-                                        <Statistic title="Base Accuracy" valueStyle={{fontSize:'20px'}} value={modelInfo.baseAccuracy * 100} suffix='%' precision={2}/>
-                                    </Card>
-                                    <Card variant="borderless" size='small'>
-                                        <Statistic title="Accuracy" valueStyle={{fontSize:'20px'}}  value={modelInfo.accuracy * 100} suffix='%' precision={2}/>
-                                    </Card>
-                                    <Card variant="borderless" size='small'>
-                                        <Statistic title="Precision" valueStyle={{fontSize:'20px'}}  value={modelInfo.precision * 100} suffix='%' precision={2}/>
-                                    </Card>
-                                    <Card variant="borderless" size='small'>
-                                        <Statistic title="Recall" valueStyle={{fontSize:'20px'}}  value={modelInfo.recall * 100} suffix='%' precision={2}/>
-                                    </Card>
-                                    <Card variant="borderless" size='small'>
-                                        <Statistic title="F1 Score" valueStyle={{fontSize:'20px'}}  value={modelInfo.f1Score * 100} suffix='%' precision={2}/>
-                                    </Card>
-                                </div>
+                                <PerformanceMetrics type={type} modelInfo={modelInfo} />
                             ) :
                             (
                             <div className='flex justify-center items-center h-full w-full border-2 border-dashed border-gray-300 rounded-md'>
@@ -344,8 +423,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
                         </div>)
                         }
                         </div>
-                    </Splitter.Panel>
-                </Splitter>
-            </div>
-    )
-}
+                        <div className='flex h-full w-2/10 py-2 mr-2'>
+                            <Segmented options={['Performance Metrics', 'Confusion Matrix', 'Precision-Recall Curve']} vertical block />
+                        </div>
+ */

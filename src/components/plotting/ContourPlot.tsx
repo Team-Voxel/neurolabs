@@ -110,7 +110,7 @@ const ContourPlot: React.FC<PlotlyContourWrapperProps> = ({
   lineSmoothing = 0,
   contourColoring = 'fill',
   lineColor, 
-  lineWidth = 1.5,
+  lineWidth = 0.5,
   contours,
   connectgaps = true,
   zsmooth = false,
@@ -161,6 +161,7 @@ const ContourPlot: React.FC<PlotlyContourWrapperProps> = ({
 
   // Define the layout for the plot
   const layout: Partial<Layout> = {
+    title: {text :title},
     xaxis: { title: {text :xLabel}, zeroline: false },
     yaxis: { title: {text :yLabel}, zeroline: false },
     autosize: true,
@@ -168,7 +169,7 @@ const ContourPlot: React.FC<PlotlyContourWrapperProps> = ({
     margin: {
         l: 40, // Adjust as needed for y-axis labels/ticks
         r: 20, // Adjust as needed for legend or if no elements on right
-        t: 10, // Adjust as needed for title
+        t: 40, // Adjust as needed for title
         b: 40, // Adjust as needed for x-axis labels/ticks
         pad: 0   // Minimal padding around the plot area itself
       },

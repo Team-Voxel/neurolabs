@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import ContourPlot from '../plotting/ContourPlot';
-import { Splitter, Flex, Typography, Switch, Checkbox, Slider, Button, Tabs, TabsProps, Divider} from 'antd';
+import { Splitter, Flex, Typography, Switch, Checkbox, Slider, Button, Tabs, TabsProps, Divider, Select} from 'antd';
 import type { ModelTrainingInfo, SimpleDataset } from '../../backend_api/types';
 import Settings from '../../components/settings/Settings';
 import { SettingControl as SettingControlType, SelectOption } from '../../components/settings/types';
@@ -86,7 +86,7 @@ export const Models = () => {
 }
 
 export const LearnInterface: React.FC = () => {
-    const [nClasses, setNClasses] = useState(2);
+    const [difficulty, setDifficulty] = useState('medium');
     const [dataset, setDataset] = useState<SimpleDataset | null>(null);
     const [tempDataFile, setTempDataFile] = useState<string>('');
     const navigate = useNavigate();
@@ -98,7 +98,7 @@ export const LearnInterface: React.FC = () => {
     const onClickGenerate = () => {
         const sendGenerationRequest = async () => {
             try {
-                const data = await getDatasetSimple(nClasses, tempDataFile);
+                const data = await getDatasetSimple({difficulty: difficulty});
                 setDataset(data);
             } catch (error) {
                 console.error('Error generating dataset:', error);
@@ -108,42 +108,43 @@ export const LearnInterface: React.FC = () => {
     }
 
     return (
-        <Splitter style={{ boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)' }}>
-            <Splitter.Panel min="20%" max='30%' className='flex flex-col'>
+        <div className='flex flex-row h-full w-full'>
+            <div className='flex flex-col h-full w-3/10 border-r-2 border-gray-400'>
             {/** Left Panel */}
-            <Splitter layout="vertical">
-                <Splitter.Panel min="70%">
+            <div className='flex flex-col h-full'>
+                <div className='flex h-7/10'>
                 {/** Top Left Panel */}
-                    <Flex vertical>
-                        <Flex justify='flex-start' align='flex-start'>
-                            <div className='flex flex-row gap-2 mx-2 w-full h-full'>
+                        <div className='flex flex-col w-full h-full justify-start'>
+                            <div className='flex-none flex flex-row gap-2 w-full px-2 pb-1 pt-2'>
+                                <Button type='primary' onClick={() => navigate('/')}>Back</Button>
+                                {/* Buttons to return to home screen */}
+                            </div>
+                            <div className='flex-1 min-h-0 w-full p-2'>
                                 {dataset ? <MulticlassScatterPlot X={dataset.X} Y={dataset.y} xLabel='x1' yLabel='x2'/> : 
-                                <div className='flex justify-center items-center h-full w-full border-2 border-dashed border-gray-300 rounded-md'>
+                                <div className='flex-1 justify-center items-center h-full w-full border-2 border-dashed border-gray-300 rounded-md'>
                                     <Typography.Title level={4}>Generate Data to see the plot</Typography.Title>
                                 </div>}
                             </div>
-                        </Flex>
-                    </Flex>
-                </Splitter.Panel>
-                <Splitter.Panel min="20%">
+                        </div>
+                </div>
+                <div className='flex-1 h-3/10'>
                 {/** Bottom Left Panel */}
                     <Flex vertical style={{padding: '10px',gap: '10px'}}>
-                    <div className='flex flex-row gap-2 mx-2 items-center'>
-                        <Typography.Text>Number of Classes</Typography.Text>
+                    <div className='flex flex-row gap-2 mx-2 items-center justify-between'>
+                        <Typography.Text>Classification Difficulty</Typography.Text>
                         <div className='w-40'>
-                        <Slider min={0} max={10} value={nClasses} onChange={(value) => setNClasses(value)} step={1}/>
+                        <Select options={[{value:'low', label:'Low'}, {value:'medium', label:'Medium'}, {value:'high', label:'High'}, {value:'very_high', label:'Very High'}]} value={difficulty} onChange={(value) => setDifficulty(value)}/>
                         </div>
                     </div>
-                    <Button type='primary' onClick={() => navigate('/')}>Back</Button>
                     <Button type='primary' onClick={onClickGenerate}>Generate Data</Button>
                     </Flex>
-                </Splitter.Panel>
-            </Splitter>
-            </Splitter.Panel>
-            <Splitter.Panel min="50%" className='ml-2'>
+                </div>
+            </div>
+            </div>
+            <div className='flex ml-2 h-full w-7/10'>
             {/** Right Panel */}
                 <Models />
-            </Splitter.Panel>
-        </Splitter>
+            </div>
+        </div>
     )
 }

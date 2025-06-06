@@ -151,20 +151,14 @@ def create_model_simple(config: dict):
                                                 p=config.get("p", 2))
         
     elif model_type == 'nn':
-        from torchmlp import TorchMLP
-        """ model = TorchMLP(is_classification=True,
-                         hidden_layer_sizes=config.get("hiddenLayers", (100,)),
-                         activation=config.get("activation", "relu"),
-                         optimizer=config.get("optimizer", "adam"),
-                         learning_rate=config.get("learningRate", 0.001),
-                         max_iter=epochs,
-                         batch_size=config.get("batchSize", 32)) """
         model = MLPClassifier(hidden_layer_sizes=config.get("hiddenLayers", (100,)),
                               activation=config.get("activation", "relu"),
                                 solver=config.get("optimizer", "adam"),
                                 learning_rate_init=config.get("learningRate", 0.001),
                                 max_iter=epochs,
                                 batch_size=config.get("batchSize", 32))
+    else:
+        raise ValueError(f"Unsupported model type: {model_type}")
 
     return model
 
@@ -183,9 +177,9 @@ def make_train_and_evaluate_model(config: dict):
     from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
     y_pred = model.predict(X_test)
     accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred)
-    recall = recall_score(y_test, y_pred)
-    f1 = f1_score(y_test, y_pred)
+    precision = precision_score(y_test, y_pred, average='micro')
+    recall = recall_score(y_test, y_pred, average='micro')
+    f1 = f1_score(y_test, y_pred, average='micro')
 
     # compute confusion matrix
     cm = confusion_matrix(y_test, y_pred)

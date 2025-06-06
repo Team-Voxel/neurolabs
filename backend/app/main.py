@@ -116,8 +116,8 @@ async def auto_eda(config: Dict):
 
 @app.post("/get-dataset-simple")
 async def get_dataset_simple(config: Dict):
-    from data_generation import generate_random_2D
-    data = generate_random_2D(config.get('n_classes', 2), config.get('wfDir', 'generated_data.csv'))
+    from data_generation import generate_dataset
+    data = generate_dataset(config.get('difficulty', 'medium'))
     return JSONResponse(content=data)
 
 

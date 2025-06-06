@@ -84,10 +84,10 @@ export async function fetchUnpervisedModelOutput(config: Record<string, any>): P
   return response.data;
 }
 
-export async function getDatasetSimple(nclasses: number, wfDir: string): Promise<SimpleDataset> {
+export async function getDatasetSimple(config: Record<string, any>): Promise<SimpleDataset> {
   const response = await axios.post(
     "http://localhost:8000/get-dataset-simple",
-    {nclasses, wfDir},
+    config,
     {
       headers: {
         "Content-Type": "application/json",
