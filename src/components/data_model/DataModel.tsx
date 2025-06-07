@@ -1,23 +1,14 @@
 import React, {useState, useEffect} from "react";
-import {VisualModel} from "./VisualModel";
-import { DFOverviewModel } from "./DFOverviewModel";
-import { DistributionModel } from "./DistributionModel";
-import { RelationsModel } from "./RelationsModel";
-import type { EDAData, DFRelationship, DFStats } from "../../backend_api/types";
-import { useWorkflowStore } from "../../AppState";
-import { Flex, Menu, Radio } from 'antd';
-import SelectableIconButton from "../SelectableIconButton";
-import ImageButton from "../ImageButton";
 import { HomeOutlined, ClusterOutlined, ShrinkOutlined, BoxPlotOutlined, BarChartOutlined } from "@ant-design/icons";
-import { Tabs, Dropdown, MenuProps, Button } from 'antd'
+import { Menu, MenuItem } from "../Menu";
 
-type MenuItem = Required<MenuProps>['items'][number];
+//type MenuItem = Required<MenuProps>['items'][number];
 
 const items: MenuItem[] = [
     {
       key: 'overview',
       label: 'Overview',
-      icon: <HomeOutlined />,
+      //icon: <HomeOutlined />,
     },
     {
       key: 'distribution',
@@ -26,12 +17,12 @@ const items: MenuItem[] = [
         {
           key: 'numeric',
           label: 'Numeric',
-          icon: <BoxPlotOutlined />,
+          //icon: <BoxPlotOutlined />,
         },
         {
           key: 'categorical',
           label: 'Categorical',
-          icon: <BarChartOutlined />,
+          //icon: <BarChartOutlined />,
         }
       ]
     },
@@ -46,7 +37,7 @@ const items: MenuItem[] = [
         {
           key: 'feature-importance',
           label: 'Feature Importance',
-          icon: <ShrinkOutlined />,
+          //icon: <ShrinkOutlined />,
         },
       ]
     },
@@ -67,22 +58,22 @@ const items: MenuItem[] = [
           {
             key: 'clustering',
             label: 'Clustering',
-            icon: <ClusterOutlined />,
+            //icon: <ClusterOutlined />,
           },
           {
             key: 'dim-redux',
             label: 'Dimensionality Reduction',
-            icon: <ShrinkOutlined />,
+            //icon: <ShrinkOutlined />,
           },
           {
             key: 'gmm',
             label: 'Gaussian Mixture Model',
-            icon: <ClusterOutlined />,
+            //icon: <ClusterOutlined />,
           },
           {
             key: 'brbm',
             label: 'Restricted Boltzmann Machine',
-            icon: <ClusterOutlined />,
+            //icon: <ClusterOutlined />,
           },
       ]
     }
@@ -96,11 +87,15 @@ export const DataModel: React.FC = () => {
             <div className="flex flex-col h-full w-1/5">
               <Menu 
               items={items} 
-              defaultSelectedKeys={['overview']} 
-              defaultOpenKeys={['distribution']}
-              mode="inline"
-              theme="light"
-              inlineCollapsed={false}
+              //defaultSelectedKeys={['overview']} 
+              //defaultOpenKeys={['distribution']}
+              //mode="inline"
+              //theme="light"
+              //inlineCollapsed={false}
+              className="h-full w-full"
+              onSelect={(key, item) => {
+                console.log(key, item);
+              }}
               />
             </div>
         </div>

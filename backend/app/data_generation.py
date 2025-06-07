@@ -4,13 +4,14 @@
 
 import scipy.stats as stats
 import pandas as pd
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional, Union
 import sklearn.datasets as skd
 import numpy as np
 from data_analysis import generate_df_summary
 from enum import Enum
 import random
 from sklearn.preprocessing import StandardScaler
+from dataclasses import dataclass
 
 
 def convert_manifold_to_classes(config: Dict, tm):
@@ -79,80 +80,177 @@ def make_gp_data(n_samples = 100, n_features = 1, noise_std = 0.01, random_seed 
     return X, y
 
 
-def generate_classification(config: Dict) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Generate a synthetic classification dataset using sklearn's make_classification.
-    """
-    X : np.ndarray = None 
-    y : np.ndarray = None
+class ClusterType(Enum):
+    BLOBS = 'blobs'
+    MOONS = 'moons'
+    CIRCLES = 'circles'
+    S_CURVE = 's-curve'
+    SWISS_ROLL = 'swiss_roll'
 
-    if config.get('is_clusters', False) == True:
-        cluster_type = config.get('cluster_type', 'blobs')
+@dataclass
+class DatasetConfig:
+    n_samples: int
+    n_features: int
+    is_clusters: bool = False
+    cluster_type: Optional[str] = None
+    n_clusters: Optional[int] = None
+    cluster_dispersion: float = 1.0
+    noise: float = 0.1
+    random_state: Optional[int] = 42
+    n_informative: int = 2
+    n_redundant: int = 0
+    n_classes: int = 2
+    n_clusters_per_class: int = 1
+    class_sep: float = 1.0
+    class_balance: Optional[List[float]] = None
+    hypercube: bool = True
+    scale_features: bool = False
 
-        # Generate clusters of points
-        if cluster_type == 'blobs':
-            # Use make_blobs for cluster generation
-            X, y = skd.make_blobs(
-                n_samples=config['n_samples'],
-                centers=config['n_clusters'],
-                n_features=config['n_features'],
-                cluster_std=config.get('cluster_dispersion', 1.0),
-                random_state=config.get('random_state', 42)
-            )
-            return X, y
-        elif cluster_type == 'moons':
-            # Use make_moons for a two-dimensional dataset with two interleaving half circles
-            X, y = skd.make_moons(
-                n_samples=config['n_samples'],
-                noise=config.get('noise', 0.1),
-                random_state=config.get('random_state', 42)
-            )
-            return X, y
-        elif cluster_type == 'circles':
-            # Use make_circles for a two-dimensional dataset with concentric circles
-            X, y = skd.make_circles(
-                n_samples=config['n_samples'],
-                noise=config.get('noise', 0.1),
-                factor=config.get('factor', 0.5),
-                random_state=config.get('random_state', 42)
-            )
-            return X, y
-        elif cluster_type == 's-curve':
-            # Use make_s_curve for a three-dimensional S-shaped curve
-            X, tm = skd.make_s_curve(
-                n_samples=config['n_samples'],
-                noise=config.get('noise', 0.1),
-                random_state=config.get('random_state', 42)
-            )
-            # Convert the manifold to classes
-            y = convert_manifold_to_classes(config, tm)
-            return X, y
-        elif cluster_type == 'swiss_roll':
-            # Use make_swiss_roll for a three-dimensional Swiss roll
-            X, tm = skd.make_swiss_roll(
-                n_samples=config['n_samples'],
-                noise=config.get('noise', 0.1),
-                random_state=config.get('random_state', 42)
-            )
-            # Convert the manifold to classes
-            y = convert_manifold_to_classes(config, tm)
-            return X, y            
+def validate_config(config: Union[Dict, DatasetConfig]) -> DatasetConfig:
+    """Validate and convert configuration to DatasetConfig."""
+    if isinstance(config, dict):
+        try:
+            config = DatasetConfig(**config)
+        except TypeError as e:
+            raise ValueError(f"Invalid configuration parameters: {str(e)}")
+
+    # Validate sample size
+    if config.n_samples < 1:
+        raise ValueError("n_samples must be positive")
+
+    # Validate features
+    if config.n_features < 1:
+        raise ValueError("n_features must be positive")
+
+    # Validate cluster-specific parameters
+    if config.is_clusters:
+        if not config.cluster_type:
+            raise ValueError("cluster_type must be specified when is_clusters is True")
+        try:
+            cluster_type = ClusterType(config.cluster_type)
+        except ValueError:
+            raise ValueError(f"Invalid cluster_type. Must be one of {[t.value for t in ClusterType]}")
+
+        if cluster_type in [ClusterType.MOONS, ClusterType.CIRCLES]:
+            if config.n_features != 2:
+                raise ValueError(f"{cluster_type.value} requires n_features=2")
+        
+        if cluster_type in [ClusterType.S_CURVE, ClusterType.SWISS_ROLL]:
+            if config.n_features != 3:
+                raise ValueError(f"{cluster_type.value} requires n_features=3")
+
+    # Validate classification parameters
     else:
-        # Generate a standard classification dataset
-        X, y = skd.make_classification(
-            n_samples=config['n_samples'],
-            n_features=config['n_features'],
-            n_informative=config.get('n_informative', 2),
-            n_redundant=config.get('n_redundant', 0),
-            n_classes=config.get('n_classes', 2),
-            n_clusters_per_class=config.get('n_clusters_per_class', 1),
-            random_state=config.get('random_state', 42),
-            class_sep=config.get('class_sep', 1.0),
-            weights=config.get('class_balance', None),
-            hypercube=config.get('hypercube', True),
-            flip_y=config.get('noise', 0.0)*0.1,
-        )
+        if config.n_informative > config.n_features:
+            raise ValueError("n_informative cannot be greater than n_features")
+        if config.n_redundant > config.n_features - config.n_informative:
+            raise ValueError("n_redundant cannot be greater than n_features - n_informative")
+        if config.class_balance is not None:
+            if not isinstance(config.class_balance, list):
+                raise ValueError("class_balance must be a list of weights")
+            if len(config.class_balance) != config.n_classes:
+                raise ValueError("class_balance length must match n_classes")
+            if not all(0 <= w <= 1 for w in config.class_balance):
+                raise ValueError("class_balance weights must be between 0 and 1")
+            if abs(sum(config.class_balance) - 1.0) > 1e-10:
+                raise ValueError("class_balance weights must sum to 1")
+
+    return config
+
+def generate_classification(config: Union[Dict, DatasetConfig]) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generate a synthetic classification dataset using sklearn's dataset generators.
+
+    Args:
+        config: Configuration dictionary or DatasetConfig object containing:
+            Required:
+                n_samples (int): Number of samples to generate
+                n_features (int): Number of features for each sample
+            Optional:
+                is_clusters (bool): Whether to generate clustered data
+                cluster_type (str): Type of clusters ('blobs', 'moons', 'circles', 's-curve', 'swiss_roll')
+                n_clusters (int): Number of clusters for 'blobs'
+                cluster_dispersion (float): Standard deviation of clusters
+                noise (float): Amount of noise to add
+                random_state (int): Random seed for reproducibility
+                n_informative (int): Number of informative features
+                n_redundant (int): Number of redundant features
+                n_classes (int): Number of classes
+                n_clusters_per_class (int): Number of clusters per class
+                class_sep (float): Factor multiplying the hypercube size
+                class_balance (List[float]): List of class weights
+                hypercube (bool): If True, generate points in a hypercube
+                scale_features (bool): If True, scale features to zero mean and unit variance
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Features array (X) and labels array (y)
+
+    Raises:
+        ValueError: If configuration parameters are invalid
+    """
+    try:
+        # Validate configuration
+        config = validate_config(config)
+        
+        X: np.ndarray = None
+        y: np.ndarray = None
+
+        if config.is_clusters:
+            cluster_type = ClusterType(config.cluster_type)
+
+            if cluster_type == ClusterType.BLOBS:
+                X, y = skd.make_blobs(
+                    n_samples=config.n_samples,
+                    centers=config.n_clusters,
+                    n_features=config.n_features,
+                    cluster_std=config.cluster_dispersion,
+                    random_state=config.random_state
+                )
+            elif cluster_type == ClusterType.MOONS:
+                X, y = skd.make_moons(
+                    n_samples=config.n_samples,
+                    noise=config.noise,
+                    random_state=config.random_state
+                )
+            elif cluster_type == ClusterType.CIRCLES:
+                X, y = skd.make_circles(
+                    n_samples=config.n_samples,
+                    noise=config.noise,
+                    factor=0.5,
+                    random_state=config.random_state
+                )
+            elif cluster_type in [ClusterType.S_CURVE, ClusterType.SWISS_ROLL]:
+                generator = skd.make_s_curve if cluster_type == ClusterType.S_CURVE else skd.make_swiss_roll
+                X, tm = generator(
+                    n_samples=config.n_samples,
+                    noise=config.noise,
+                    random_state=config.random_state
+                )
+                # Convert the manifold to classes
+                y = convert_manifold_to_classes(config, tm)
+        else:
+            X, y = skd.make_classification(
+                n_samples=config.n_samples,
+                n_features=config.n_features,
+                n_informative=config.n_informative,
+                n_redundant=config.n_redundant,
+                n_classes=config.n_classes,
+                n_clusters_per_class=config.n_clusters_per_class,
+                random_state=config.random_state,
+                class_sep=config.class_sep,
+                weights=config.class_balance,
+                hypercube=config.hypercube,
+                flip_y=config.noise * 0.1,
+            )
+
+        # Scale features if requested
+        if config.scale_features:
+            X = StandardScaler().fit_transform(X)
+
         return X, y
+
+    except Exception as e:
+        raise ValueError(f"Error generating classification dataset: {str(e)}")
 
 
 def generate_regression(config: Dict) -> Tuple[np.ndarray, np.ndarray]:
@@ -414,7 +512,7 @@ def get_difficulty_config(difficulty: DifficultyLevel) -> dict:
             'is_clusters': True,
         }
 
-def generate_dataset(difficulty: str = "medium") -> tuple:
+def generate_dataset(difficulty: str = "medium", file_path: str = "generated_data.csv") -> tuple:
     """
     Generate a random 2D dataset with specified difficulty level for classification.
     
@@ -454,8 +552,16 @@ def generate_dataset(difficulty: str = "medium") -> tuple:
             [np.sin(angle), np.cos(angle)]
         ])
         X = X @ rotation_matrix
+
+    # Write the dataset to a csv file
+    df = pd.DataFrame(X, columns=['x1', 'x2'])
+    df['y'] = y.astype(int)
+    df.to_csv(file_path, index=False)
     
-    return X, y
+    return {
+        'X': X.tolist(),
+        'y': y.tolist()
+    }
     
 
 def generate_simple_dataset(n_classes: int = 2, noise: float = 0.1) -> dict:

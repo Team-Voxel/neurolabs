@@ -98,7 +98,7 @@ export const LearnInterface: React.FC = () => {
     const onClickGenerate = () => {
         const sendGenerationRequest = async () => {
             try {
-                const data = await getDatasetSimple({difficulty: difficulty});
+                const data = await getDatasetSimple({difficulty: difficulty, wfDir: tempDataFile});
                 setDataset(data);
             } catch (error) {
                 console.error('Error generating dataset:', error);
