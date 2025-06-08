@@ -76,13 +76,6 @@ const RegressionModels : ModelInfo[] = [
     value: "linr"
 },
 {
-    name: "Non Linear Regression",
-    type: ModelType.NONL_REG,
-    description: "A non-linear approach to modeling the relationship between a scalar response and one or more explanatory variables.",
-    imageUrl: "",
-    value: "nonlinr"
-},
-{
     name: "Support Vector Regression",
     type: ModelType.SV_REG,
     description: "A support vector machine approach to regression, \
@@ -98,13 +91,6 @@ const RegressionModels : ModelInfo[] = [
     based on the values of its nearest neighbors in the feature space.",
     imageUrl: "",
     value: "nnr"
-},
-{
-    name: "SGD Regression",
-    type: ModelType.SGD_REG,
-    description: "A linear regression model that uses stochastic gradient descent to optimize the loss function.",
-    imageUrl: "",
-    value: "sgdr"
 },
 {
     name: "Decision Tree Regression",
@@ -129,7 +115,7 @@ const RegressionModels : ModelInfo[] = [
 },
 {
     name: "Deep Neural Network",
-    type: ModelType.DNN,
+    type: ModelType.NN_REG,
     description: "A deep learning approach to regression, which uses multiple layers of neurons to learn complex patterns in the data.",
     imageUrl: "",
     value: "dnnr"
@@ -160,13 +146,6 @@ const ClassificationModels : ModelInfo[] = [
     value: "nnc"
 },
 {
-    name: "SGD Classification",
-    type: ModelType.SGD_CLASS,
-    description: "A linear classification model that uses stochastic gradient descent to optimize the loss function.",
-    imageUrl: "",
-    value: "sgdc"
-},
-{
     name: "Decision Tree Classification",
     type: ModelType.DT_CLASS,
     description: "A decision tree-based approach to classification, which splits the data into subsets based on feature values.",
@@ -189,7 +168,7 @@ const ClassificationModels : ModelInfo[] = [
 },
 {
     name: "Deep Neural Network",
-    type: ModelType.DNN,
+    type: ModelType.NN_CLASS,
     description: "A deep learning approach to classification, which uses multiple layers of neurons to learn complex patterns in the data.",
     imageUrl: "",
     value: "dnnc"
@@ -206,6 +185,7 @@ interface AddNewModelProps {
 export const AddNewModel : React.FC<AddNewModelProps> = ({open, type, onCancel, onConfirm}) => {
     const [selected, setSelected] = useState<ModelType>(type === 'reg' ? ModelType.LINEAR_REG : ModelType.LOGS_CLASS);
     const [name, setName] = useState<string>('');
+    const [step, setStep] = useState<number>(1);
     const onSelect = (value: ModelType) => {
         setSelected(value);
     }
@@ -236,11 +216,12 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, type, onCancel, 
                 <Button key="back" onClick={onCancel}>
                   Return
                 </Button>,
-                <Button key="confirm" type="primary" onClick={() => confirmValidation(selected ? selected : ModelType.LINEAR_REG, name)}>
-                  Confirm
-                </Button>,
+                <Button key="confirm" type="primary" onClick={() => setStep(step + 1)}>
+                  Next
+                </Button>, 
               ]}
         >
+            {step === 1 && (
             <div className="flex flex-col items-center justify-center h-full gap-4">
                 <Typography.Title level={3} className="text-center">Add New Model</Typography.Title>
                 <Input placeholder= "Enter a name" value={name} onChange={(e) => setName(e.target.value)}/>
@@ -268,6 +249,10 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, type, onCancel, 
                     ))}
                 </div>
             </div>
+            )}
+            {step === 2 && (
+                <div></div>
+            )}
         </Modal>
     )
 }

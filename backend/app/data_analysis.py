@@ -82,13 +82,16 @@ def compute_feature_summaries(df : pd.DataFrame, target_column : str = None):
     outlier_list = get_outliers_as_list(df)
     should_scale = should_scale_data(df)
     if len(outlier_list) > 0:
-        all_recs.append('outliers')
+        all_recs.append(f'{len(outlier_list)} outliers detected')
     if should_scale:
-        all_recs.append('scale')
+        all_recs.append('Features with wide range of values detected')
 
     for column in df.columns:
 
         missing_percent = df[column].isnull().sum() * 100 / len(df)
+        if missing_percent > 0:
+            all_recs.append(f'{missing_percent:.2f}% missing values detected')
+
         if pd.api.types.is_numeric_dtype(df[column]) and df[column].nunique() >= 20:
             min = df[column].min()
             max = df[column].max()
@@ -213,7 +216,7 @@ def generate_file_summary_report(file_path : str, target_column : str, problem_t
     summary = {
         'featureSummaries': feature_summaries,
         'problemType': problem_type,
-        'recommendations': all_recs,
+        'issues': all_recs,
         'outliers': outlier_list,
     }
     

@@ -18,7 +18,7 @@ export interface DataSummaryEntry {
 export interface DatasetSummary {
     featureSummaries : DataSummaryEntry[];
     problemType?: string;
-    recommendations: string[];
+    issues: string[];
     outliers: number[];
 }
 
@@ -79,6 +79,7 @@ export interface EDAData {
   statistics : DFStats;
   distributions: ColumnDistributions;
   relationships: DFRelationship;
+  summary: DatasetSummary;
 };
 
 export interface SimpleDataset {

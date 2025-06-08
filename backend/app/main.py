@@ -128,6 +128,14 @@ async def train_model_simple(config: Dict):
     return JSONResponse(content=data)
 
 
+@app.post("/apply-preprocess")
+async def apply_preprocess(config: Dict):
+    from data_processing import apply_preprocess_to_dataset
+    success = apply_preprocess_to_dataset(config)
+    return JSONResponse(content={'success': success})
+
+
+
 
 if __name__ == "__main__":
     import asyncio

@@ -3,29 +3,29 @@ import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
 import { Workflow, useWorkflowStore } from '../../AppState';
-import { Button, Splitter} from 'antd';
+import { Button, Splitter, Steps, Typography} from 'antd';
 import { ToggleButton, ToggleButtonGroup } from '@mui/material';
-import type { TableColumnsType, TableProps } from 'antd';
-import {generateSummaryFromFile} from '../../backend_api/data_api';
+import {generateSummaryFromFile, applyPreprocess} from '../../backend_api/data_api';
 import type { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
 import Papa, {ParseResult} from 'papaparse';
 import { FileImportFragment } from './FileImportFrag';
 import { FeatureOverview, TargetOverview } from './DatasetPreview';
 import { DataGeneration } from './GenerationUI';
 import { useWaitForComputationStore } from './WaitForComputation';
+import { PreprocessModal } from './Preprocess';
 
 
 enum SetupSteps {
     Start = 0,
     SelectFile = 1,
-    Finish = 2
+    Finish = 2,
 }
 
 
 type ColumnHeaderItem = { value: string };
 
 export const WorkflowWizard: React.FC = () => {
-const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
+  const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   const [workflowName, setWorkflowName] = useState<string>('');
   const [nameError, setNameError] = useState<string>('Enter a name');
   const [csvFile, setCsvFile] = useState<File|null>(null);
@@ -38,11 +38,24 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
 
   const [wfs, setWfs] = useState<Workflow[]>([]);
 
+  const [preprocessModalOpen, setPreprocessModalOpen] = useState<boolean>(false);
+  const [preprocessMissingImputation, setPreprocessMissingImputation] = useState<string>("none");
+  const [preprocessOutlierDetection, setPreprocessOutlierDetection] = useState<boolean>(false);
+  const [preprocessFeatureScaling, setPreprocessFeatureScaling] = useState<string>("standardize");
+
   const [doneComputingStats, setDoneComputingStats] = useState<boolean>(false);
 
   useEffect(() => {
     setWfs(useWorkflowStore.getState().workflows);
   }, []);
+  
+  const handlePreprocess = (missingImputation: string, outlierDetection: boolean, featureScaling: string) => {
+    setPreprocessMissingImputation(missingImputation);
+    setPreprocessOutlierDetection(outlierDetection);
+    setPreprocessFeatureScaling(featureScaling);
+    setPreprocessModalOpen(false);
+    setStep(SetupSteps.Finish);
+  }
 
   const navigate = useNavigate();
 
@@ -191,6 +204,17 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
         });
       });
     }
+
+    // apply preprocessing
+    window.wfStore.getWfDir(workflowName).then((wfdir) => {
+      applyPreprocess({
+        impute: preprocessMissingImputation,
+        scale: preprocessFeatureScaling,
+        outlierAction: preprocessOutlierDetection,
+        outlierIndices: dataSummary?.outliers || [],
+        data_path: `${wfdir}\\data.csv`,
+      });
+    });
     
     const waitStore = useWaitForComputationStore.getState();
     window.wfStore.getWfDir(workflowName).then((wfdir) => {
@@ -201,9 +225,18 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
     navigate('/wait-screen');
   };
 
+  const finalizeImport = () => {
+    if (!dataSummary?.issues.includes("none")) {
+      setPreprocessModalOpen(true);
+    }
+    else {
+      setStep(SetupSteps.Finish);
+    }
+  }
+
   return (
     // top most container
-    <div className="flex flex-col gap-20 h-full justify-center">
+    <div className="flex flex-col gap-4 h-full justify-center">
       {step === SetupSteps.Start && (
         <div>
           <div className='justify-center items-center flex flex-col gap-4'>
@@ -225,25 +258,10 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
         {/* Left side : Selections */}
         <Splitter.Panel min='32%' max='50%' defaultSize={'32%'}>
         <div className='w-full h-full flex flex-col border p-4'>
-          <div className='flex items-center'>
-            <ToggleButtonGroup
-              color="primary"
-              value={dataSource}
-              exclusive
-              onChange={(e, src) => setDataSource(src)}
-              aria-label="Platform"
-              size="small"
-              fullWidth
-            >
-              <ToggleButton fullWidth value="file" aria-label="file">Import</ToggleButton>
-              <ToggleButton fullWidth value="generate" aria-label="generate">Generate</ToggleButton>
-            </ToggleButtonGroup>
-          </div>
-      
           {/* Conditional sections */}
+          <Typography.Title level={2}>Import Data</Typography.Title>
           <div className='flex-grow h-full overflow-hidden'>
-            {dataSource === 'file' &&
-              <FileImportFragment
+           <FileImportFragment
                 datasetSummary={dataSummary}
                 targetColumn={targetColumn || ''}
                 problemType={problemType}
@@ -253,18 +271,8 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
                 onImport={onImportFile}
                 onSelectTargetColumn={(value) => setTargetColumn(value)}
                 onSelectProblemType={(value) => setProblemType(value)}
-                onNext={() => {setStep(SetupSteps.Finish)}}
+                onNext={() => {finalizeImport()}}
                 />
-            }
-      
-            {dataSource === 'generate' && (
-              <DataGeneration
-                onSendRequest={() => {setDoneComputingStats(false)}}
-                onGenerate={onDataGenerate}
-                onBack={handleBack}
-                onNext={() => {setStep(SetupSteps.Finish)}}
-                />
-            )}
           </div>
         </div>
         </Splitter.Panel>
@@ -291,6 +299,7 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
           </Box>
         </div>
       )}
+      <PreprocessModal issues={dataSummary?.issues || []} open={preprocessModalOpen} onClose={() => setPreprocessModalOpen(false)} onOk={handlePreprocess} />
     </div>
   );
 }

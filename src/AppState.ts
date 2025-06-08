@@ -3,21 +3,19 @@ import type { EDAData } from './backend_api/types';
 
 export enum ModelType {
   LINEAR_REG = 0,
-  NONL_REG,
   SV_REG,
-  NN_REG,
-  SGD_REG,
+  KNN_REG,
   DT_REG,
   RF_REG,
   GB_REG,
+  NN_REG,
   LOGS_CLASS,
   SV_CLASS,
-  NN_CLASS,
-  SGD_CLASS,
+  KNN_CLASS,
   DT_CLASS,
   RF_CLASS,
   GB_CLASS,
-  DNN,
+  NN_CLASS,
 }
 
 export enum ModelState {

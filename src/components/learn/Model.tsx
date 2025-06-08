@@ -50,7 +50,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
             max: 1000,
             step: 1,
             onChange: (value) => setEpochs(value),
-            visible: true,
+            visible: type === 'nn' || type === 'svm' || type === 'logistic',
         },
         {
             id: 'batchSize',
@@ -61,7 +61,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
             max: 256,
             step: 16,
             onChange: (value) => setBatchSize(value),
-            visible: true,
+            visible: type === 'nn',
         },
         {
             id: 'learningRate',
@@ -73,7 +73,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
             step: 0.0001,
             tooltip: 'The learning rate for the model',
             onChange: (value) => setLearningRate(value),
-            visible: true,
+            visible: type === 'nn' || type === 'gb',
         },
         // Logistic Regression
         {
@@ -157,7 +157,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
             }],
             tooltip: 'The criterion for the model',
             onChange: (value) => setCriterion(value),
-            visible: type === 'tree' || type === 'forest'
+            visible: type === 'tree'
         },
         // KNN
         {
@@ -191,7 +191,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
             onChange: (value) => setMetric(value),
             visible: type === 'knn',
         },
-        // Random Forest
+        // Random Forest & Gradient Boosting
         {
             id: 'nEstimators',
             label: 'N Estimators',
@@ -202,7 +202,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
             step: 1,
             tooltip: 'The number of estimators for the model',
             onChange: (value) => setNEstimators(value),
-            visible: type === 'forest',
+            visible: type === 'forest' || type === 'gb',
         },
         // Neural Network
         {

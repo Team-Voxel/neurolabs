@@ -1,242 +1,349 @@
+from typing import Dict, Any, List, Optional, Tuple, Union
+import numpy as np
+from dataclasses import dataclass
+from abc import ABC, abstractmethod
 import sklearn.svm as sv
 import sklearn.tree as tree
 import sklearn.ensemble as ensemble
 import sklearn.neighbors as neighbors
 import sklearn.linear_model as lm
-import sklearn.neural_network as nn
-from torchmlp import TorchMLP
 from sklearn.neural_network import MLPClassifier
+from torchmlp import TorchMLP
 from safe_csv import safe_read_csv
-import numpy as np
-from sklearn.metrics import confusion_matrix   
+from sklearn.metrics import (
+    confusion_matrix,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score
+)
+from sklearn.model_selection import train_test_split
+from sklearn.base import BaseEstimator
+from sklearn.exceptions import NotFittedError
 
-def create_model(config):
-    """
-    Create a machine learning model based on the provided configuration.
+@dataclass
+class ModelConfig:
+    """Configuration for model creation and training."""
+    model_type: str
+    epochs: int = 100
+    batch_size: int = 32
+    learning_rate: float = 0.001
+    regularization: str = 'l2'
+    kernel: str = 'rbf'
+    C: float = 1.0
+    max_depth: Optional[int] = None
+    criterion: str = 'gini'
+    n_neighbors: int = 5
+    metric: str = 'minkowski'
+    n_estimators: int = 100
+    hidden_layers: Tuple[int, ...] = (100,)
+    activation: str = 'relu'
+    optimizer: str = 'adam'
+    wf_dir: str = ''
+    problem_type: str = 'classify'
+
+    def __post_init__(self):
+        self._validate()
     
-    Args:
-        config (dict): Configuration dictionary containing model type and parameters.
+    def _validate(self):
+        """Validate the configuration parameters."""
+        if self.epochs < 1:
+            raise ValueError("Epochs must be greater than 0")
         
-    Returns:
-        model: An instance of the specified machine learning model.
-    """
-    size = config.get("size", "small") # Size of the dataset. Used to determine algorithm
+        valid_model_types = {'nn', 'svm', 'tree', 'forest', 'knn', 'logistic'}
+        if self.model_type not in valid_model_types:
+            raise ValueError(f"Invalid model_type. Must be one of {valid_model_types}")
 
-    model_type = config.get("model_type")
-    problem_type = config.get("problem_type")
-    params : dict = config.get("params", {})
-    epochs = config.get("epochs", 100)
-    model = None
+        # Model-specific validation
+        if self.model_type == 'logistic':
+            if self.regularization not in ['l1', 'l2', 'elasticnet']:
+                raise ValueError("Invalid regularization for logistic regression")
+        elif self.model_type == 'svm':
+            if self.kernel not in ['linear', 'rbf', 'poly', 'sigmoid']:
+                raise ValueError("Invalid kernel for SVM")
+        elif self.model_type in ['tree', 'forest']:
+            if self.criterion not in ['gini', 'entropy']:
+                raise ValueError("Invalid criterion for tree-based models")
+        elif self.model_type == 'knn':
+            if self.metric not in ['euclidean', 'manhattan', 'minkowski']:
+                raise ValueError("Invalid metric for KNN")
 
-    if model_type == 'nn':
-        model = TorchMLP(is_classification=(problem_type == 'classify'),
-                         hidden_layer_sizes=params.get("hidden_layer_sizes", (100,)),
-                         activation=params.get("activation", "relu"),
-                         optimizer=params.get("optimizer", "adam"),
-                         learning_rate=params.get("learning_rate", 0.001),
-                         max_iter=epochs,
-                         batch_size=params.get("batch_size", 32))
-        
+    @classmethod
+    def from_dict(cls, config: Dict[str, Any]) -> 'ModelConfig':
+        """Create ModelConfig from frontend configuration."""
+        return cls(
+            model_type=config['model_type'],
+            epochs=config.get('epochs', 100),
+            batch_size=config.get('batchSize', 32),
+            learning_rate=config.get('learningRate', 0.001),
+            regularization=config.get('regularization', 'l2'),
+            kernel=config.get('kernel', 'rbf'),
+            C=config.get('C', 1.0),
+            max_depth=config.get('maxDepth'),
+            criterion=config.get('criterion', 'gini'),
+            n_neighbors=config.get('nNeighbors', 5),
+            metric=config.get('metric', 'minkowski'),
+            n_estimators=config.get('nEstimators', 100),
+            hidden_layers=config.get('hiddenLayers', (100,)),
+            activation=config.get('activation', 'relu'),
+            optimizer=config.get('optimizer', 'adam'),
+            wf_dir=config.get('wfDir', ''),
+            problem_type=config.get('problem_type', 'classify')
+        )
+
+class ModelFactory:
+    """Factory class for creating machine learning models."""
     
-
-    if problem_type == 'regress':
-        if model_type == 'svm':
-            model = sv.SVR(kernel=params.get("kernel", "rbf"),
-                          C=params.get("C", 1.0),
-                          epsilon=params.get("epsilon", 0.1),
-                          gamma=params.get("gamma", 'scale'), max_iter=epochs)
-        elif model_type == 'tree':
-            model = tree.DecisionTreeRegressor(criterion=params.get("criterion", "mse"),
-                                               max_depth=params.get("max_depth", None), max_iter=epochs)
-        elif model_type == 'forest':
-            model = ensemble.RandomForestRegressor(criterion=params.get("criterion", "mse"),
-                                                   n_estimators=params.get("n_estimators", 100),
-                                                   max_depth=params.get("max_depth", None), max_iter=epochs)
-        elif model_type == 'knn':
-            model = neighbors.KNeighborsRegressor(n_neighbors=params.get("n_neighbors", 5),
-                                                   weights=params.get("weights", 'uniform'),
-                                                   metric=params.get("metric", 'minkowski'),
-                                                   p=params.get("p", 2), max_iter=epochs)
-        elif model_type == 'linear':
-            loss = params.get("loss", "squared_loss")
-            optimizer = params.get("optimizer", "analytical")
-            regularization = params.get("regularization", "l2")
-
-            if optimizer == "sgd":
-                model = lm.SGDRegressor(loss=loss, penalty=regularization, max_iter=epochs)
-            else:
-                if loss == "squared_loss":
-                    if regularization == "l2":
-                        model = lm.Ridge(alpha=params.get("alpha", 1.0), max_iter=epochs)
-                    elif regularization == "l1":
-                        model = lm.Lasso(alpha=params.get("alpha", 1.0), max_iter=epochs)
-                    elif regularization == "elasticnet":
-                        model = lm.ElasticNet(alpha=params.get("alpha", 1.0), l1_ratio=params.get("l1_ratio", 0.5), max_iter=epochs)
-                elif loss == "huber":
-                    model = lm.HuberRegressor(alpha=params.get("alpha", 1.0), max_iter=epochs)
-                else:
-                    raise ValueError(f"Unsupported loss function: {loss}")
+    @staticmethod
+    def create_model(config: ModelConfig) -> BaseEstimator:
+        """Create a model based on the provided configuration."""
+        if config.model_type == 'nn':
+            return ModelFactory._create_neural_network(config)
+        elif config.problem_type == 'classify':
+            return ModelFactory._create_classifier(config)
         else:
-            raise ValueError(f"Unsupported model type for regression: {model_type}")
+            return ModelFactory._create_regressor(config)
+
+    @staticmethod
+    def _create_neural_network(config: ModelConfig) -> Union[TorchMLP, MLPClassifier]:
+        if config.problem_type == 'classify':
+            return MLPClassifier(
+                hidden_layer_sizes=config.hidden_layers,
+                activation=config.activation,
+                solver=config.optimizer,
+                learning_rate_init=config.learning_rate,
+                max_iter=config.epochs,
+                batch_size=config.batch_size
+            )
+        return TorchMLP(
+            is_classification=False,
+            hidden_layer_sizes=config.hidden_layers,
+            activation=config.activation,
+            optimizer=config.optimizer,
+            learning_rate=config.learning_rate,
+            max_iter=config.epochs,
+            batch_size=config.batch_size
+        )
+
+    @staticmethod
+    def _create_classifier(config: ModelConfig) -> BaseEstimator:
+        model_map = {
+            'svm': lambda: sv.SVC(
+                kernel=config.kernel,
+                C=config.C,
+                gamma='scale',
+                max_iter=config.epochs
+            ),
+            'tree': lambda: tree.DecisionTreeClassifier(
+                criterion=config.criterion,
+                max_depth=config.max_depth
+            ),
+            'forest': lambda: ensemble.RandomForestClassifier(
+                criterion=config.criterion,
+                n_estimators=config.n_estimators,
+                max_depth=config.max_depth
+            ),
+            'knn': lambda: neighbors.KNeighborsClassifier(
+                n_neighbors=config.n_neighbors,
+                metric=config.metric
+            ),
+            'logistic': lambda: lm.LogisticRegression(
+                penalty=config.regularization,
+                solver='lbfgs',
+                max_iter=config.epochs
+            )
+        }
         
-    elif problem_type == 'classify':
-        if model_type == 'svm':
-            model = sv.SVC(kernel=params.get("kernel", "rbf"),
-                          C=params.get("C", 1.0),
-                          gamma=params.get("gamma", 'scale'),
-                          probability=params.get("probability", False), max_iter=epochs)
-        elif model_type == 'tree':
-            model = tree.DecisionTreeClassifier(criterion=params.get("criterion", "gini"),
-                                                max_depth=params.get("max_depth", None), max_iter=epochs)
-        elif model_type == 'forest':
-            model = ensemble.RandomForestClassifier(criterion=params.get("criterion", "gini"),
-                                                    n_estimators=params.get("n_estimators", 100),
-                                                    max_depth=params.get("max_depth", None), max_iter=epochs)
-        elif model_type == 'knn':
-            model = neighbors.KNeighborsClassifier(n_neighbors=params.get("n_neighbors", 5),
-                                                   weights=params.get("weights", 'uniform'),
-                                                   metric=params.get("metric", 'minkowski'),
-                                                   p=params.get("p", 2), max_iter=epochs)
-        elif model_type == 'linear':
-            loss = params.get("loss", "log_loss")
-            optimizer = params.get("optimizer", "analytical")
-            regularization = params.get("regularization", "l2")
-            if optimizer == "adam":
-                # Imported from torch nn linear models
-                return None
-            elif optimizer == "sgd":
-                model = lm.SGDClassifier(loss=loss, penalty=regularization, max_iter=epochs)
-            else:
-                solver = 'lbfgs' if size == 'small' else 'saga'
-                if loss == "log_loss":
-                    if regularization == "l2":
-                        model = lm.LogisticRegression(penalty='l2', C=params.get("C", 1.0), solver=solver, max_iter=epochs)
-                    elif regularization == "l1":
-                        model = lm.LogisticRegression(penalty='l1', C=params.get("C", 1.0), solver=solver, max_iter=epochs)
-                    elif regularization == "elasticnet":
-                        model = lm.LogisticRegression(penalty='elasticnet', C=params.get("C", 1.0), solver=solver, l1_ratio=params.get("l1_ratio", 0.5), max_iter=epochs)
-                else:
-                    raise ValueError(f"Unsupported loss function: {loss}")
+        if config.model_type not in model_map:
+            raise ValueError(f"Unsupported classifier type: {config.model_type}")
+        
+        return model_map[config.model_type]()
+
+    @staticmethod
+    def _create_regressor(config: ModelConfig) -> BaseEstimator:
+        params = config.params
+        model_map = {
+            'svm': lambda: sv.SVR(
+                kernel=params.get("kernel", "rbf"),
+                C=params.get("C", 1.0),
+                epsilon=params.get("epsilon", 0.1),
+                gamma=params.get("gamma", 'scale'),
+                max_iter=config.epochs
+            ),
+            'tree': lambda: tree.DecisionTreeRegressor(
+                criterion=params.get("criterion", "mse"),
+                max_depth=params.get("max_depth", None)
+            ),
+            'forest': lambda: ensemble.RandomForestRegressor(
+                criterion=params.get("criterion", "mse"),
+                n_estimators=params.get("n_estimators", 100),
+                max_depth=params.get("max_depth", None)
+            ),
+            'knn': lambda: neighbors.KNeighborsRegressor(
+                n_neighbors=params.get("n_neighbors", 5),
+                metric=params.get("metric", 'minkowski')
+            ),
+            'linear': lambda: ModelFactory._create_linear_regressor(config)
+        }
+        
+        if config.model_type not in model_map:
+            raise ValueError(f"Unsupported regressor type: {config.model_type}")
+        
+        return model_map[config.model_type]()
+
+    @staticmethod
+    def _create_linear_regressor(config: ModelConfig) -> BaseEstimator:
+        params = config.params
+        loss = params.get("loss", "squared_loss")
+        optimizer = params.get("optimizer", "analytical")
+        regularization = params.get("regularization", "l2")
+        
+        if optimizer == "sgd":
+            return lm.SGDRegressor(
+                loss=loss,
+                penalty=regularization,
+                max_iter=config.epochs
+            )
+        
+        if loss == "squared_loss":
+            if regularization == "l2":
+                return lm.Ridge(
+                    alpha=params.get("alpha", 1.0),
+                    max_iter=config.epochs
+                )
+            elif regularization == "l1":
+                return lm.Lasso(
+                    alpha=params.get("alpha", 1.0),
+                    max_iter=config.epochs
+                )
+            elif regularization == "elasticnet":
+                return lm.ElasticNet(
+                    alpha=params.get("alpha", 1.0),
+                    l1_ratio=params.get("l1_ratio", 0.5),
+                    max_iter=config.epochs
+                )
+        elif loss == "huber":
+            return lm.HuberRegressor(
+                alpha=params.get("alpha", 1.0),
+                max_iter=config.epochs
+            )
+        
+        raise ValueError(f"Unsupported loss function: {loss}")
+
+class ModelTrainer:
+    """Class for training and evaluating machine learning models."""
+    
+    def __init__(self, config: Dict[str, Any]):
+        """Initialize the trainer with configuration."""
+        self.config = ModelConfig.from_dict(config)
+        self.model = None
+        self.X = None
+        self.y = None
+        self.X_train = None
+        self.X_test = None
+        self.y_train = None
+        self.y_test = None
+    
+    def prepare_data(self) -> None:
+        """Load and prepare the data for training."""
+        df = safe_read_csv(self.config.wf_dir)
+        if df is None or df.empty:
+            raise ValueError("No data available for training")
+            
+        self.X = df.iloc[:, :-1].values
+        self.y = df.iloc[:, -1].values
+        
+        if len(self.X) < 2:
+            raise ValueError("Insufficient data for training")
+            
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            self.X, self.y, test_size=0.2, random_state=42
+        )
+    
+    def train(self) -> None:
+        """Train the model with the prepared data."""
+        if self.X_train is None or self.y_train is None:
+            raise ValueError("Data not prepared. Call prepare_data() first")
+            
+        self.model = ModelFactory.create_model(self.config)
+        self.model.fit(self.X_train, self.y_train)
+    
+    def evaluate(self) -> Dict[str, Any]:
+        """Evaluate the trained model and return metrics."""
+        if not self.model:
+            raise ValueError("Model not trained. Call train() first")
+            
+        try:
+            y_pred = self.model.predict(self.X_test)
+        except NotFittedError:
+            raise ValueError("Model not fitted. Call train() first")
+            
+        # Calculate metrics
+        metrics = {
+            'accuracy': accuracy_score(self.y_test, y_pred),
+            'precision': precision_score(self.y_test, y_pred, average='micro'),
+            'recall': recall_score(self.y_test, y_pred, average='micro'),
+            'f1Score': f1_score(self.y_test, y_pred, average='micro'),
+            'confusionMatrix': confusion_matrix(self.y_test, y_pred).tolist(),
+            'baseAccuracy': self._calculate_base_accuracy()
+        }
+        
+        # Add model-specific metrics
+        metrics.update(self._get_model_specific_metrics())
+        
+        # Add decision boundary if 2D data
+        if self.X.shape[1] == 2:
+            metrics.update(self._calculate_decision_boundary())
+            
+        return metrics
+    
+    def _calculate_base_accuracy(self) -> float:
+        """Calculate the base accuracy (majority class prediction)."""
+        majority_class = np.argmax(np.bincount(self.y_train))
+        return accuracy_score(self.y_test, np.full_like(self.y_test, majority_class))
+    
+    def _get_model_specific_metrics(self) -> Dict[str, Any]:
+        """Get model-specific metrics like coefficients or support vectors."""
+        metrics = {
+            'trainedCoefficients': None,
+            'trainedIntercept': None,
+            'trainedSupportVectors': None
+        }
+        
+        if self.config.model_type == 'logistic':
+            metrics.update({
+                'trainedCoefficients': self.model.coef_.tolist(),
+                'trainedIntercept': self.model.intercept_.tolist()
+            })
+        elif self.config.model_type == 'svm':
+            metrics['trainedSupportVectors'] = self.model.support_vectors_.tolist()
+            
+        return metrics
+    
+    def _calculate_decision_boundary(self) -> Dict[str, Any]:
+        """Calculate decision boundary for 2D data."""
+        x_min, x_max = self.X[:, 0].min() - 1, self.X[:, 0].max() + 1
+        y_min, y_max = self.X[:, 1].min() - 1, self.X[:, 1].max() + 1
+        xx, yy = np.meshgrid(np.linspace(x_min, x_max, 50), np.linspace(y_min, y_max, 50))
+        grid_points = np.c_[xx.ravel(), yy.ravel()]
+        
+        if hasattr(self.model, 'predict_proba'):
+            Z_prob = self.model.predict_proba(grid_points)
+            predicted_classes = np.argmax(Z_prob, axis=1)
         else:
-            raise ValueError(f"Unsupported model type for classification: {model_type}")
-    
-    return model
-
-
-def create_model_simple(config: dict):
-    model_type = config.get('model_type')
-    epochs = config.get('epochs', 100)
-    model = None
-    
-    if model_type == 'logistic':
-        model = lm.LogisticRegression(penalty=config.get('regularization', 'l2'),
-                                      solver='lbfgs',
-                                      max_iter=epochs)
-    elif model_type == 'svm':
-        model = sv.SVC(kernel=config.get("kernel", "rbf"),
-                          C=config.get("C", 1.0),
-                          gamma='auto',
-                          max_iter=epochs)
+            predicted_classes = self.model.predict(grid_points)
         
-    elif model_type == 'tree':
-        model = tree.DecisionTreeClassifier(criterion=config.get("criterion", "gini"),
-                                                max_depth=config.get("maxDepth", None))
-    elif model_type == 'forest':
-        model = ensemble.RandomForestClassifier(criterion=config.get("criterion", "gini"),
-                                                n_estimators=config.get("nEstimators", 100),
-                                                max_depth=config.get("maxDepth", None))
-    elif model_type == 'knn':
-        model = neighbors.KNeighborsClassifier(n_neighbors=config.get("nNeighbors", 5),
-                                                metric=config.get("metric", 'minkowski'),
-                                                p=config.get("p", 2))
-        
-    elif model_type == 'nn':
-        model = MLPClassifier(hidden_layer_sizes=config.get("hiddenLayers", (100,)),
-                              activation=config.get("activation", "relu"),
-                                solver=config.get("optimizer", "adam"),
-                                learning_rate_init=config.get("learningRate", 0.001),
-                                max_iter=epochs,
-                                batch_size=config.get("batchSize", 32))
-    else:
-        raise ValueError(f"Unsupported model type: {model_type}")
+        return {
+            'decisionBoundary': grid_points.tolist(),
+            'predictedClasses': predicted_classes.tolist()
+        }
 
-    return model
-
-def make_train_and_evaluate_model(config: dict):
-
-    df = safe_read_csv(config.get('wfDir'))
-    X = df.iloc[:, :-1].values
-    y = df.iloc[:, -1].values
-
-    from sklearn.model_selection import train_test_split
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-    model = create_model_simple(config)
-    model.fit(X_train, y_train)
-
-    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
-    precision = precision_score(y_test, y_pred, average='micro')
-    recall = recall_score(y_test, y_pred, average='micro')
-    f1 = f1_score(y_test, y_pred, average='micro')
-
-    # compute confusion matrix
-    cm = confusion_matrix(y_test, y_pred)
-    # confusion matrix is defined as a list of lists
-    cm = cm.tolist()
-
-    # compute decision boundary
-    x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-    xx, yy = np.meshgrid(np.linspace(x_min, x_max, 50), np.linspace(y_min, y_max, 50))
-    grid_points = np.c_[xx.ravel(), yy.ravel()]
-    
-    # Get predictions for each grid point
-    if hasattr(model, 'predict_proba'):
-        # For models that support probability predictions
-        Z_prob = model.predict_proba(grid_points)
-        predicted_classes = np.argmax(Z_prob, axis=1)
-    else:
-        # For models that only support class predictions
-        predicted_classes = model.predict(grid_points)
-    
-    # Convert coordinates to list of [x, y] points
-    decision_boundary = grid_points.tolist()
-    # Convert predictions to list of class indices
-    predicted_classes = predicted_classes.tolist()
-
-    # base accuracy is the accuracy of the model when it predicts the majority class
-    # majority class is the class with the highest number of occurrences in the training data
-    majority_class = np.argmax(np.bincount(y_train))
-    base_accuracy = accuracy_score(y_test, np.full_like(y_test, majority_class))
-
-    # trained coefficients and intercept are the coefficients and intercept of the model
-    # only relevant for linear models
-    if config.get('model_type') == 'logistic':
-        trained_coefficients = model.coef_.tolist()
-        trained_intercept = model.intercept_.tolist()
-    else:
-        trained_coefficients = None
-        trained_intercept = None
-
-    # trained support vectors are the support vectors of the model
-    # only relevant for SVMs
-    if config.get('model_type') == 'svm':
-        trained_support_vectors = model.support_vectors_.tolist()
-    else:
-        trained_support_vectors = None
-
-    return {
-        'decisionBoundary': decision_boundary,
-        'predictedClasses': predicted_classes,
-        'baseAccuracy': base_accuracy,
-        'accuracy': accuracy,
-        'precision': precision,
-        'recall': recall,
-        'f1Score': f1,
-        'confusionMatrix': cm,
-        'trainedCoefficients': trained_coefficients,
-        'trainedIntercept': trained_intercept,
-        'trainedSupportVectors': trained_support_vectors
-    }
+def make_train_and_evaluate_model(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Main function to train and evaluate a model."""
+    try:
+        trainer = ModelTrainer(config)
+        trainer.prepare_data()
+        trainer.train()
+        return trainer.evaluate()
+    except Exception as e:
+        raise RuntimeError(f"Error in model training and evaluation: {str(e)}")

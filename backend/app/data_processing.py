@@ -363,10 +363,22 @@ def compute_and_save_dataset_stats(config : Dict):
         import os
         os.makedirs(os.path.dirname(save_location), exist_ok=True)
 
+        from data_analysis import compute_feature_summaries, target_column_summary
+        df = safe_read_csv(config['data_path'])
+        feature_summaries, all_recs, outlier_list = compute_feature_summaries(df, config.get('target'))
+
+        summary = {
+            'featureSummaries': feature_summaries,
+            'problemType': 'classify', # WARNING
+            'recommendations': all_recs,
+            'outliers': outlier_list,
+        }
+
         json = json.dumps({
             'statistics': stats,
             'distributions': distributions,
-            'relationships': relations
+            'relationships': relations,
+            'summary': summary
         })
         with open(save_location, 'w') as f:
             f.write(json)
@@ -414,7 +426,7 @@ def create_store_train_test_split(config : Dict):
     X = df.drop(columns=[config.get('target')], errors='ignore')
     y = df[config.get('target')]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=config['random_state'])
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
     Xtrain_loc = config.get('wfDir', '') + '\\Xtrain.csv'
     Xtest_loc = config.get('wfDir', '') + '\\Xtest.csv'
@@ -441,7 +453,52 @@ def compute_stats_and_dim_redux(config : Dict):
         return False
 
 
+def fill_missing_values(df : pd.DataFrame, method : str):
+    if method == 'none':
+        return df
+    
+    import sklearn.impute as skim
+    for col in df.columns:
+        if method == 'mean':
+            imputer = skim.SimpleImputer(strategy='mean')
+            df[col] = imputer.fit_transform(df[col].values.reshape(-1, 1))
+        elif method == 'median':
+            imputer = skim.SimpleImputer(strategy='median')
+            df[col] = imputer.fit_transform(df[col].values.reshape(-1, 1))
+        elif method == 'mode':
+            imputer = skim.SimpleImputer(strategy='most_frequent')
+            df[col] = imputer.fit_transform(df[col].values.reshape(-1, 1))
+    return df
 
+
+def apply_preprocess_to_dataset(config : Dict):
+    """
+    Apply preprocessing to the dataset.
+    """
+    df = safe_read_csv(config['data_path'])
+    if df.empty:
+        raise ValueError("The DataFrame is empty. Please check the data path and content.")
+    
+    df = fill_missing_values(df, config['impute'])
+    
+    if config['scale'] == 'none':
+        pass
+    elif config['scale'] == 'standardize':
+        for col in df.columns:
+            if df[col].nunique() >= 20:
+                df[col] = skp.StandardScaler().fit_transform(df[col].values.reshape(-1, 1))
+    elif config['scale'] == 'normalize':
+        for col in df.columns:
+            if df[col].nunique() >= 20:
+                df[col] = skp.MinMaxScaler().fit_transform(df[col].values.reshape(-1, 1))
+    else:
+        raise ValueError(f"Unsupported scale method: {config['scale']}. Supported methods are 'none', 'standardize', 'normalize'.")
+
+    if config['outlierAction'] == 'remove':
+        df = df.drop(config['outlierIndices'])
+
+    df.to_csv(config['data_path'], index=False)
+    return True
 """ 
 config_example = {
     'data_path': 'C:\\Users\\Tharuka\\Downloads\\winequality-white.csv',

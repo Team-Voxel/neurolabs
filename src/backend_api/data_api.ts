@@ -110,3 +110,17 @@ export async function trainModelSimple(config: Record<string, any>): Promise<Mod
   );
   return response.data;
 }
+
+
+export async function applyPreprocess(config: Record<string, any>): Promise<boolean> {
+  const response = await axios.post(
+    "http://localhost:8000/apply-preprocess",
+    config,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
+}

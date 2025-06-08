@@ -14,16 +14,16 @@ from sklearn.preprocessing import StandardScaler
 from dataclasses import dataclass
 
 
-def convert_manifold_to_classes(config: Dict, tm):
+def convert_manifold_to_classes(n_classes, n_samples, tm):
     """
     We can create classes by dividing the 'tm' parameter (position along the curve) into N_CLASSES segments.
     We'll use percentiles to divide the 'tm' values into distinct classes.
     """
-    N_CLASSES = config.get('n_clusters', 2)
+    N_CLASSES = n_classes
     percentiles = np.linspace(0, 100, N_CLASSES + 1)
     class_thresholds = np.percentile(tm, percentiles)
 
-    yc = np.zeros(config['n_samples'], dtype=int)
+    yc = np.zeros(n_samples, dtype=int)
     for i in range(N_CLASSES):
         lower_bound = class_thresholds[i]
         upper_bound = class_thresholds[i+1]
@@ -227,7 +227,7 @@ def generate_classification(config: Union[Dict, DatasetConfig]) -> Tuple[np.ndar
                     random_state=config.random_state
                 )
                 # Convert the manifold to classes
-                y = convert_manifold_to_classes(config, tm)
+                y = convert_manifold_to_classes(config.n_classes, config.n_samples, tm)
         else:
             X, y = skd.make_classification(
                 n_samples=config.n_samples,
@@ -458,7 +458,44 @@ class DifficultyLevel(Enum):
 def get_difficulty_config(difficulty: DifficultyLevel) -> dict:
     """
     Get dataset generation configuration based on difficulty level.
+    Handles sklearn dataset generation constraints:
+    - n_classes * n_clusters_per_class <= 2**n_informative
+    - n_informative <= n_features
+    - swiss_roll and s-curve require n_features >= 3
+    - circles requires n_features == 2
     """
+    def adjust_for_constraints(config: dict) -> dict:
+        """Adjust configuration to meet sklearn constraints."""
+        # Ensure n_informative doesn't exceed n_features
+        config['n_informative'] = min(config['n_informative'], config['n_features'])
+        
+        # Calculate max possible classes based on n_informative
+        max_clusters = 2 ** config['n_informative']
+        total_clusters = config['n_classes'] * config['n_clusters_per_class']
+        
+        # Adjust if constraint is violated
+        if total_clusters > max_clusters:
+            # Try reducing clusters per class first
+            new_clusters = max(1, max_clusters // config['n_classes'])
+            if new_clusters < config['n_clusters_per_class']:
+                config['n_clusters_per_class'] = new_clusters
+            
+            # If still violated, reduce number of classes
+            total_clusters = config['n_classes'] * config['n_clusters_per_class']
+            if total_clusters > max_clusters:
+                config['n_classes'] = max(2, max_clusters // config['n_clusters_per_class'])
+
+        # Handle special dataset type constraints
+        if config['cluster_type'] in ['swiss_roll', 's-curve']:
+            config['n_features'] = max(3, config['n_features'])
+        elif config['cluster_type'] == 'circles':
+            config['n_features'] = 2
+            
+        # Final check for n_informative after n_features might have changed
+        config['n_informative'] = min(config['n_informative'], config['n_features'])
+            
+        return config
+
     base_config = {
         'n_samples': 1000,
         'n_features': 2,
@@ -468,7 +505,7 @@ def get_difficulty_config(difficulty: DifficultyLevel) -> dict:
     }
     
     if difficulty == DifficultyLevel.LOW:
-        return {
+        config = {
             **base_config,
             'n_classes': 2,
             'n_clusters_per_class': 1,
@@ -478,9 +515,13 @@ def get_difficulty_config(difficulty: DifficultyLevel) -> dict:
             'cluster_type': 'blobs',
             'is_clusters': True,
         }
+        return adjust_for_constraints(config)
+        
     elif difficulty == DifficultyLevel.MEDIUM:
-        return {
+        config = {
             **base_config,
+            'n_features': 2,
+            'n_informative': 2,
             'n_classes': random.choice([2, 3]),
             'n_clusters_per_class': 2,
             'class_sep': 2.0,
@@ -489,20 +530,28 @@ def get_difficulty_config(difficulty: DifficultyLevel) -> dict:
             'cluster_type': random.choice(['blobs', 'moons', 'circles']),
             'is_clusters': random.choice([True, False]),
         }
+        return adjust_for_constraints(config)
+        
     elif difficulty == DifficultyLevel.HIGH:
-        return {
+        config = {
             **base_config,
+            'n_features': 3,
+            'n_informative': 3,
             'n_classes': random.choice([3, 4]),
             'n_clusters_per_class': random.choice([2, 3]),
             'class_sep': 1.0,
             'cluster_dispersion': 2.0,
             'noise': 0.2,
-            'cluster_type': random.choice(['moons', 'circles', 's-curve']),
+            'cluster_type': random.choice(['s-curve', 'swiss_roll']),
             'is_clusters': random.choice([True, False]),
         }
+        return adjust_for_constraints(config)
+        
     else:  # VERY_HIGH
-        return {
+        config = {
             **base_config,
+            'n_features': 3,
+            'n_informative': 3,
             'n_classes': random.choice([4, 5]),
             'n_clusters_per_class': random.choice([3, 4]),
             'class_sep': 0.5,
@@ -511,6 +560,7 @@ def get_difficulty_config(difficulty: DifficultyLevel) -> dict:
             'cluster_type': random.choice(['s-curve', 'swiss_roll']),
             'is_clusters': True,
         }
+        return adjust_for_constraints(config)
 
 def generate_dataset(difficulty: str = "medium", file_path: str = "generated_data.csv") -> tuple:
     """
