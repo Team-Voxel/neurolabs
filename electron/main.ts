@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { exit } from 'node:process'
 import { Workflow } from '../src/AppState'
-import { EDAData } from '../src/backend_api/types';
+import { DatasetMetadata, EDAData, ModelMetadataObject } from '../src/backend_api/types';
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -259,8 +259,38 @@ ipcMain.handle('wf-get-pcd-file', async (_e, name: string) => {
   }
 });
 
+ipcMain.handle('wf-get-model-metadata', async (_e, name: string) => {
+  await ensureStore();
+  const raw = await fs.readFile(DATA_PATH, 'utf-8');
+  const all: Workflow[] = JSON.parse(raw);
+  const wf = all.find(x => x.name === name);
+  if (wf) {
+    const metadata_path = path.join(app.getPath('userData'), wf.name, 'metadata.json');
+    const raw_bytes = await fs.readFile(metadata_path, 'utf-8');
+    const data : ModelMetadataObject = JSON.parse(raw_bytes);
+    return data;
+  } else {
+    throw new Error(`Workflow ${name} not found`);
+  }
+});
 
-const childWindows = new Set<BrowserWindow>();
+ipcMain.handle('wf-get-dataset-metadata', async (_e, name: string) => {
+  await ensureStore();
+  const raw = await fs.readFile(DATA_PATH, 'utf-8');
+  const all: Workflow[] = JSON.parse(raw);
+  const wf = all.find(x => x.name === name);
+  if (wf) {
+    const metadata_path = path.join(app.getPath('userData'), wf.name, 'dataset_metadata.json');
+    const raw_bytes = await fs.readFile(metadata_path, 'utf-8');
+    const data : DatasetMetadata = JSON.parse(raw_bytes);
+    return data;
+  } else {
+    throw new Error(`Workflow ${name} not found`);
+  }
+});
+
+
+  const childWindows = new Set<BrowserWindow>();
 
 function createCustomWindow(options: { component: string; props: any }) {
   const win = new BrowserWindow({

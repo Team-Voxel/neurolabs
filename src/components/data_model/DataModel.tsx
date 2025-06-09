@@ -1,6 +1,8 @@
 import React, {useState, useEffect} from "react";
 import { HomeOutlined, ClusterOutlined, ShrinkOutlined, BoxPlotOutlined, BarChartOutlined } from "@ant-design/icons";
 import { Menu, MenuItem } from "../Menu";
+import { useWorkflowStore } from "../../AppState";
+
 
 //type MenuItem = Required<MenuProps>['items'][number];
 
@@ -80,7 +82,14 @@ const items: MenuItem[] = [
 ]
 
 export const DataModel: React.FC = () => {
+
+    const wfStore = useWorkflowStore();
     
+    useEffect(() => {
+        window.wfStore.getPCDFile(wfStore.current!.name).then((pcdFile) => {
+            console.log(pcdFile);
+        });
+    }, []);
 
     return (
         <div className="flex flex-col h-full w-full">

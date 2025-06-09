@@ -493,6 +493,9 @@ def get_difficulty_config(difficulty: DifficultyLevel) -> dict:
             
         # Final check for n_informative after n_features might have changed
         config['n_informative'] = min(config['n_informative'], config['n_features'])
+
+        if config['n_informative'] < config['n_features']:
+            config['n_redundant'] = config['n_features'] - config['n_informative']
             
         return config
 

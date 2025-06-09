@@ -189,6 +189,34 @@ ipcMain.handle("wf-get-pcd-file", async (_e, name) => {
     throw new Error(`Workflow ${name} not found`);
   }
 });
+ipcMain.handle("wf-get-model-metadata", async (_e, name) => {
+  await ensureStore();
+  const raw = await fs.readFile(DATA_PATH, "utf-8");
+  const all = JSON.parse(raw);
+  const wf = all.find((x) => x.name === name);
+  if (wf) {
+    const metadata_path = path.join(app.getPath("userData"), wf.name, "metadata.json");
+    const raw_bytes = await fs.readFile(metadata_path, "utf-8");
+    const data = JSON.parse(raw_bytes);
+    return data;
+  } else {
+    throw new Error(`Workflow ${name} not found`);
+  }
+});
+ipcMain.handle("wf-get-dataset-metadata", async (_e, name) => {
+  await ensureStore();
+  const raw = await fs.readFile(DATA_PATH, "utf-8");
+  const all = JSON.parse(raw);
+  const wf = all.find((x) => x.name === name);
+  if (wf) {
+    const metadata_path = path.join(app.getPath("userData"), wf.name, "dataset_metadata.json");
+    const raw_bytes = await fs.readFile(metadata_path, "utf-8");
+    const data = JSON.parse(raw_bytes);
+    return data;
+  } else {
+    throw new Error(`Workflow ${name} not found`);
+  }
+});
 const childWindows = /* @__PURE__ */ new Set();
 function createCustomWindow(options) {
   const win2 = new BrowserWindow({

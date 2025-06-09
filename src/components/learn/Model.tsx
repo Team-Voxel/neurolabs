@@ -34,12 +34,6 @@ export const Model: React.FC<ModelProps> = ({type}) => {
         setTempDataFile(tempDataLoc);
     });
 
-    const fetchModelInfo = async () => {
-        const response = await fetch(`/api/models/${type}`);
-        const data = await response.json();
-        setModelInfo(data);
-    }
-
     const trainingParams: SettingControlType[] = [
         {
             id: 'epochs',
@@ -274,6 +268,8 @@ export const Model: React.FC<ModelProps> = ({type}) => {
                 activation: activation,
                 optimizer: optimizer,
                 wfDir: tempDataFile,
+                datasetSize: 1000,
+                problemType: 'classify',
             }
             try{
                 const response = await trainModelSimple(config);

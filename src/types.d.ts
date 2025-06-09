@@ -1,5 +1,5 @@
 import { Workflow, UserModel } from './AppState';
-import { EDAData } from './backend_api/types';
+import { EDAData, DatasetMetadata } from './backend_api/types';
 
 declare global {
   interface Window {
@@ -24,6 +24,8 @@ declare global {
       getModels(name: string): Promise<UserModel[]>;
       getWfDir: (name: string) => Promise<string>;
       getPCDFile: (name: string) => Promise<EDAData>;
+      getModelMetadata: (name: string) => Promise<ModelMetadataObject>;
+      getDatasetMetadata: (name: string) => Promise<DatasetMetadata>;
     };
     fsAPI: {
       readFile: (path: string) => Promise<string>;

@@ -132,7 +132,7 @@ export const LearnInterface: React.FC = () => {
                     <Flex vertical style={{padding: '10px',gap: '10px'}}>
                     <div className='flex flex-row gap-2 mx-2 items-center justify-between'>
                         <Typography.Text>Classification Difficulty</Typography.Text>
-                        <div className='w-40'>
+                        <div className='w-48'>
                         <Select options={[{value:'low', label:'Low'}, {value:'medium', label:'Medium'}, {value:'high', label:'High'}, {value:'very_high', label:'Very High'}]} value={difficulty} onChange={(value) => setDifficulty(value)}/>
                         </div>
                     </div>

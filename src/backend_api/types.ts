@@ -75,11 +75,17 @@ export interface DFRelationship {
   featureImportance: {[feature: string]: number};
 }
 
+export interface ColumnSample {
+  type: 'continuous' | 'discrete';
+  values: number[];
+}
+
 export interface EDAData {
   statistics : DFStats;
   distributions: ColumnDistributions;
   relationships: DFRelationship;
   summary: DatasetSummary;
+  reducedSample: Record<string, ColumnSample>
 };
 
 export interface SimpleDataset {
@@ -99,4 +105,40 @@ export interface ModelTrainingInfo {
   trainedCoefficients: number[];
   trainedIntercept: number;
   trainedSupportVectors: number[][];
+}
+
+
+export interface ModelMetadata {
+  name: string;
+  type: string;
+  hyperparameters: Record<string, any>;
+  path: string;
+  metrics: Record<string, any>;
+  dateTrained: string;
+  lib: string;
+}
+
+
+export interface ModelMetadataObject {
+  [modelName: string]: ModelMetadata;
+}
+
+export interface DatasetNumerics {
+  min: number;
+  max: number;
+}
+
+export interface DatasetCategorics {
+  values : string[];
+}
+
+
+export interface DatasetMetadata {
+  rows: number;
+  columns: string[];
+  columnTypes: Record<string, 'cat' | 'num'>;
+  numericalInfo: Record<string, DatasetNumerics>;
+  categoricalInfo: Record<string, DatasetCategorics>;
+  preprocessorPath: string;
+  targetEncoderPath?: string;
 }

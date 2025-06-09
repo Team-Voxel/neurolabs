@@ -1,6 +1,6 @@
 import { ipcRenderer, contextBridge } from 'electron'
-import { Workflow, UserModel } from '../src/AppState'
-import { EDAData } from '../src/backend_api/types'
+import { Workflow } from '../src/AppState'
+import { DatasetMetadata, EDAData, ModelMetadataObject } from '../src/backend_api/types'
 
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -52,7 +52,8 @@ contextBridge.exposeInMainWorld('wfStore', {
   loadAll: (): Promise<Workflow[]>       => ipcRenderer.invoke('wf-load-all'),
   saveOne: (wf: Workflow): Promise<Workflow> => ipcRenderer.invoke('wf-save-one', wf),
   deleteOne: (id: string): Promise<Workflow[]> => ipcRenderer.invoke('wf-delete-one', id),
-  loadModels: (name: string): Promise<UserModel[]> => ipcRenderer.invoke('wf-get-models', name),
   getWfDir: (name: string): Promise<string> => ipcRenderer.invoke('wf-get-workflow-dir', name),
   getPCDFile: (name: string): Promise<EDAData> => ipcRenderer.invoke('wf-get-pcd-file', name),
+  getModelMetadata: (name: string): Promise<ModelMetadataObject> => ipcRenderer.invoke('wf-get-model-metadata', name),
+  getDatasetMetadata: (name: string): Promise<DatasetMetadata> => ipcRenderer.invoke('wf-get-dataset-metadata', name),
 });

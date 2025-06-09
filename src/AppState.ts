@@ -1,5 +1,6 @@
 import {create} from 'zustand';
-import type { EDAData } from './backend_api/types';
+import type { EDAData, ModelMetadataObject, ModelMetadata } from './backend_api/types';
+
 
 export enum ModelType {
   LINEAR_REG = 0,
@@ -25,25 +26,16 @@ export enum ModelState {
   ERROR = 'error',
 }
 
-export interface UserModel {
-  name: string;
-  state: ModelState;
-  type: ModelType;
-  params: Record<string, any>; // hyperparameters
-  architecture: string; // model architecture
-  date: string; // date of creation
-}
 
 export interface Workflow {
   name: string;
   problemType: string;
   target: string;
   description: string;
-  userModels: UserModel[];
+  userModels: string[];
   wfDir: string; // path to the workflow directory
   datafile: string; // path to the data file
   dataType: string; // type of data (e.g., CSV, JSON)
-  currentModel?: UserModel; // currently selected model
 }
 
 export interface AppState {
@@ -60,6 +52,7 @@ export interface AppState {
   setCurrentByName: (name: string) => void
   getByName: (name: string) => Workflow | undefined;
   getPCDFile: () => Promise<EDAData>;
+  getModelMetadata: (name: string) => Promise<ModelMetadataObject>;
 }
 
 export const useWorkflowStore = create<AppState>((set, get) => ({
@@ -129,8 +122,14 @@ export const useWorkflowStore = create<AppState>((set, get) => ({
 
   getPCDFile: (): Promise<EDAData> => {
     return window.wfStore.getPCDFile(get().current!.name).then((file) => {
-      if (!file) throw new Error(`PCD file not found for workflow: ${get().current!.name}`);
+      if (!file) throw new Error(`EDA file not found for workflow: ${get().current!.name}`);
       return file;
+    });
+  },
+
+  getModelMetadata: (name: string): Promise<ModelMetadataObject> => {
+    return window.wfStore.getModelMetadata(name).then((metadata) => {
+      return metadata;
     });
   }
 }))

@@ -42,7 +42,8 @@ electron.contextBridge.exposeInMainWorld("wfStore", {
   loadAll: () => electron.ipcRenderer.invoke("wf-load-all"),
   saveOne: (wf) => electron.ipcRenderer.invoke("wf-save-one", wf),
   deleteOne: (id) => electron.ipcRenderer.invoke("wf-delete-one", id),
-  loadModels: (name) => electron.ipcRenderer.invoke("wf-get-models", name),
   getWfDir: (name) => electron.ipcRenderer.invoke("wf-get-workflow-dir", name),
-  getPCDFile: (name) => electron.ipcRenderer.invoke("wf-get-pcd-file", name)
+  getPCDFile: (name) => electron.ipcRenderer.invoke("wf-get-pcd-file", name),
+  getModelMetadata: (name) => electron.ipcRenderer.invoke("wf-get-model-metadata", name),
+  getDatasetMetadata: (name) => electron.ipcRenderer.invoke("wf-get-dataset-metadata", name)
 });

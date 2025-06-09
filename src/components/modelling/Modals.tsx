@@ -1,6 +1,10 @@
-import { Modal, Button, Input, Tooltip, Typography } from "antd";
-import {ModelType, UserModel} from "../../AppState";
+import { Modal, Button, Input, Tooltip, Typography, Segmented, message } from "antd";
+import {ModelType} from "../../AppState";
 import { useState } from "react";
+import ReactPlayer from "react-player";
+
+import LogisticVideo from "../../assets/videos/logistic.mp4";
+import SVMVideo from "../../assets/videos/svm.mp4";
 
 interface SelectableCardProps {
     imageUrl: string;
@@ -184,6 +188,7 @@ interface AddNewModelProps {
 
 export const AddNewModel : React.FC<AddNewModelProps> = ({open, type, onCancel, onConfirm}) => {
     const [selected, setSelected] = useState<ModelType>(type === 'reg' ? ModelType.LINEAR_REG : ModelType.LOGS_CLASS);
+    const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
     const [name, setName] = useState<string>('');
     const [step, setStep] = useState<number>(1);
     const onSelect = (value: ModelType) => {
@@ -225,31 +230,43 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, type, onCancel, 
             <div className="flex flex-col items-center justify-center h-full gap-4">
                 <Typography.Title level={3} className="text-center">Add New Model</Typography.Title>
                 <Input placeholder= "Enter a name" value={name} onChange={(e) => setName(e.target.value)}/>
-                <div className="grid grid-cols-4 gap-4">
-                    {type === 'reg' ? RegressionModels.map((model) => (
-                        <SelectableCard
-                            key={model.value}
-                            imageUrl={model.imageUrl}
-                            label={model.name}
-                            value={model.type}
-                            selectedKey={selected}
-                            onSelect={onSelect}
-                            description={model.description}
+                {/* <div className="flex-1 h-full w-1/3">
+                    <Segmented  options={options} onChange={(value) => setSelectedModel(value.toString())} value={selectedModel} vertical block size='large'/>
+                </div> */}
+                <div className="flex flex-col items-center justify-center h-full w-2/3 gap-4">
+                    <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden h-1/2">  
+                        <ReactPlayer
+                            url={SVMVideo}
+                            playing={true}
+                            loop={true}
+                            width="100%"
+                            height="100%"
+                            onReady={() => setIsVideoReady(true)}
+                            onError={(e) => {
+                                console.error('Video playback error:', e);
+                                message.error('Failed to load video');
+                            }}
+                            config={{
+                                file: {
+                                    attributes: {
+                                        controlsList: 'nodownload',
+                                        disablePictureInPicture: true,
+                                        controls: false,
+                                    }
+                                }
+                            }}
                         />
-                    )) : ClassificationModels.map((model) => (
-                        <SelectableCard
-                            key={model.value}
-                            imageUrl={model.imageUrl}
-                            label={model.name}
-                            value={model.type}
-                            selectedKey={selected}
-                            onSelect={onSelect}
-                            description={model.description}
-                        />
-                    ))}
+                    </div>
+                    <div className="w-full h-1/2">
+                        {/* Show a description of the selected model */}
+                        <Typography.Text>
+                            {'Support Vector Machine (SVM) is a powerful classifier that finds the optimal hyperplane to separate classes.'}
+                        </Typography.Text>
+                    </div>
                 </div>
             </div>
             )}
+            {/* Train the model*/}
             {step === 2 && (
                 <div></div>
             )}
@@ -258,10 +275,10 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, type, onCancel, 
 }
 
 interface OpenModelProps {
-    models: UserModel[];
+    models: string[];
     open : boolean;
     onCancel: () => void;
-    onConfirm: (model: UserModel) => void;
+    onConfirm: (model: string) => void;
 }
 
 export const OpenModelModal : React.FC<OpenModelProps> = ({models, open, onCancel, onConfirm}) => {
@@ -270,7 +287,7 @@ export const OpenModelModal : React.FC<OpenModelProps> = ({models, open, onCance
         setSelected(value);
     }
     const imageUrls = models.map((model) => {
-        const match = RegressionModels.find(el => el.type === model.type) || ClassificationModels.find(el => el.type === model.type);
+        const match = RegressionModels.find(el => el.value === model) || ClassificationModels.find(el => el.value === model);
         return match?.imageUrl;
       });
 
@@ -296,9 +313,9 @@ export const OpenModelModal : React.FC<OpenModelProps> = ({models, open, onCance
                     <div className="grid grid-cols-4 gap-4">
                         {models.map((model, idx) => (
                         <SelectableCard
-                            key={model.name}
+                            key={model}
                             imageUrl={imageUrls![idx]!}
-                            label={model.name}
+                            label={model}
                             value={idx}
                             selectedKey={selected}
                             onSelect={onSelect}

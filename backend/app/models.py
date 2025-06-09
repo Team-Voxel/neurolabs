@@ -7,15 +7,18 @@ import sklearn.tree as tree
 import sklearn.ensemble as ensemble
 import sklearn.neighbors as neighbors
 import sklearn.linear_model as lm
-from sklearn.neural_network import MLPClassifier
-from torchmlp import TorchMLP
+from sklearn.neural_network import MLPClassifier, MLPRegressor
+from torchmlp import TorchMLPClassifier, TorchMLPRegressor, _BaseMLP
 from safe_csv import safe_read_csv
 from sklearn.metrics import (
     confusion_matrix,
     accuracy_score,
     precision_score,
     recall_score,
-    f1_score
+    f1_score,
+    mean_squared_error,
+    r2_score,
+    mean_absolute_error
 )
 from sklearn.model_selection import train_test_split
 from sklearn.base import BaseEstimator
@@ -41,6 +44,7 @@ class ModelConfig:
     optimizer: str = 'adam'
     wf_dir: str = ''
     problem_type: str = 'classify'
+    dataset_size: int = 1000
 
     def __post_init__(self):
         self._validate()
@@ -88,7 +92,8 @@ class ModelConfig:
             activation=config.get('activation', 'relu'),
             optimizer=config.get('optimizer', 'adam'),
             wf_dir=config.get('wfDir', ''),
-            problem_type=config.get('problem_type', 'classify')
+            problem_type=config.get('problemType', 'classify'),
+            dataset_size=config.get('datasetSize', 1000)
         )
 
 class ModelFactory:
@@ -105,25 +110,44 @@ class ModelFactory:
             return ModelFactory._create_regressor(config)
 
     @staticmethod
-    def _create_neural_network(config: ModelConfig) -> Union[TorchMLP, MLPClassifier]:
+    def _create_neural_network(config: ModelConfig) -> Union[TorchMLPClassifier, TorchMLPRegressor, MLPClassifier, MLPRegressor]:
         if config.problem_type == 'classify':
-            return MLPClassifier(
+            if config.dataset_size < 5000:
+                return MLPClassifier(
+                    hidden_layer_sizes=config.hidden_layers,
+                    activation= 'relu' if config.activation == 'leaky_relu' else config.activation,
+                    solver= 'adam' if config.optimizer == 'adam' else 'lbfgs',
+                    learning_rate_init=config.learning_rate,
+                    max_iter=config.epochs,
+                    batch_size=config.batch_size
+                )
+            return TorchMLPClassifier(
                 hidden_layer_sizes=config.hidden_layers,
                 activation=config.activation,
-                solver=config.optimizer,
+                optimizer=config.optimizer,
                 learning_rate_init=config.learning_rate,
                 max_iter=config.epochs,
                 batch_size=config.batch_size
             )
-        return TorchMLP(
-            is_classification=False,
-            hidden_layer_sizes=config.hidden_layers,
-            activation=config.activation,
-            optimizer=config.optimizer,
-            learning_rate=config.learning_rate,
-            max_iter=config.epochs,
-            batch_size=config.batch_size
-        )
+        else:
+            if config.dataset_size < 5000:
+                return MLPRegressor(
+                    hidden_layer_sizes=config.hidden_layers,
+                    activation= 'relu' if config.activation == 'leaky_relu' else config.activation,
+                    solver= 'adam' if config.optimizer == 'adam' else 'lbfgs',
+                    learning_rate_init=config.learning_rate,
+                    max_iter=config.epochs,
+                    batch_size=config.batch_size
+                )
+            return TorchMLPRegressor(
+                is_classification=False,
+                hidden_layer_sizes=config.hidden_layers,
+                activation=config.activation,
+                optimizer=config.optimizer,
+                learning_rate=config.learning_rate,
+                max_iter=config.epochs,
+                batch_size=config.batch_size
+            )
 
     @staticmethod
     def _create_classifier(config: ModelConfig) -> BaseEstimator:
@@ -151,6 +175,12 @@ class ModelFactory:
                 penalty=config.regularization,
                 solver='lbfgs',
                 max_iter=config.epochs
+            ),
+            'gb': lambda: ensemble.GradientBoostingClassifier(
+                loss='log_loss',
+                n_estimators=config.n_estimators,
+                max_depth=config.max_depth,
+                learning_rate=config.learning_rate
             )
         }
         
@@ -183,7 +213,13 @@ class ModelFactory:
                 n_neighbors=params.get("n_neighbors", 5),
                 metric=params.get("metric", 'minkowski')
             ),
-            'linear': lambda: ModelFactory._create_linear_regressor(config)
+            'linear': lambda: ModelFactory._create_linear_regressor(config),
+            'gb': lambda: ensemble.GradientBoostingRegressor(
+                loss=config.get('loss', 'squared_error'),
+                n_estimators=params.get("n_estimators", 100),
+                max_depth=params.get("max_depth", None),
+                learning_rate=params.get("learning_rate", 0.1)
+            )
         }
         
         if config.model_type not in model_map:
@@ -236,7 +272,7 @@ class ModelTrainer:
     def __init__(self, config: Dict[str, Any]):
         """Initialize the trainer with configuration."""
         self.config = ModelConfig.from_dict(config)
-        self.model = None
+        self.model : BaseEstimator | _BaseMLP = None
         self.X = None
         self.y = None
         self.X_train = None
@@ -279,23 +315,80 @@ class ModelTrainer:
             raise ValueError("Model not fitted. Call train() first")
             
         # Calculate metrics
-        metrics = {
-            'accuracy': accuracy_score(self.y_test, y_pred),
-            'precision': precision_score(self.y_test, y_pred, average='micro'),
-            'recall': recall_score(self.y_test, y_pred, average='micro'),
-            'f1Score': f1_score(self.y_test, y_pred, average='micro'),
-            'confusionMatrix': confusion_matrix(self.y_test, y_pred).tolist(),
-            'baseAccuracy': self._calculate_base_accuracy()
-        }
-        
-        # Add model-specific metrics
-        metrics.update(self._get_model_specific_metrics())
-        
-        # Add decision boundary if 2D data
-        if self.X.shape[1] == 2:
-            metrics.update(self._calculate_decision_boundary())
+        if self.config.problem_type == 'classify':
+            metrics = {
+                'accuracy': float(accuracy_score(self.y_test, y_pred)),
+                'precision': float(precision_score(self.y_test, y_pred, average='weighted')),
+                'recall': float(recall_score(self.y_test, y_pred, average='weighted')),
+                'f1Score': float(f1_score(self.y_test, y_pred, average='weighted')),
+                'confusionMatrix': self.format_confusion_matrix(confusion_matrix(self.y_test, y_pred)),
+                'baseAccuracy': float(self._calculate_base_accuracy())
+            }
+            # Add model-specific metrics
+            metrics.update(self._get_model_specific_metrics())
             
+            # Add decision boundary if 2D data
+            if self.X.shape[1] == 2:
+                metrics.update(self._calculate_decision_boundary())
+        else:
+            metrics = {
+                'r2': float(r2_score(self.y_test, y_pred)),
+                'mse': float(mean_squared_error(self.y_test, y_pred)),
+                'rmse': float(np.sqrt(mean_squared_error(self.y_test, y_pred))),
+                'mae': float(mean_absolute_error(self.y_test, y_pred)),
+            }
+        
         return metrics
+    
+    def format_confusion_matrix(self, confusion_matrix: np.ndarray) -> Dict[str, Any]:
+        """
+        Format the multiclass confusion matrix to include the class labels.
+        [
+            {
+                'name': 'Class 1',
+                'data': [
+                    {
+                        'name': 'Class 1',
+                        'value': 10
+                    },
+                    {
+                        'name': 'Class 2',
+                        'value': 20
+                    },
+                    ...
+                ]
+            },
+            {
+                'name': 'Class 2',
+                'data': [
+                    {
+                        'name': 'Class 1',
+                        'value': 10
+                    },
+                    {
+                        'name': 'Class 2',
+                        'value': 20
+                    },
+                    ...
+                ]
+            },
+            ...
+        ]
+        """
+        class_labels = np.unique(self.y_test)
+        formatted_matrix = []
+        for i in range(len(class_labels)):
+            row = {
+                'name': f'Class {i+1}',
+                'data': []
+            }
+            for j in range(len(class_labels)):
+                row['data'].append({
+                    'name': f'Class {j+1}',
+                    'value': int(confusion_matrix[i, j])
+                })
+            formatted_matrix.append(row)
+        return formatted_matrix
     
     def _calculate_base_accuracy(self) -> float:
         """Calculate the base accuracy (majority class prediction)."""
@@ -346,4 +439,19 @@ def make_train_and_evaluate_model(config: Dict[str, Any]) -> Dict[str, Any]:
         trainer.train()
         return trainer.evaluate()
     except Exception as e:
-        raise RuntimeError(f"Error in model training and evaluation: {str(e)}")
+        raise RuntimeError(f"Error in model training and evaluation: {e}")
+
+
+def create_train_save_model(config: Dict[str, Any]) -> Dict[str, Any]:
+    """Main function to create, train and save a model."""
+    try:
+        trainer = ModelTrainer(config)
+        trainer.prepare_data()
+        trainer.train()
+        evalution = trainer.evaluate()
+        from serialize import save_model, load_metadata_object, save_metadata_object
+        metadata = load_metadata_object(config['wfDir'])
+        save_model(trainer.model, config['modelName'], metadata, config['wfDir'], evalution, trainer.config)
+        save_metadata_object(metadata, config['wfDir'])
+    except Exception as e:
+        raise RuntimeError(f"Error in model creation, training and saving: {str(e)}")
