@@ -94,14 +94,15 @@ export interface SimpleDataset {
 }
 
 export interface ModelTrainingInfo {
-  decisionBoundary: number[][];
-  predictedClasses: number[];
-  baseAccuracy: number;
   accuracy: number;
   precision: number;
   recall: number;
   f1Score: number;
   confusionMatrix: number[][];
+  decisionBoundary: number[][];
+  classes: string[];
+  baseAccuracy: number;
+  predictedClasses: number[];
   trainedCoefficients: number[];
   trainedIntercept: number;
   trainedSupportVectors: number[][];

@@ -112,10 +112,10 @@ class ModelFactory:
     @staticmethod
     def _create_neural_network(config: ModelConfig) -> Union[TorchMLPClassifier, TorchMLPRegressor, MLPClassifier, MLPRegressor]:
         if config.problem_type == 'classify':
-            if config.dataset_size < 5000:
+            if config.dataset_size > 5000:
                 return MLPClassifier(
                     hidden_layer_sizes=config.hidden_layers,
-                    activation= 'relu' if config.activation == 'leaky_relu' else config.activation,
+                    activation= 'relu' if config.activation == 'leakyrelu' else config.activation,
                     solver= 'adam' if config.optimizer == 'adam' else 'lbfgs',
                     learning_rate_init=config.learning_rate,
                     max_iter=config.epochs,
@@ -133,7 +133,7 @@ class ModelFactory:
             if config.dataset_size < 5000:
                 return MLPRegressor(
                     hidden_layer_sizes=config.hidden_layers,
-                    activation= 'relu' if config.activation == 'leaky_relu' else config.activation,
+                    activation= 'relu' if config.activation == 'leakyrelu' else config.activation,
                     solver= 'adam' if config.optimizer == 'adam' else 'lbfgs',
                     learning_rate_init=config.learning_rate,
                     max_iter=config.epochs,
@@ -282,6 +282,7 @@ class ModelTrainer:
     
     def prepare_data(self) -> None:
         """Load and prepare the data for training."""
+
         df = safe_read_csv(self.config.wf_dir)
         if df is None or df.empty:
             raise ValueError("No data available for training")
@@ -321,7 +322,8 @@ class ModelTrainer:
                 'precision': float(precision_score(self.y_test, y_pred, average='weighted')),
                 'recall': float(recall_score(self.y_test, y_pred, average='weighted')),
                 'f1Score': float(f1_score(self.y_test, y_pred, average='weighted')),
-                'confusionMatrix': self.format_confusion_matrix(confusion_matrix(self.y_test, y_pred)),
+                'confusionMatrix': self.normalize_confusion_matrix(confusion_matrix(self.y_test, y_pred)).tolist(),
+                'classes': [f'Class {i}' for i in range(len(np.unique(self.y_test)))],
                 'baseAccuracy': float(self._calculate_base_accuracy())
             }
             # Add model-specific metrics
@@ -339,6 +341,12 @@ class ModelTrainer:
             }
         
         return metrics
+    
+    def normalize_confusion_matrix(self, confusion_matrix: np.ndarray) -> np.ndarray:
+        """
+        Normalize the confusion matrix to include the class labels.
+        """
+        return confusion_matrix / confusion_matrix.sum(axis=1, keepdims=True)
     
     def format_confusion_matrix(self, confusion_matrix: np.ndarray) -> Dict[str, Any]:
         """
@@ -385,7 +393,7 @@ class ModelTrainer:
             for j in range(len(class_labels)):
                 row['data'].append({
                     'name': f'Class {j+1}',
-                    'value': int(confusion_matrix[i, j])
+                    'value': float(confusion_matrix[i, j])
                 })
             formatted_matrix.append(row)
         return formatted_matrix
@@ -415,14 +423,17 @@ class ModelTrainer:
     
     def _calculate_decision_boundary(self) -> Dict[str, Any]:
         """Calculate decision boundary for 2D data."""
-        x_min, x_max = self.X[:, 0].min() - 1, self.X[:, 0].max() + 1
-        y_min, y_max = self.X[:, 1].min() - 1, self.X[:, 1].max() + 1
+        x_min, x_max = float(self.X[:, 0].min() - 1), float(self.X[:, 0].max() + 1)
+        y_min, y_max = float(self.X[:, 1].min() - 1), float(self.X[:, 1].max() + 1)
         xx, yy = np.meshgrid(np.linspace(x_min, x_max, 50), np.linspace(y_min, y_max, 50))
         grid_points = np.c_[xx.ravel(), yy.ravel()]
         
         if hasattr(self.model, 'predict_proba'):
             Z_prob = self.model.predict_proba(grid_points)
-            predicted_classes = np.argmax(Z_prob, axis=1)
+            if len(Z_prob.shape) == 2 and Z_prob.shape[1] > 1:
+                predicted_classes = np.argmax(Z_prob, axis=1)
+            else:
+                predicted_classes = (Z_prob > 0.5).astype(int)
         else:
             predicted_classes = self.model.predict(grid_points)
         
@@ -439,7 +450,7 @@ def make_train_and_evaluate_model(config: Dict[str, Any]) -> Dict[str, Any]:
         trainer.train()
         return trainer.evaluate()
     except Exception as e:
-        raise RuntimeError(f"Error in model training and evaluation: {e}")
+        raise RuntimeError(f"Error in model training and evaluation: {e.__str__()}")
 
 
 def create_train_save_model(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -454,4 +465,4 @@ def create_train_save_model(config: Dict[str, Any]) -> Dict[str, Any]:
         save_model(trainer.model, config['modelName'], metadata, config['wfDir'], evalution, trainer.config)
         save_metadata_object(metadata, config['wfDir'])
     except Exception as e:
-        raise RuntimeError(f"Error in model creation, training and saving: {str(e)}")
+        raise RuntimeError(f"Error in model creation, training and saving: {e.__str__()}")

@@ -30,7 +30,7 @@ class _BaseMLP(BaseEstimator):
         n_features = X.shape[1]
         if self._is_classifier():
             self.n_classes_ = len(np.unique(y))
-            output_size = self.n_classes_ if self.n_classes_ > 2 else 1
+            output_size = self.n_classes_  # Always use n_classes_ output neurons
         else:
             output_size = y.shape[1] if len(y.shape) > 1 else 1
 
@@ -40,7 +40,7 @@ class _BaseMLP(BaseEstimator):
             'sigmoid': nn.Sigmoid(),
             'tanh': nn.Tanh(),
             'relu': nn.ReLU(),
-            'leaky_relu': nn.LeakyReLU()
+            'leakyrelu': nn.LeakyReLU()
         }
         self.activation_ = activation_functions.get(self.activation)
         if self.activation_ is None:
@@ -113,10 +113,7 @@ class TorchMLPClassifier(_BaseMLP):
         with torch.no_grad():
             X = torch.from_numpy(X).float()
             outputs = self.model_(X)
-            if self.n_classes_ > 2:
-                _, predicted = torch.max(outputs.data, 1)
-            else:
-                predicted = (torch.sigmoid(outputs) > 0.5).long().flatten()
+            _, predicted = torch.max(outputs.data, 1)  # Use max for both binary and multi-class
         return predicted.numpy()
 
     def predict_proba(self, X):
@@ -124,11 +121,7 @@ class TorchMLPClassifier(_BaseMLP):
         with torch.no_grad():
             X = torch.from_numpy(X).float()
             outputs = self.model_(X)
-            if self.n_classes_ > 2:
-                probas = torch.softmax(outputs, dim=1)
-            else:
-                sigmoid_outputs = torch.sigmoid(outputs)
-                probas = torch.cat([1 - sigmoid_outputs, sigmoid_outputs], dim=1)
+            probas = torch.softmax(outputs, dim=1)  # Always use softmax for all cases
         return probas.numpy()
     
 

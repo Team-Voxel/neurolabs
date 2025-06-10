@@ -16,6 +16,10 @@ export const PreprocessModal: React.FC<PreprocessModalProps> = ({issues , open, 
     const [issueCheck, setIssueCheck] = useState<string[]>([]);
 
     useEffect(() => {
+        setMissingImputation(issueCheck.includes("missing") ? "mean" : "none");
+        setOutlierDetection(issueCheck.includes("outlier") ? true : false);
+        setFeatureScaling(issueCheck.includes("scale") ? "standardize" : "none");
+        
         issues.forEach((issue) => {
             if (issue.includes("missing")) {
                 setIssueCheck(prev => [...prev, "missing"]);
@@ -27,13 +31,7 @@ export const PreprocessModal: React.FC<PreprocessModalProps> = ({issues , open, 
                 setIssueCheck(prev => [...prev, "scale"]);
             }
         });
-    }, []);
-
-    useEffect(() => {
-        setMissingImputation(issueCheck.includes("missing") ? "mean" : "none");
-        setOutlierDetection(issueCheck.includes("outlier") ? true : false);
-        setFeatureScaling(issueCheck.includes("scale") ? "standardize" : "none");
-    }, []);
+    }, [open]);
 
     const handleOk = () => {
         onOk(missingImputation, outlierDetection, featureScaling);

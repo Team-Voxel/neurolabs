@@ -213,6 +213,8 @@ export const WorkflowWizard: React.FC = () => {
         outlierAction: preprocessOutlierDetection,
         outlierIndices: dataSummary?.outliers || [],
         data_path: `${wfdir}\\data.csv`,
+        wfDir: wfdir,
+        target: targetColumn
       });
     });
     

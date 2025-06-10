@@ -6,7 +6,8 @@ import type { ModelTrainingInfo } from '../../backend_api/types';
 import Settings from '../../components/settings/Settings';
 import { SettingControl as SettingControlType, SelectOption } from '../../components/settings/types';
 import { trainModelSimple } from '../../backend_api/data_api';
-import { Curve } from 'recharts';
+import { PlotlyHeatmap } from '../plotting/BoxHeat';
+import { PiQuestionBold } from 'react-icons/pi';
 
 interface ModelProps {
     type: string;
@@ -30,6 +31,9 @@ export const Model: React.FC<ModelProps> = ({type}) => {
     const [optimizer, setOptimizer] = useState<string>('adam');
 
     const [tempDataFile, setTempDataFile] = useState<string>('');
+
+    const [isTraining, setIsTraining] = useState<boolean>(false);
+
     window.fsAPI.getTempDatasetPath().then((tempDataLoc) => {
         setTempDataFile(tempDataLoc);
     });
@@ -272,15 +276,17 @@ export const Model: React.FC<ModelProps> = ({type}) => {
                 problemType: 'classify',
             }
             try{
+                setIsTraining(true);
+                setModelInfo(null);
                 const response = await trainModelSimple(config);
                 setModelInfo(response);
             } catch (error) {
                 console.error('Error training model:', error);
+            } finally {
+                setIsTraining(false);
             }
         }
         fetchModelInfo();
-        console.log(modelInfo?.confusionMatrix)
-        console.log('Model trained');
     }
     
     return (
@@ -298,7 +304,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
                                             title='Decision Boundary'
                                         /> : 
                             <div className='flex justify-center items-center h-full w-full border-2 border-dashed border-gray-300 rounded-md'>
-                                <Typography.Title level={4}>Train the model to see the decision boundary</Typography.Title>
+                                {isTraining ? <Typography.Title level={4}>Training the model...</Typography.Title> : <Typography.Title level={4}>Train the model to see the decision boundary</Typography.Title>}
                             </div>}
                             </div>
                         </Splitter.Panel>
@@ -307,7 +313,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
                         <div className='flex-1 flex-col gap-4 items-center mt-4 justify-between pr-4'>
                             <Typography.Title level={4}>Training Parameters</Typography.Title>
                         <Settings controls={trainingParams} />
-                        <div className='flex flex-row justify-items-stretch gap-4 mt-8 pl-4'>
+                        <div className='flex flex-row justify-items-stretch gap-4 my-8 pl-4'>
                             <Button block type="primary" onClick={onClickTrain}>Train Model</Button>
                         </div>
                         </div>
@@ -389,10 +395,17 @@ export const PerformanceMetrics: React.FC<{type: string, modelInfo: ModelTrainin
     )
 }
 
-export const ConfusionMatrix: React.FC<{type: string, modelInfo: ModelTrainingInfo}> = ({}) => {
+export const ConfusionMatrix: React.FC<{type: string, modelInfo: ModelTrainingInfo}> = ({type, modelInfo}) => {
+
+
     return (
-        <div>
-            <Typography.Title level={4}>Confusion Matrix</Typography.Title>
+        <div className='h-full w-full p-2'>
+        <Popover mouseEnterDelay={1} placement='left' content='Y-Axis: Predicted Classes and X-Axis: Actual Classes'>
+        <div style={{position: 'absolute', top: '4px', right: '4px'}} onClick={() => {console.log(modelInfo.confusionMatrix)}}>
+            <PiQuestionBold className='w-5 h-5'/>
+        </div>
+        </Popover>
+        <PlotlyHeatmap z={modelInfo.confusionMatrix} xLabels={modelInfo.classes} yLabels={modelInfo.classes} colorscale={'RdYlGn'}/>
         </div>
     )
 }

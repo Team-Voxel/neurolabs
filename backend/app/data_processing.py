@@ -611,7 +611,7 @@ def preprocess_dataframe(df, target_column, wfDir, test_size=0.8, random_state=4
     y_test_processed.to_csv(ytest_loc, index=False)
 
     dataset_metadata = {
-        'rows': X_train.shape[0],
+        'rows': df.shape[0],
         'columns': transformed_column_names,
         'columnTypes': {col: 'cat' if col in categorical_features else 'num' for col in transformed_column_names},
         'numericalInfo': {col: {'min': X_train_processed[col].min(), 'max': X_train_processed[col].max()} for col in numerical_features},
