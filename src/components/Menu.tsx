@@ -13,6 +13,8 @@ interface MenuProps {
   items: MenuItem[];
   onSelect?: (key: string, item: MenuItem) => void;
   className?: string;
+  defaultSelectedKey?: string;
+  defaultExpandedKeys?: Set<string>;
 }
 
 interface MenuItemProps {
@@ -50,7 +52,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
       <div
         onClick={handleClick}
         className={`
-          flex items-center justify-between px-4 py-3 cursor-pointer
+          flex flex-row items-center justify-items-end justify-between px-4 py-3 cursor-pointer
           transition-all duration-200 ease-out
           border-l-4 border-transparent
           ${level === 0 ? 'font-medium' : 'font-normal ml-4'}
@@ -67,7 +69,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
           ${level > 0 ? 'text-sm' : ''}
         `}
       >
-        <Typography.Title level={5} className="flex-1 truncate">{item.label}</Typography.Title>
+        <Typography.Title level={5} className="flex truncate">{item.label}</Typography.Title>
         {hasChildren && (
           <div
             className={`
@@ -87,7 +89,7 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
             ${isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}
           `}
         >
-          <div className="bg-gradient-to-r from-gray-25 to-slate-25 border-l border-gray-100 ml-4">
+          <div className="bg-gradient-to-r from-gray-25 to-slate-25 border-l border-gray-100 ml-2">
             {item.children?.map((child) => (
               <MenuItemComponent
                 key={child.key}
@@ -106,9 +108,9 @@ const MenuItemComponent: React.FC<MenuItemProps> = ({
   );
 };
 
-export const Menu: React.FC<MenuProps> = ({ items, onSelect, className = '' }) => {
-  const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+export const Menu: React.FC<MenuProps> = ({ items, onSelect, className = '', defaultSelectedKey, defaultExpandedKeys }) => {
+  const [selectedKey, setSelectedKey] = useState<string | null>(defaultSelectedKey || null);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(defaultExpandedKeys || new Set());
 
   const handleSelect = (key: string, item: MenuItem) => {
     setSelectedKey(key);

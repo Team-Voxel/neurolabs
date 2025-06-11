@@ -1,55 +1,54 @@
 import Toolbar from "../Toolbar";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { ModelType, UserModel, useWorkflowStore, Workflow } from "../../AppState";
+import { useWorkflowStore, Workflow } from "../../AppState";
+import { ModelMetadataObject } from "../../backend_api/types";
 import { Modal, Button, Typography } from "antd";
-import { AddNewModel, OpenModelModal } from "./Modals";
+import { AddNewModel } from "./Modals";
 import { NNModel } from "./NNModel";
 import { LinearRegression } from "./LinearRegression";
 import { ModelCard } from "./ModelCard";
 import { PiPlus } from "react-icons/pi";
 
-const modelTypes = {
-    [ModelType.LINEAR_REG]: 'linear',
-    [ModelType.SV_REG]: 'svm',
-    [ModelType.KNN_REG]: 'knn',
-    [ModelType.DT_REG]: 'tree',
-    [ModelType.RF_REG]: 'forest',
-    [ModelType.GB_REG]: 'gb',
-    [ModelType.NN_REG]: 'nn',
-    [ModelType.LOGS_CLASS]: 'logistic',
-    [ModelType.SV_CLASS]: 'svm',
-    [ModelType.KNN_CLASS]: 'knn',
-    [ModelType.DT_CLASS]: 'tree',
-    [ModelType.RF_CLASS]: 'forest',
-    [ModelType.GB_CLASS]: 'gb',
-    [ModelType.NN_CLASS]: 'nn',
-}
+
+export enum ModelType {
+    LINEAR_REG = 0,
+    SV_REG,
+    KNN_REG,
+    DT_REG,
+    RF_REG,
+    GB_REG,
+    NN_REG,
+    LOGS_CLASS,
+    SV_CLASS,
+    KNN_CLASS,
+    DT_CLASS,
+    RF_CLASS,
+    GB_CLASS,
+    NN_CLASS,
+}  
+
 
 export const ModelContext : React.FC = () => {
-    const [model, setModel] = useState<UserModel | null>(null);
     const [openDialogIdx, setOpenDialogIdx] = useState<number>(-1);
-    const [selectedModel, setSelectedModel] = useState<UserModel | null>(null);
+    const [modelMetadataObject, setModelMetadataObject] = useState<ModelMetadataObject | null>(null);
+    const [selectedModel, setSelectedModel] = useState<string | null>(null);
 
     const workflow = useWorkflowStore((state) => state.current);
     
-    useCallback(() => {
+    useEffect(() => {
         if (workflow) {
-            const currentModel = workflow.currentModel;
-            if (currentModel) {
-                setModel(currentModel);
-            }
+            window.wfStore.getModelMetadata(workflow.name).then((metadata) => {
+                setModelMetadataObject(metadata);
+            }).catch((err) => {
+                console.error('Error fetching model metadata:', err);
+                setModelMetadataObject(null);
+            });
         }
-    }
-    , [workflow]);
+    }, [workflow]);
 
     const handleCancel = () => {
         setOpenDialogIdx(-1);
     };
-
-    const addNewModel = (modelType: ModelType, name : string) => {
-        console.log('Adding new model of type:', modelType, 'with name:', name);
-        setOpenDialogIdx(-1);
-    }
 
     return (
         <>
@@ -64,22 +63,75 @@ export const ModelContext : React.FC = () => {
                 onInspect={() => console.log('Inspect clicked')}
                 onEvaluate={() => console.log('Evaluate clicked')}
             />
-            {workflow && workflow.userModels.length ? 
+            {workflow && workflow.userModels.length > 0 ? 
             (
-                <div className="flex-1 w-full overflow-y-auto">
-                    {workflow.userModels.map((model) => (
-                        <ModelCard key={model.type} modelName={model.name} modelType={modelTypes[model.type]} isSelected={model.name === selectedModel?.name} onSelect={() => setSelectedModel(model)} />
-                    ))}
+                <div className="flex flex-row h-full w-full">
+                <div className="flex flex-col w-1/2 overflow-y-auto">
+                    <div 
+                        className={`relative flex flex-row gap-4 p-6 rounded-xl cursor-pointer
+                            min-h-32 min-w-48 transition-all duration-300 ease-in-out transform                  
+                            hover:shadow-2xl justify-center items-center border-2 border-gray-400
+                            group
+                            `}
+                        onClick={() => setOpenDialogIdx(1)}>
+                            <PiPlus className="w-10 h-10" />
+                            <Typography.Title level={3}>New Model</Typography.Title>
+                            <div className={`
+                            absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300
+                            ${'bg-gradient-to-r from-blue-400/5 to-purple-400/5 group-hover:opacity-100'}
+                            pointer-events-none
+                            `}></div>
+                    </div>
+                {modelMetadataObject && Object.keys(modelMetadataObject).length > 0 && 
+                    (                        
+                        Object.entries(modelMetadataObject).map(([modelName, metadata]) => {
+                            return (
+                            <ModelCard 
+                                key={modelName} 
+                                modelName={modelName} 
+                                modelType={metadata.type} 
+                                isSelected={selectedModel === modelName} 
+                                onSelect={(name: string) => setSelectedModel(name)} 
+                                onRetrain={() => console.log(`Retrain model : ${modelName}`)} 
+                                onDelete={() => console.log(`Delete model : ${modelName}`)} 
+                            />
+                        );
+                        })
+                    )    
+                }
+                </div>
+                <div className="flex-1 w-1/2 overflow-y-auto">
+                    {(selectedModel && modelMetadataObject && modelMetadataObject[selectedModel]) ? 
+                        (
+                            // Render model metrics/parameters based on type
+                            <></>
+                        )
+                    : (
+                    <div className="flex flex-col items-center justify-center h-full">
+                        <Typography.Title level={3}>Select a model to view details</Typography.Title>
+                    </div>)
+                    }
+                </div>
                 </div>
             ) : 
             (
-                <div className="flex-1 w-full overflow-y-auto">
-                    <div className="flex flex-col items-center justify-center h-full">
-                        <div className="flex flex-col border-2 rounded-md p-4 gap-2 shadow-md h-50 w-50 items-center justify-center  border-gray-300 hover:border-blue-500 hover:cursor-pointer" onClick={() => setOpenDialogIdx(1)}>
+                <div className="flex-1 w-full h-full overflow-y-auto">
+                    <div className="flex flex-col items-center justify-center h-full gap-4 py-4">
+                        <div 
+                        className={`relative flex flex-col gap-4 p-6 rounded-xl cursor-pointer w-50 h-50
+                            min-h-32 min-w-48 transition-all duration-300 ease-in-out transform                  
+                            hover:shadow-2xl justify-center items-center border-2 border-gray-400
+                            group
+                            `}
+                        onClick={() => setOpenDialogIdx(1)}>
                             <PiPlus className="w-20 h-20" />
-                            <Typography.Title level={3}>Add a new model</Typography.Title>
+                            <Typography.Title level={3}>New Model</Typography.Title>
+                            <div className={`
+                            absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300
+                            ${'bg-gradient-to-r from-blue-400/5 to-purple-400/5 group-hover:opacity-100'}
+                            pointer-events-none
+                            `}></div>
                         </div>
-                        <ModelCard key='nn' modelName='My model' modelType='logistic' isSelected={false} onSelect={() => setSelectedModel(null)} />
                     </div>
                 </div>
             )
@@ -87,15 +139,12 @@ export const ModelContext : React.FC = () => {
         </div>
         <AddNewModel 
             open={openDialogIdx === 1}
-            onConfirm={addNewModel}
+            onConfirm={(modelType: ModelType, modelName: string) => {
+                console.log('New model confirmed:', modelType, modelName);
+                setOpenDialogIdx(-1);
+            }}
             onCancel={handleCancel}
             type='class'
-        />
-        <OpenModelModal 
-            open={openDialogIdx === 2}
-            onConfirm={() => console.log('Open model confirmed')}
-            onCancel={handleCancel}
-            models={workflow?.userModels || []}
         />
         </>
     );

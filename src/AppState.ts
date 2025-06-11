@@ -1,24 +1,6 @@
 import {create} from 'zustand';
 import type { EDAData, ModelMetadataObject, ModelMetadata } from './backend_api/types';
 
-
-export enum ModelType {
-  LINEAR_REG = 0,
-  SV_REG,
-  KNN_REG,
-  DT_REG,
-  RF_REG,
-  GB_REG,
-  NN_REG,
-  LOGS_CLASS,
-  SV_CLASS,
-  KNN_CLASS,
-  DT_CLASS,
-  RF_CLASS,
-  GB_CLASS,
-  NN_CLASS,
-}
-
 export enum ModelState {
   TRAINED = 'trained',
   UNTRAINED = 'untrained',
@@ -51,7 +33,7 @@ export interface AppState {
   setCurrent: (wf?: Workflow) => void
   setCurrentByName: (name: string) => void
   getByName: (name: string) => Workflow | undefined;
-  getPCDFile: () => Promise<EDAData>;
+  getEDAFile: () => Promise<EDAData>;
   getModelMetadata: (name: string) => Promise<ModelMetadataObject>;
 }
 
@@ -79,15 +61,16 @@ export const useWorkflowStore = create<AppState>((set, get) => ({
       get().loadAll()
     })
   },
-  // load from JSON file via Electron
-  loadAll: async () => {
-    const all = await window.wfStore.loadAll()
-    set({ workflows: all })
-    // if no current selected, pick first
-    if (all.length && !get().current) {
-      set({ current: all[0] })
-    }
-  },
+    /** Load all workflows from disk */
+    loadAll: async () => {
+      const all = await window.wfStore.loadAll();
+      set({ workflows: all });
+  
+      const current = get().current;
+      if (!current && all.length > 0) {
+        set({ current: all[0] });
+      }
+    },
 
   // save or update a workflow
   save: async (wf) => {
@@ -120,7 +103,7 @@ export const useWorkflowStore = create<AppState>((set, get) => ({
     return get().workflows.find((w) => w.name === name);
   },
 
-  getPCDFile: (): Promise<EDAData> => {
+  getEDAFile: (): Promise<EDAData> => {
     return window.wfStore.getPCDFile(get().current!.name).then((file) => {
       if (!file) throw new Error(`EDA file not found for workflow: ${get().current!.name}`);
       return file;

@@ -138,7 +138,7 @@ export const ListControl: React.FC<ListControlProps> = ({ control }) => {
 
   // Add a new number input to the list
   const handleAddNumber = () => {
-    const updatedNumbers = [...numbers, null];
+    const updatedNumbers = [...numbers, 16]; // Default value for new input
     setNumbers(updatedNumbers);
     
     // Don't call onChange here since the new value is null
@@ -168,13 +168,13 @@ export const ListControl: React.FC<ListControlProps> = ({ control }) => {
               value={number}
               onChange={(value) => handleNumberChange(index, value)}
               style={styles.inputNumber}
-              placeholder="Enter a number"
+              placeholder="Enter neuron count"
             />
             <Button 
               danger 
               type="text" 
               onClick={() => handleRemoveNumber(index)}
-              aria-label="Remove number"
+              aria-label="Remove layer"
             >
               Remove
             </Button>
@@ -186,7 +186,7 @@ export const ListControl: React.FC<ListControlProps> = ({ control }) => {
           style={styles.addButton}
           icon={<PlusOutlined />}
         >
-          Add Number
+          Add New Layer
         </Button>
       </Space>
     );

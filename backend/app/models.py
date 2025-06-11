@@ -23,6 +23,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import train_test_split
 from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
+from arlinear import ARLinearRegressor
 
 @dataclass
 class ModelConfig:
@@ -112,7 +113,7 @@ class ModelFactory:
     @staticmethod
     def _create_neural_network(config: ModelConfig) -> Union[TorchMLPClassifier, TorchMLPRegressor, MLPClassifier, MLPRegressor]:
         if config.problem_type == 'classify':
-            if config.dataset_size > 5000:
+            if config.dataset_size < 5000:
                 return MLPClassifier(
                     hidden_layer_sizes=config.hidden_layers,
                     activation= 'relu' if config.activation == 'leakyrelu' else config.activation,
@@ -173,7 +174,7 @@ class ModelFactory:
             ),
             'logistic': lambda: lm.LogisticRegression(
                 penalty=config.regularization,
-                solver='lbfgs',
+                solver='lbfgs' if config.regularization == 'l2' else 'saga',
                 max_iter=config.epochs
             ),
             'gb': lambda: ensemble.GradientBoostingClassifier(
@@ -242,22 +243,11 @@ class ModelFactory:
             )
         
         if loss == "squared_loss":
-            if regularization == "l2":
-                return lm.Ridge(
-                    alpha=params.get("alpha", 1.0),
-                    max_iter=config.epochs
-                )
-            elif regularization == "l1":
-                return lm.Lasso(
-                    alpha=params.get("alpha", 1.0),
-                    max_iter=config.epochs
-                )
-            elif regularization == "elasticnet":
-                return lm.ElasticNet(
-                    alpha=params.get("alpha", 1.0),
-                    l1_ratio=params.get("l1_ratio", 0.5),
-                    max_iter=config.epochs
-                )
+            return ARLinearRegressor(
+                regularization_method=regularization,
+                alpha=params.get("alpha", 1.0),
+                max_iter=config.epochs
+            )
         elif loss == "huber":
             return lm.HuberRegressor(
                 alpha=params.get("alpha", 1.0),
@@ -273,29 +263,21 @@ class ModelTrainer:
         """Initialize the trainer with configuration."""
         self.config = ModelConfig.from_dict(config)
         self.model : BaseEstimator | _BaseMLP = None
-        self.X = None
-        self.y = None
         self.X_train = None
         self.X_test = None
         self.y_train = None
         self.y_test = None
     
-    def prepare_data(self) -> None:
-        """Load and prepare the data for training."""
-
-        df = safe_read_csv(self.config.wf_dir)
-        if df is None or df.empty:
-            raise ValueError("No data available for training")
+    def prepare_data(self, X_train, X_test, y_train, y_test) -> None:
+        """Initialize with data."""
             
-        self.X = df.iloc[:, :-1].values
-        self.y = df.iloc[:, -1].values
-        
-        if len(self.X) < 2:
+        if len(X_train) < 2:
             raise ValueError("Insufficient data for training")
-            
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            self.X, self.y, test_size=0.2, random_state=42
-        )
+        
+        self.X_train = X_train.to_numpy()
+        self.X_test = X_test.to_numpy()
+        self.y_train = y_train.to_numpy()
+        self.y_test = y_test.to_numpy()
     
     def train(self) -> None:
         """Train the model with the prepared data."""
@@ -330,7 +312,7 @@ class ModelTrainer:
             metrics.update(self._get_model_specific_metrics())
             
             # Add decision boundary if 2D data
-            if self.X.shape[1] == 2:
+            if self.X_train.shape[1] == 2:
                 metrics.update(self._calculate_decision_boundary())
         else:
             metrics = {
@@ -423,8 +405,8 @@ class ModelTrainer:
     
     def _calculate_decision_boundary(self) -> Dict[str, Any]:
         """Calculate decision boundary for 2D data."""
-        x_min, x_max = float(self.X[:, 0].min() - 1), float(self.X[:, 0].max() + 1)
-        y_min, y_max = float(self.X[:, 1].min() - 1), float(self.X[:, 1].max() + 1)
+        x_min, x_max = float(self.X_train[:, 0].min() - 1), float(self.X_train[:, 0].max() + 1)
+        y_min, y_max = float(self.X_train[:, 1].min() - 1), float(self.X_train[:, 1].max() + 1)
         xx, yy = np.meshgrid(np.linspace(x_min, x_max, 50), np.linspace(y_min, y_max, 50))
         grid_points = np.c_[xx.ravel(), yy.ravel()]
         
@@ -446,9 +428,18 @@ def make_train_and_evaluate_model(config: Dict[str, Any]) -> Dict[str, Any]:
     """Main function to train and evaluate a model."""
     try:
         trainer = ModelTrainer(config)
-        trainer.prepare_data()
+        df = safe_read_csv(config['wfDir']) # here wfDir is the path to the CSV file containing the dataset
+        if df.empty:
+            raise ValueError("Dataset is empty. Please provide a valid dataset.")
+        X = df.drop(columns=['y'])
+        y = df['y']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=65)
+
+        trainer.prepare_data(X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test)
         trainer.train()
-        return trainer.evaluate()
+        
+        evaluation = trainer.evaluate()
+        return evaluation
     except Exception as e:
         raise RuntimeError(f"Error in model training and evaluation: {e.__str__()}")
 
@@ -457,12 +448,25 @@ def create_train_save_model(config: Dict[str, Any]) -> Dict[str, Any]:
     """Main function to create, train and save a model."""
     try:
         trainer = ModelTrainer(config)
-        trainer.prepare_data()
+        # measure time to train the model
+        import time
+        start_time = time.time()
+        # Load data
+        dataDir = config['wfDir']
+        X_train = safe_read_csv(dataDir + '\\Xtrain.csv')
+        X_test = safe_read_csv(dataDir + '\\Xtest.csv')
+        y_train = safe_read_csv(dataDir + '\\ytrain.csv')
+        y_test = safe_read_csv(dataDir + '\\ytest.csv')
+
+        trainer.prepare_data(X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test)
         trainer.train()
-        evalution = trainer.evaluate()
+        end_time = time.time()
+
+        evaluation = trainer.evaluate()
         from serialize import save_model, load_metadata_object, save_metadata_object
         metadata = load_metadata_object(config['wfDir'])
-        save_model(trainer.model, config['modelName'], metadata, config['wfDir'], evalution, trainer.config)
+        save_model(trainer.model, config['modelName'], metadata, config['wfDir'], evaluation, config)
         save_metadata_object(metadata, config['wfDir'])
+        return {'success': True, 'time': '{:.3f}'.format(end_time - start_time)}
     except Exception as e:
         raise RuntimeError(f"Error in model creation, training and saving: {e.__str__()}")

@@ -2,11 +2,16 @@ import React, {useState, useEffect} from "react";
 import { HomeOutlined, ClusterOutlined, ShrinkOutlined, BoxPlotOutlined, BarChartOutlined } from "@ant-design/icons";
 import { Menu, MenuItem } from "../Menu";
 import { useWorkflowStore } from "../../AppState";
+import { message } from "antd";
 
 
 //type MenuItem = Required<MenuProps>['items'][number];
 
 const items: MenuItem[] = [
+    {
+      key: 'statistics',
+      label: 'Statistics',
+    },
     {
       key: 'overview',
       label: 'Overview',
@@ -86,21 +91,20 @@ export const DataModel: React.FC = () => {
     const wfStore = useWorkflowStore();
     
     useEffect(() => {
+      if (wfStore.current){
         window.wfStore.getPCDFile(wfStore.current!.name).then((pcdFile) => {
             console.log(pcdFile);
+            message.success(`EDA file loaded`);
         });
-    }, []);
+      }
+    }, [wfStore.current]);
 
     return (
         <div className="flex flex-col h-full w-full">
             <div className="flex flex-col h-full w-1/5">
               <Menu 
               items={items} 
-              //defaultSelectedKeys={['overview']} 
-              //defaultOpenKeys={['distribution']}
-              //mode="inline"
-              //theme="light"
-              //inlineCollapsed={false}
+              defaultSelectedKey="statistics"
               className="h-full w-full"
               onSelect={(key, item) => {
                 console.log(key, item);

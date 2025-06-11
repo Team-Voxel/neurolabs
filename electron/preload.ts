@@ -54,6 +54,6 @@ contextBridge.exposeInMainWorld('wfStore', {
   deleteOne: (id: string): Promise<Workflow[]> => ipcRenderer.invoke('wf-delete-one', id),
   getWfDir: (name: string): Promise<string> => ipcRenderer.invoke('wf-get-workflow-dir', name),
   getPCDFile: (name: string): Promise<EDAData> => ipcRenderer.invoke('wf-get-pcd-file', name),
-  getModelMetadata: (name: string): Promise<ModelMetadataObject> => ipcRenderer.invoke('wf-get-model-metadata', name),
-  getDatasetMetadata: (name: string): Promise<DatasetMetadata> => ipcRenderer.invoke('wf-get-dataset-metadata', name),
+  getModelMetadata: (wf_name: string): Promise<ModelMetadataObject> => ipcRenderer.invoke('wf-get-model-metadata', wf_name),
+  getDatasetMetadata: (wf_name: string): Promise<DatasetMetadata> => ipcRenderer.invoke('wf-get-dataset-metadata', wf_name),
 });

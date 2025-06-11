@@ -1,19 +1,33 @@
 import { Modal, Button, Input, Tooltip, Typography, Segmented, message } from "antd";
-import {ModelType} from "../../AppState";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactPlayer from "react-player";
+import papa from "papaparse";
+import { ModelType } from "./ModelContext";
+import VerticalSelector, {SelectionOption} from "../VerticalList";
+import Settings from "../settings/Settings";
 
 import LogisticVideo from "../../assets/videos/logistic.mp4";
 import SVMVideo from "../../assets/videos/svm.mp4";
+import { SettingControl } from "../settings/types";
+import { useWorkflowStore } from "../../AppState";
 
-interface SelectableCardProps {
-    imageUrl: string;
-    label: string;
-    value: ModelType;
-    selectedKey: ModelType;
-    description?: string;
-    onSelect: (value: ModelType) => void;
-  }
+
+/* const modelTypes = {
+    [ModelType.LINEAR_REG]: 'linear',
+    [ModelType.SV_REG]: 'svm',
+    [ModelType.KNN_REG]: 'knn',
+    [ModelType.DT_REG]: 'tree',
+    [ModelType.RF_REG]: 'forest',
+    [ModelType.GB_REG]: 'gb',
+    [ModelType.NN_REG]: 'nn',
+    [ModelType.LOGS_CLASS]: 'logistic',
+    [ModelType.SV_CLASS]: 'svm',
+    [ModelType.KNN_CLASS]: 'knn',
+    [ModelType.DT_CLASS]: 'tree',
+    [ModelType.RF_CLASS]: 'forest',
+    [ModelType.GB_CLASS]: 'gb',
+    [ModelType.NN_CLASS]: 'nn',
+}   */ 
 
 export interface ModelInfo {
     name: string;
@@ -22,55 +36,100 @@ export interface ModelInfo {
     imageUrl: string;
     value: string;
 }
-  
-function cx(...classes: (string | false | null | undefined)[]) { return classes.filter(Boolean).join(" ");}
 
-const SelectableCard: React.FC<SelectableCardProps> = ({
-    imageUrl,
-    label,
-    value,
-    selectedKey,
-    onSelect,
-    description,
-  }) => {
-    const isSelected = value === selectedKey;
-  
-    return (
-        description ? <Tooltip title={description} placement="top" mouseEnterDelay={1}>
-      <div
-        className={cx(
-          'relative rounded-lg overflow-hidden cursor-pointer border transition-all duration-200',
-            isSelected ? 'border-blue-500 ring-2 ring-blue-400':
-            'border-gray-300 hover:ring-1 hover:ring-gray-400'
-        )}
-        onClick={() => onSelect(value)}
-      >
-        <img src={imageUrl} alt={label} className="w-full h-32 w-40 object-cover" />
-        <div className="absolute inset-0 bg-white bg-opacity-60 flex items-center justify-center">
-          <span className="text-gray-800 font-semibold text-lg text-center px-2">
-            {label}
-          </span>
-        </div>
-      </div>
-      </Tooltip> : 
-      <div
-      className={cx(
-        'relative rounded-lg overflow-hidden cursor-pointer border transition-all duration-200',
-          isSelected ? 'border-blue-500 ring-2 ring-blue-400':
-          'border-gray-300 hover:ring-1 hover:ring-gray-400'
-      )}
-      onClick={() => onSelect(value)}
-    >
-      <img src={imageUrl} alt={label} className="w-full h-32 w-40 object-cover" />
-      <div className="absolute inset-0 bg-white bg-opacity-60 flex items-center justify-center">
-        <span className="text-gray-800 font-semibold text-lg text-center px-2">
-          {label}
-        </span>
-      </div>
-    </div>
-    );
-};
 
+const classificationOptions : SelectionOption[] = [
+    {
+        id: 'logistic',
+        label: 'Logistic Regression',
+        value: 'logistic',
+    },
+    {
+        id: 'svm',
+        label: 'Support Vector Machine',
+        value: 'svm',
+    },
+    {
+        id: 'tree',
+        label: 'Decision Tree',
+        value: 'tree',
+    },
+    {
+        id: 'forest',
+        label: 'Random Forest',
+        value: 'forest',
+    },
+    {
+        id: 'gb',
+        label: 'Gradient Boosting',
+        value: 'gb',
+    },
+    {
+        id: 'knn',
+        label: 'K-Nearest Neighbors',
+        value: 'knn',
+    },
+    {
+        id: 'nn',
+        label: 'Neural Network',
+        value: 'nn',
+    },
+];
+
+const regressionOptions : SelectionOption[] = [
+    {
+        id: 'linear',
+        label: 'Linear Regression',
+        value: 'linear',
+    },
+    {
+        id: 'svm',
+        label: 'Support Vector Machine',
+        value: 'svm',
+    },
+    {
+        id: 'logistic',
+        label: 'Decision Tree',
+        value: 'tree',
+    },
+    {
+        id: 'tree',
+        label: 'Random Forest',
+        value: 'forest',
+    },
+    {
+        id: 'gb',
+        label: 'Gradient Boosting',
+        value: 'gb',
+    },
+    {
+        id: 'knn',
+        label: 'K-Nearest Neighbors',
+        value: 'knn',
+    },
+    {
+        id: 'nn',
+        label: 'Neural Network',
+        value: 'nn',
+    },
+];
+
+
+const skactivations = [
+    { label: 'Identity', value: 'identity' },
+    { label: 'ReLU', value: 'relu' },
+    { label: 'Sigmoid', value: 'sigmoid' },
+    { label: 'Tanh', value: 'tanh' },
+];
+
+const torchactivations = [
+    { label: 'Identity', value: 'identity' },
+    { label: 'ReLU', value: 'relu' },
+    { label: 'Leaky ReLU', value: 'leakyrelu' },
+    { label: 'ELU', value: 'elu' },
+    { label: 'GELU', value: 'gelu' },
+];
+/* 
 const RegressionModels : ModelInfo[] = [
 {
     name: "Linear Regression",
@@ -178,7 +237,7 @@ const ClassificationModels : ModelInfo[] = [
     value: "dnnc"
 },
 ]
-
+ */
 interface AddNewModelProps {
     open : boolean;
     type : 'reg' | 'class';
@@ -186,53 +245,307 @@ interface AddNewModelProps {
     onConfirm: (model: ModelType, name : string) => void;
 }
 
-export const AddNewModel : React.FC<AddNewModelProps> = ({open, type, onCancel, onConfirm}) => {
-    const [selected, setSelected] = useState<ModelType>(type === 'reg' ? ModelType.LINEAR_REG : ModelType.LOGS_CLASS);
+export const AddNewModel : React.FC<AddNewModelProps> = ({open, onCancel, onConfirm}) => {
     const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
     const [name, setName] = useState<string>('');
     const [step, setStep] = useState<number>(1);
-    const onSelect = (value: ModelType) => {
-        setSelected(value);
-    }
+
+    const [type, setType] = useState<string>('nn');
+
+    const [epochs, setEpochs] = useState<number>(100);
+    const [batchSize, setBatchSize] = useState<number>(32);
+    const [learningRate, setLearningRate] = useState<number>(0.001);
+    const [regularization, setRegularization] = useState<string>('l2');
+    const [kernel, setKernel] = useState<string>('rbf');
+    const [C, setC] = useState<number>(1.0);
+    const [maxDepth, setMaxDepth] = useState<number>(3);
+    const [criterion, setCriterion] = useState<string>('gini');
+    const [nNeighbors, setNNeighbors] = useState<number>(5);
+    const [metric, setMetric] = useState<string>('euclidean');
+    const [nEstimators, setNEstimators] = useState<number>(100);
+    const [hiddenLayers, setHiddenLayers] = useState<number[]>([28, 16]);
+    const [activation, setActivation] = useState<string>('relu');
+    const [optimizer, setOptimizer] = useState<string>('adam');
+
+    const [datasetSize, setDatasetSize] = useState<number>(0);
+
+    const workflow = useWorkflowStore();
+    
     const confirmValidation = (model: ModelType, name : string) => {
         if (name.trim() === '') {
             alert('Please enter a name for the model');
             return false;
         }
-        if (type === 'reg' && !RegressionModels.some(model => model.type === selected)) {
-            alert('Please select a regression model');
-            return false;
-        }
-        if (type === 'class' && !ClassificationModels.some(model => model.type === selected)) {
-            alert('Please select a classification model');
-            return false;
-        }
         onConfirm(model, name);
+    } 
+
+
+    const trainingParams: SettingControl[] = [
+        {
+            id: 'epochs',
+            label: 'Epochs',
+            type: 'slider',
+            value: epochs,
+            min: 1,
+            max: 1000,
+            step: 1,
+            onChange: (value) => setEpochs(value),
+            visible: type === 'nn' || type === 'svm' || type === 'logistic' || type === 'linear',
+        },
+        {
+            id: 'batchSize',
+            label: 'Batch Size',
+            type: 'slider',
+            value: batchSize,
+            min: 16,
+            max: 256,
+            step: 16,
+            onChange: (value) => setBatchSize(value),
+            visible: type === 'nn',
+        },
+        {
+            id: 'learningRate',
+            label: 'Learning Rate',
+            type: 'slider',
+            value: learningRate,
+            min: 0.0001,
+            max: 0.1,
+            step: 0.0001,
+            tooltip: 'The learning rate for the model',
+            onChange: (value) => setLearningRate(value),
+            visible: type === 'nn' || type === 'gb',
+        },
+        // Logistic Regression
+        {
+            id: 'regularization',
+            label: 'Regularization',
+            type: 'select',
+            value: regularization,
+            options: [{
+                label: 'L1',
+                value: 'l1'
+            }, {
+                label: 'L2',
+                value: 'l2'
+            }, {
+                label: 'Elastic Net',
+                value: 'elasticnet'
+            }],
+            tooltip: 'The regularization for the model',
+            onChange: (value) => setRegularization(value),
+            visible: type === 'logistic' || type === 'linear',
+        },
+        // SVC
+        {
+            id: 'kernel',
+            label: 'Kernel',
+            type: 'select',
+            value: kernel,
+            options: [{
+                label: 'Linear',
+                value: 'linear'
+            }, {
+                label: 'RBF',
+                value: 'rbf'
+            }, {
+                label: 'Sigmoid',
+                value: 'sigmoid'
+            }, {
+                label: 'Polynomial',
+                value: 'poly'
+            }],
+            tooltip: 'The kernel for the model',
+            onChange: (value) => setKernel(value),
+            visible: type === 'svm',
+        },
+        {
+            id: 'C',
+            label: 'C',
+            type: 'number',
+            value: C,
+            min: 0.0,
+            max: 10.0,
+            step: 0.1,
+            tooltip: 'The regularization parameter for the model',
+            onChange: (value) => setC(value),
+            visible: type === 'svm',
+        },
+        // Decision Tree
+        {
+            id: 'maxDepth',
+            label: 'Max Depth',
+            type: 'number',
+            value: maxDepth,
+            min: 1,
+            max: 20,
+            step: 1,
+            tooltip: 'The max depth for the model',
+            onChange: (value) => setMaxDepth(value),
+            visible: type === 'tree' || type === 'forest'
+        },
+        {
+            id: 'criterion',
+            label: 'Criterion',
+            type: 'select',
+            value: criterion,
+            options: [{
+                label: 'Gini',
+                value: 'gini'
+            }, {
+                label: 'Entropy',
+                value: 'entropy'
+            }],
+            tooltip: 'The criterion for the model',
+            onChange: (value) => setCriterion(value),
+            visible: type === 'tree'
+        },
+        // KNN
+        {
+            id: 'nNeighbors',
+            label: 'N Neighbors',
+            type: 'number',
+            value: nNeighbors,
+            min: 1,
+            max: 20,
+            step: 1,
+            tooltip: 'The number of neighbors for the model',
+            onChange: (value) => setNNeighbors(value),
+            visible: type === 'knn',
+        },
+        {
+            id: 'metric',
+            label: 'Metric',
+            type: 'select',
+            value: metric,
+            options: [{
+                label: 'Euclidean',
+                value: 'euclidean'
+            }, {
+                label: 'Manhattan',
+                value: 'manhattan'
+            }, {
+                label: 'Minkowski',
+                value: 'minkowski'
+            }],
+            tooltip: 'The metric for the model',
+            onChange: (value) => setMetric(value),
+            visible: type === 'knn',
+        },
+        // Random Forest & Gradient Boosting
+        {
+            id: 'nEstimators',
+            label: 'N Estimators',
+            type: 'number',
+            value: nEstimators,
+            min: 1,
+            max: 512,
+            step: 1,
+            tooltip: 'The number of estimators for the model',
+            onChange: (value) => setNEstimators(value),
+            visible: type === 'forest' || type === 'gb',
+        },
+        // Neural Network
+        {
+            id: 'hiddenLayers',
+            label: 'Hidden Layers',
+            type: 'list',
+            value: hiddenLayers,
+            onChange: (value) => setHiddenLayers(value),
+            visible: type === 'nn',
+        },
+        {
+            id: 'activation',
+            label: 'Activation',
+            type: 'select',
+            value: activation,
+            options: datasetSize > 5000 ? torchactivations : skactivations,
+            tooltip: 'The activation for the model',
+            onChange: (value) => setActivation(value),
+            visible: type === 'nn',
+        },
+        {
+            id: 'optimizer',
+            label: 'Optimizer',
+            type: 'select',
+            value: optimizer,
+            options: [{
+                label: 'Adam',
+                value: 'adam'
+            }, {
+                label: 'SGD',
+                value: 'sgd'
+            }],
+            tooltip: 'The optimizer for the model',
+            onChange: (value) => setOptimizer(value),
+            visible: type === 'nn',
+        }
+    ];
+
+    
+
+    useEffect(() => {
+        window.fsAPI.readFile(workflow.current!.datafile).then((data) => {
+            // Parse the CSV data
+            // Use PapaParse to parse the CSV data
+            papa.parse(data, {
+                download: false,
+                header: false,
+                complete: (results) => {
+                    message.success('Data file loaded successfully');
+                    const datasetSize = results.data.length; // get dataset size
+                    setDatasetSize(datasetSize);
+                },
+                error: (error) => {
+                    console.error('Error loading data:', error);
+                    message.error('Failed to load data file', error);
+                }
+            });
+        }
+        ).catch((err) => {
+            console.error('Error reading data file:', err);
+            message.error('Failed to read data file');
+        });
+    }, []);
+
+    const handleModelTraining = () => {
+
     }
+
+    const footer1 = [
+        <Button key="back" onClick={onCancel}>
+          Close
+        </Button>,
+        <Button key="next" type="primary" onClick={() => setStep(2)} disabled={!isVideoReady || name.trim() === ''}>
+          Next
+        </Button>
+    ]
+
+    const footer2 = [
+        <Button key="back" onClick={() => setStep(1)}>
+          Back
+        </Button>,
+        <Button key="confirm" type="primary" onClick={() => {}}>
+          Train Model
+        </Button>
+    ]
 
     return (
         <Modal 
+            title="Add New Model"
             open={open} 
             onCancel={onCancel} 
             onClose={onCancel}
             closeIcon={false}
             width={800}
-            footer={[
-                <Button key="back" onClick={onCancel}>
-                  Return
-                </Button>,
-                <Button key="confirm" type="primary" onClick={() => setStep(step + 1)}>
-                  Next
-                </Button>, 
-              ]}
+            footer={step === 1 ? footer1 : footer2}
         >
             {step === 1 && (
             <div className="flex flex-col items-center justify-center h-full gap-4">
-                <Typography.Title level={3} className="text-center">Add New Model</Typography.Title>
-                <Input placeholder= "Enter a name" value={name} onChange={(e) => setName(e.target.value)}/>
-                {/* <div className="flex-1 h-full w-1/3">
-                    <Segmented  options={options} onChange={(value) => setSelectedModel(value.toString())} value={selectedModel} vertical block size='large'/>
-                </div> */}
+                <Input placeholder= "Enter a name" value={name} onChange={(e) => setName(e.target.value)} size="large"/>
+                <div className="flex flex-row items-start justify-center w-full gap-4">
+                <div className="flex flex-col h-full w-1/3">
+                    <VerticalSelector  options={workflow.current!.problemType == 'regression' ? regressionOptions : classificationOptions} onChange={(value) => setType(value)} selectedValue={type}/>
+                </div>
                 <div className="flex flex-col items-center justify-center h-full w-2/3 gap-4">
                     <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden h-1/2">  
                         <ReactPlayer
@@ -265,70 +578,21 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, type, onCancel, 
                     </div>
                 </div>
             </div>
+            </div>
             )}
-            {/* Train the model*/}
             {step === 2 && (
-                <div></div>
+                <div className='flex-1 flex-col gap-4 items-center mt-4 justify-between pr-4'>
+                    <Typography.Title level={4}>Training Parameters</Typography.Title>
+                    <Settings controls={trainingParams} />
+                </div>
+            )}
+            {/* This window is shown until the model is trained. Cannot close. */}
+            {step === 3 && (
+                <div>
+                    <Typography.Title level={3}>Training Model...</Typography.Title>
+                    <Typography.Text>Please wait while the model is being trained.</Typography.Text>
+                </div>   
             )}
         </Modal>
     )
-}
-
-interface OpenModelProps {
-    models: string[];
-    open : boolean;
-    onCancel: () => void;
-    onConfirm: (model: string) => void;
-}
-
-export const OpenModelModal : React.FC<OpenModelProps> = ({models, open, onCancel, onConfirm}) => {
-    const [selected, setSelected] = useState<number>(0);
-    const onSelect = (value: number) => {
-        setSelected(value);
-    }
-    const imageUrls = models.map((model) => {
-        const match = RegressionModels.find(el => el.value === model) || ClassificationModels.find(el => el.value === model);
-        return match?.imageUrl;
-      });
-
-    return (
-        <Modal 
-            open={open} 
-            onCancel={onCancel} 
-            onClose={onCancel}
-            closeIcon={false}
-            width={500}
-            footer={[
-                <Button key="back" onClick={onCancel}>
-                  Return
-                </Button>,
-                <Button key="confirm" type="primary" onClick={() => onConfirm(models[selected])}>
-                  Confirm
-                </Button>,
-              ]}
-        >
-            <div className="flex flex-col items-center justify-center h-full w-full gap-4">
-                <Typography.Title level={3} className="text-center">Load a Model</Typography.Title>
-                {models.length !== 0 ? (
-                    <div className="grid grid-cols-4 gap-4">
-                        {models.map((model, idx) => (
-                        <SelectableCard
-                            key={model}
-                            imageUrl={imageUrls![idx]!}
-                            label={model}
-                            value={idx}
-                            selectedKey={selected}
-                            onSelect={onSelect}
-                        />
-                        ))}
-                    </div>
-                    ) : (
-                    <div className="flex flex-col items-center justify-center mb-4 h-full w-full border-2 border-dashed border-gray-300 rounded-lg p-4">
-                        <Typography.Title level={5} className="text-center">No models available</Typography.Title>
-                        <p className="text-gray-500">Please create a model to load.</p>
-                    </div>
-                    )}
-                </div>
-        </Modal>
-    );
 }
