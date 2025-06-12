@@ -2,8 +2,7 @@ import React, { useState, ChangeEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
-import { Workflow, useWorkflowStore } from '../../AppState';
-import { Button, Splitter, Steps, Typography} from 'antd';
+import { Button, message, Splitter, Steps, Typography} from 'antd';
 import { ToggleButton, ToggleButtonGroup } from '@mui/material';
 import {generateSummaryFromFile, applyPreprocess} from '../../backend_api/data_api';
 import type { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
@@ -36,18 +35,12 @@ export const WorkflowWizard: React.FC = () => {
   const [targetColumn, setTargetColumn] = useState<string | null>(null);
   const [problemType, setProblemType] = useState<string>('classify');
 
-  const [wfs, setWfs] = useState<Workflow[]>([]);
-
   const [preprocessModalOpen, setPreprocessModalOpen] = useState<boolean>(false);
   const [preprocessMissingImputation, setPreprocessMissingImputation] = useState<string>("none");
   const [preprocessOutlierDetection, setPreprocessOutlierDetection] = useState<boolean>(false);
   const [preprocessFeatureScaling, setPreprocessFeatureScaling] = useState<string>("standardize");
 
   const [doneComputingStats, setDoneComputingStats] = useState<boolean>(false);
-
-  useEffect(() => {
-    setWfs(useWorkflowStore.getState().workflows);
-  }, []);
   
   const handlePreprocess = (missingImputation: string, outlierDetection: boolean, featureScaling: string) => {
     setPreprocessMissingImputation(missingImputation);
@@ -70,12 +63,7 @@ export const WorkflowWizard: React.FC = () => {
     const name = e.target.value;
     
     setWorkflowName(name);
-    wfs.forEach((wf) => {
-      if (wf.name === name) {
-        setNameError('Name already exists');
-        return;
-      }
-    });
+    global.appState.hasWorkflowByName(name) ? setNameError('Name already exists') : setNameError('none');
     if (name.length < 3) {
       setNameError('Name too short');
       return;
@@ -149,23 +137,29 @@ export const WorkflowWizard: React.FC = () => {
   }
 
   const addNew = async () => {
-    const wfDir = await window.wfStore.getWfDir(workflowName);
     if (!targetColumn) {
-      throw new Error('Target column is required');
+      message.error('Target column is required');
+      return;
     }
+    if (!problemType) {
+      message.error('Problem type is required');
+      return;
+    }
+    if (global.appState.hasWorkflowByName(workflowName)) {
+      message.error('Workflow with this name already exists');
+      return;
+    }
+    
+    global.appState.addNewWorkflow(workflowName, problemType, targetColumn).then(() => {
+      message.success('Workflow created successfully');
+      global.appState.setCurrentByName(workflowName).then(() => {
 
-    const newWf: Workflow = {
-      name: workflowName,
-      description: '',
-      userModels: [],
-      wfDir: wfDir,
-      datafile: `${wfDir}//data.csv`,
-      dataType: 'CSV',
-      problemType: problemType,
-      target: targetColumn,
-    };
-    useWorkflowStore.getState().addNew(newWf);
-    useWorkflowStore.getState().setCurrentByName(workflowName);
+        message.success('Current workflow set successfully');});
+      setStep(SetupSteps.Finish);
+    }).catch((error) => {
+      message.error('Error creating workflow: ' + error.message);
+    });
+    return;
   };
 
   const handleFinalization = () => {
@@ -178,32 +172,23 @@ export const WorkflowWizard: React.FC = () => {
     }
 
     addNew();
+    let dataPath = '';
     if (dataSource === 'file'){
-        const ext = csvFile!.name.split('.').pop();
-        window.wfStore.getWfDir(workflowName).then((wfdir) => {
-            window.fsAPI.joinPath(wfdir, `data.${ext}`).then((newFileName) => {
-            window.fsAPI.copyFile(csvFile!.path, newFileName).then(() => {
-                console.log('File copied successfully');
-            }).catch((error) => {
-                console.error('Error copying file:', error);
-            });
-            });
-        });
+      if (!csvFile) {
+        message.error('No CSV file selected');
+        return;
+      }
+      dataPath = csvFile.path;
     }
     else {
-      // Read generated data from the temporary data file, copy it to the workflow directory
-      window.fsAPI.getTempDatasetPath().then((tempDataLoc) => {
-        window.wfStore.getWfDir(workflowName).then((wfdir) => {
-          window.fsAPI.joinPath(wfdir, `data.csv`).then((newFileName) => {
-            window.fsAPI.copyFile(tempDataLoc, newFileName).then(() => {
-              console.log('File copied successfully');
-            }).catch((error) => {
-              console.error('Error copying file:', error);
-            });
-          });
-        });
-      });
+      dataPath = global.appState.getTempDatasetPath();
     }
+    
+    global.appState.copyDataFileToWorkflowDirectory(dataPath, workflowName).then(() => {
+      message.info('Generated data copied successfully');
+    }).catch((error) => {
+      message.error('Error copying generated data:', error);
+    });
 
     // apply preprocessing
     window.wfStore.getWfDir(workflowName).then((wfdir) => {

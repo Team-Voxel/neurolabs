@@ -1,8 +1,12 @@
 import React, {useState, useEffect} from "react";
 import { HomeOutlined, ClusterOutlined, ShrinkOutlined, BoxPlotOutlined, BarChartOutlined } from "@ant-design/icons";
 import { Menu, MenuItem } from "../Menu";
-import { useWorkflowStore } from "../../AppState";
-import { message } from "antd";
+import { Workflow } from "../../AppState";
+import { message, Typography } from "antd";
+import { StatisticsModel } from "./StatisticsModel";
+import { EDAData, DatasetSummary } from "../../backend_api/types";
+import { OverviewModel } from "./DFOverviewModel";
+import { RelationsModel } from "./RelationsModel";
 
 
 //type MenuItem = Required<MenuProps>['items'][number];
@@ -87,20 +91,19 @@ const items: MenuItem[] = [
 ]
 
 export const DataModel: React.FC = () => {
-
-    const wfStore = useWorkflowStore();
+    const [edaFile, setEdaFile] = useState<EDAData | null>(null);
+    const [selected, setSelected] = useState<string>('statistics');
     
     useEffect(() => {
-      if (wfStore.current){
-        window.wfStore.getPCDFile(wfStore.current!.name).then((pcdFile) => {
-            console.log(pcdFile);
-            message.success(`EDA file loaded`);
-        });
+      if (!global.appState.currentEDA) {
+        message.error("Critical Error! No EDA file for the current project.");
+        return;
       }
-    }, [wfStore.current]);
+      setEdaFile(global.appState.currentEDA!);
+    }, [global.appState.currentEDA]);
 
     return (
-        <div className="flex flex-col h-full w-full">
+        <div className="flex flex-row h-full w-full">
             <div className="flex flex-col h-full w-1/5">
               <Menu 
               items={items} 
@@ -108,8 +111,26 @@ export const DataModel: React.FC = () => {
               className="h-full w-full"
               onSelect={(key, item) => {
                 console.log(key, item);
+                setSelected(key);
               }}
               />
+            </div>
+            <div className="flex flex-col h-full w-4/5 p-4">
+                {edaFile && (
+                    selected === 'statistics' && <StatisticsModel stats={edaFile.statistics} />
+                )}
+                {edaFile && (
+                    selected === 'overview' && (<div className='flex max-h-full w-full overflow-auto'>
+                              <OverviewModel datasetSummary={edaFile.summary} visible={true} />
+                                </div>)
+                )}
+                {edaFile && (
+                    selected === 'correlation' && (
+                        <div className='flex max-h-full w-full overflow-auto'>
+                            <RelationsModel rels={edaFile.relationships} cols={edaFile.statistics.columns} />
+                        </div>
+                    )
+                )}
             </div>
         </div>
     );

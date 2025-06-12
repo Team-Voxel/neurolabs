@@ -5,11 +5,11 @@ import papa from "papaparse";
 import { ModelType } from "./ModelContext";
 import VerticalSelector, {SelectionOption} from "../VerticalList";
 import Settings from "../settings/Settings";
+import { Workflow } from "../../AppState";
 
 import LogisticVideo from "../../assets/videos/logistic.mp4";
 import SVMVideo from "../../assets/videos/svm.mp4";
 import { SettingControl } from "../settings/types";
-import { useWorkflowStore } from "../../AppState";
 
 
 /* const modelTypes = {
@@ -246,6 +246,7 @@ interface AddNewModelProps {
 }
 
 export const AddNewModel : React.FC<AddNewModelProps> = ({open, onCancel, onConfirm}) => {
+    const [currentWF, setCurrentWF] = useState<Workflow>(global.appState.current!);
     const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
     const [name, setName] = useState<string>('');
     const [step, setStep] = useState<number>(1);
@@ -268,8 +269,6 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, onCancel, onConf
     const [optimizer, setOptimizer] = useState<string>('adam');
 
     const [datasetSize, setDatasetSize] = useState<number>(0);
-
-    const workflow = useWorkflowStore();
     
     const confirmValidation = (model: ModelType, name : string) => {
         if (name.trim() === '') {
@@ -484,28 +483,13 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, onCancel, onConf
     
 
     useEffect(() => {
-        window.fsAPI.readFile(workflow.current!.datafile).then((data) => {
-            // Parse the CSV data
-            // Use PapaParse to parse the CSV data
-            papa.parse(data, {
-                download: false,
-                header: false,
-                complete: (results) => {
-                    message.success('Data file loaded successfully');
-                    const datasetSize = results.data.length; // get dataset size
-                    setDatasetSize(datasetSize);
-                },
-                error: (error) => {
-                    console.error('Error loading data:', error);
-                    message.error('Failed to load data file', error);
-                }
-            });
+        global.appState.currentDatasetMetadata?.rows && setDatasetSize(global.appState.currentDatasetMetadata!.rows);
+        if (global.appState.current) {
+            setCurrentWF(global.appState.current);
+        } else {
+            message.error('No current workflow found');
         }
-        ).catch((err) => {
-            console.error('Error reading data file:', err);
-            message.error('Failed to read data file');
-        });
-    }, []);
+    }, [open]);
 
     const handleModelTraining = () => {
 
@@ -544,7 +528,7 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, onCancel, onConf
                 <Input placeholder= "Enter a name" value={name} onChange={(e) => setName(e.target.value)} size="large"/>
                 <div className="flex flex-row items-start justify-center w-full gap-4">
                 <div className="flex flex-col h-full w-1/3">
-                    <VerticalSelector  options={workflow.current!.problemType == 'regression' ? regressionOptions : classificationOptions} onChange={(value) => setType(value)} selectedValue={type}/>
+                    <VerticalSelector  options={currentWF.problemType == 'regression' ? regressionOptions : classificationOptions} onChange={(value) => setType(value)} selectedValue={type}/>
                 </div>
                 <div className="flex flex-col items-center justify-center h-full w-2/3 gap-4">
                     <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden h-1/2">  

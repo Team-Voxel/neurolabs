@@ -1,12 +1,10 @@
 import React, {useState, useEffect, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "./CreateNewButton";
-import List, {ListItem} from "./CustomList";
 import Plus from "../assets/plus.png"
-import File from "../assets/folders.png"
-import SelectionGrid from "./selectionGrid";
 import Card from "./Card";
-import { useWorkflowStore, Workflow } from "../AppState";
+import { Workflow } from "../AppState";
+import { message } from "antd";
 
 // Show workflow selection screen
 // New -> New workflow window
@@ -18,18 +16,27 @@ export const WorkflowSelection : React.FC = () => {
     const navigate = useNavigate();
 
     const loadWorkflow = (name: string) => {
-      useWorkflowStore.getState().setCurrentByName(name);
+      global.appState.setCurrentByName(name).then(() => {
+        global.appState.setCurrentByName(name);
+        message.success('Current workflow set successfully');
+      }).catch((error) => {
+        message.error('Error loading workflow: ' + error.message);
+      });
       navigate("/sandbox");
     }
     
     const deleteWorkflow = (name: string) => {
-      useWorkflowStore.getState().removeNyName(name).then(() => {
-        setWfs(useWorkflowStore.getState().workflows);
-      });
+      window.global.appState.deleteWorkflow(name);
+      setWfs(window.global.appState.workflows);
     }
 
     useEffect(() => {
-      setWfs(useWorkflowStore.getState().workflows);
+      window.stateAPI.getAppState().then(({ workflows, current }) => {
+        setWfs(workflows);
+        message.success('App state fetched successfully');
+      }).catch((error) => {
+        message.error('Error fetching app state: ' + error.message);
+      });
     }, []);
       
     return (

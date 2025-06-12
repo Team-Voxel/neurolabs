@@ -1,8 +1,8 @@
 import Toolbar from "../Toolbar";
 import { useCallback, useContext, useEffect, useState } from "react";
-import { useWorkflowStore, Workflow } from "../../AppState";
-import { ModelMetadataObject } from "../../backend_api/types";
-import { Modal, Button, Typography } from "antd";
+import { Workflow } from "../../AppState";
+import { ModelMetadata } from "../../backend_api/types";
+import { Modal, Button, Typography, message } from "antd";
 import { AddNewModel } from "./Modals";
 import { NNModel } from "./NNModel";
 import { LinearRegression } from "./LinearRegression";
@@ -30,21 +30,17 @@ export enum ModelType {
 
 export const ModelContext : React.FC = () => {
     const [openDialogIdx, setOpenDialogIdx] = useState<number>(-1);
-    const [modelMetadataObject, setModelMetadataObject] = useState<ModelMetadataObject | null>(null);
+    const [modelMetadataObjects, setModelMetadataObjects] = useState<Record<string, ModelMetadata> | null>(null);
     const [selectedModel, setSelectedModel] = useState<string | null>(null);
-
-    const workflow = useWorkflowStore((state) => state.current);
     
     useEffect(() => {
-        if (workflow) {
-            window.wfStore.getModelMetadata(workflow.name).then((metadata) => {
-                setModelMetadataObject(metadata);
-            }).catch((err) => {
-                console.error('Error fetching model metadata:', err);
-                setModelMetadataObject(null);
-            });
+        if (global.appState.currentModelMetadata) {
+            setModelMetadataObjects(global.appState.currentModelMetadata);
         }
-    }, [workflow]);
+        else {
+            message.error('Critical Error! Missing model metadata');
+        }
+    }, []);
 
     const handleCancel = () => {
         setOpenDialogIdx(-1);
@@ -63,7 +59,7 @@ export const ModelContext : React.FC = () => {
                 onInspect={() => console.log('Inspect clicked')}
                 onEvaluate={() => console.log('Evaluate clicked')}
             />
-            {workflow && workflow.userModels.length > 0 ? 
+            {true ? 
             (
                 <div className="flex flex-row h-full w-full">
                 <div className="flex flex-col w-1/2 overflow-y-auto">
@@ -82,9 +78,9 @@ export const ModelContext : React.FC = () => {
                             pointer-events-none
                             `}></div>
                     </div>
-                {modelMetadataObject && Object.keys(modelMetadataObject).length > 0 && 
+                {modelMetadataObjects && Object.keys(modelMetadataObjects).length > 0 && 
                     (                        
-                        Object.entries(modelMetadataObject).map(([modelName, metadata]) => {
+                        Object.entries(modelMetadataObjects).map(([modelName, metadata]) => {
                             return (
                             <ModelCard 
                                 key={modelName} 
@@ -101,7 +97,7 @@ export const ModelContext : React.FC = () => {
                 }
                 </div>
                 <div className="flex-1 w-1/2 overflow-y-auto">
-                    {(selectedModel && modelMetadataObject && modelMetadataObject[selectedModel]) ? 
+                    {(selectedModel && modelMetadataObjects && modelMetadataObjects[selectedModel]) ? 
                         (
                             // Render model metrics/parameters based on type
                             <></>

@@ -23,13 +23,13 @@ export interface DatasetSummary {
 }
 
 export interface DFStats {
-  rowCount: number;
-  columnCount: number;
+  row_count: number;
+  column_count: number;
   columns: string[];
-  dtypes: string[];
-  memoryUsage: string;
-  missingValues: { [key: string]: number };
-  sampleData: { [key: string]: number[] };
+  dtypes: Record<string, string>; // Maps column names to their data types
+  memory_usage: string;
+  missing_values: { [key: string]: number };
+  sample_data: Record<string, number>[]; // Maps column names to arrays of sample values
 }
 
 // Interface for the statistical properties of a continuous numeric column
@@ -68,8 +68,8 @@ export interface ColumnDistributions {
 }
 
 export interface DFRelationship {
-  correlationPearson: {[column: string]: any};
-  correlationSpearman: {[column: string]: any};
+  correlationPearson: number[][];
+  correlationSpearman: number[][];
   highCorrelationFeatures: string[];
   interactions: string[];
   featureImportance: {[feature: string]: number};
@@ -117,11 +117,6 @@ export interface ModelMetadata {
   metrics: Record<string, any>;
   dateTrained: string;
   lib: string;
-}
-
-
-export interface ModelMetadataObject {
-  [modelName: string]: ModelMetadata;
 }
 
 export interface DatasetNumerics {

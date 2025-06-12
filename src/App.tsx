@@ -3,7 +3,6 @@ import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
 import React from 'react';
 import MainMenu from './components/main_menu/MainMenu';
 import { ProjectSelection } from './components/ProjectSelection';
-import ProjectSetupWizard from './newProjectMenu';
 import { WorkflowSelection } from './components/WorkflowSelection';
 import SortablePipeline from './components/SortablePipeline';
 import { WorkflowWizard } from './components/NewWorkflow/WorkflowWizard';
@@ -24,7 +23,6 @@ declare global {
 } */
 
 const componentMap: Record<string, React.FC<any>> = {
-  'ProjectSetupWizard': ProjectSetupWizard,
   'WorkflowWizard': WorkflowWizard,
   'MainNavigation': MainNavigation,
   'WaitForComputation': WaitForComputation,

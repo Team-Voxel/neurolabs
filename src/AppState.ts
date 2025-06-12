@@ -1,5 +1,5 @@
 import {create} from 'zustand';
-import type { EDAData, ModelMetadataObject, ModelMetadata } from './backend_api/types';
+import type { EDAData, ModelMetadata, DatasetMetadata } from './backend_api/types';
 
 export enum ModelState {
   TRAINED = 'trained',
@@ -13,30 +13,40 @@ export interface Workflow {
   name: string;
   problemType: string;
   target: string;
-  description: string;
-  userModels: string[];
   wfDir: string; // path to the workflow directory
   datafile: string; // path to the data file
-  dataType: string; // type of data (e.g., CSV, JSON)
+  edaFile: string; // path to the EDA file
+  datasetMetadataFile: string; // metadata about the dataset
+  modelMetadataFile: string; // metadata about the models
+
+/*   getEDAFile: () => Promise<EDAData>;
+  getModelMetadata: () => Promise<ModelMetadataObject>;
+  getDatasetMetadata: () => Promise<DatasetMetadata>; */
 }
 
 export interface AppState {
-  workflows: Workflow[]
-  current?: Workflow
+  workflows: Workflow[];
+  current?: Workflow;
+  currentEDA?: EDAData;
+  currentDatasetMetadata?: DatasetMetadata;
+  currentModelMetadata?: Record<string, ModelMetadata>;
+
+  globalDataDirectory: string;
 
   // actions
-  addNew: (wf: Workflow) => void
-  update: (name: string, wf: Workflow) => void
-  loadAll: () => Promise<void>
-  save: (wf: Workflow) => Promise<void>
-  removeNyName: (id: string) => Promise<void>
-  setCurrent: (wf?: Workflow) => void
-  setCurrentByName: (name: string) => void
-  getByName: (name: string) => Workflow | undefined;
-  getEDAFile: () => Promise<EDAData>;
-  getModelMetadata: (name: string) => Promise<ModelMetadataObject>;
-}
+  hasWorkflowByName: (name: string) => boolean;
+  addNewWorkflow: (name: string, problemType: string, target: string) => Promise<Workflow>
+  deleteWorkflow: (name: string) => void
+  getWorkflowByName: (name: string) => Workflow | undefined;
+  loadFromDiskAsync: () => Promise<void>
+  saveToDiskAsync: () => Promise<void>
+  setCurrent: (wf: Workflow) => Promise<boolean>;
+  setCurrentByName: (name: string) => Promise<boolean>;
 
+  copyDataFileToWorkflowDirectory: (file: string, wf_name: string) => Promise<void>;
+  getTempDatasetPath: () => string;
+}
+/* 
 export const useWorkflowStore = create<AppState>((set, get) => ({
   workflows: [],
   current: undefined,
@@ -61,7 +71,6 @@ export const useWorkflowStore = create<AppState>((set, get) => ({
       get().loadAll()
     })
   },
-    /** Load all workflows from disk */
     loadAll: async () => {
       const all = await window.wfStore.loadAll();
       set({ workflows: all });
@@ -115,4 +124,4 @@ export const useWorkflowStore = create<AppState>((set, get) => ({
       return metadata;
     });
   }
-}))
+})) */

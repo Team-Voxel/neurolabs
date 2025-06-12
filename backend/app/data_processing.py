@@ -23,8 +23,8 @@ from safe_csv import safe_read_csv
 def convert_correlation_dict(corr_dict):
     result = []
     for col_name, inner_dict in corr_dict.items():
-        data_points = [{'x': other_col, 'y': value} for other_col, value in inner_dict.items()]
-        result.append({'name': col_name, 'data': data_points})
+        data_points = [value for other_col, value in inner_dict.items()]
+        result.append(data_points)
     return result
 
 

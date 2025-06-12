@@ -4,8 +4,9 @@ import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import { exit } from 'node:process'
-import { Workflow } from '../src/AppState'
-import { DatasetMetadata, EDAData, ModelMetadataObject } from '../src/backend_api/types';
+import { Workflow, AppState } from '../src/AppState'
+import { DatasetMetadata, EDAData, ModelMetadata } from '../src/backend_api/types';
+import { createAppStateInstance } from '../src/CreateAppState';
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -50,6 +51,15 @@ function createWindow() {
     win?.webContents.send('main-process-message', (new Date).toLocaleString())
   })
 
+  app.on('before-quit', async (event) => {
+    event.preventDefault(); // optional, gives time to save
+  
+    // Save all workflows before exiting
+    await global.appState.saveToDiskAsync();
+    // Now exit the app
+    app.exit();
+  });
+
   if (VITE_DEV_SERVER_URL) {
     // Dev
     win.loadURL(VITE_DEV_SERVER_URL);
@@ -84,7 +94,21 @@ app.on('activate', () => {
   }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(startApp).catch(err => {
+  console.error('Failed to start app:', err);
+});
+
+async function startApp() {
+  try {
+    await ensureStore();
+    global.appState = await createAppStateInstance();
+    await global.appState.loadFromDiskAsync();
+  } catch (err) {
+    console.error('Failed to load workflows:', err);
+  }
+
+  createWindow();
+}
 
 ipcMain.handle('read-file', async (_e, filePath) => {
   return await fs.readFile(filePath, 'utf-8');
@@ -179,6 +203,12 @@ ipcMain.handle('wf-load-all', async () => {
   return JSON.parse(raw) as Workflow[];
 });
 
+// save all workflows
+ipcMain.handle('wf-save-all', async (_e, wfs: Workflow[]) => {
+  await ensureStore();
+  await fs.writeFile(DATA_PATH, JSON.stringify(wfs, null, 2), 'utf-8');
+});
+
 // save or update one workflow
 ipcMain.handle('wf-save-one', async (_e, wf: Workflow) => {
   await ensureStore();
@@ -209,18 +239,6 @@ ipcMain.handle('wf-delete-one', async (_e, name: string) => {
   return filtered;
 });
 
-// Get models from a workflow
-ipcMain.handle('wf-get-models', async (_e, name: string) => {
-  await ensureStore();
-  const raw = await fs.readFile(DATA_PATH, 'utf-8');
-  const all: Workflow[] = JSON.parse(raw);
-  const wf = all.find(x => x.name === name);
-  if (wf) {
-    return wf.userModels;
-  } else {
-    throw new Error(`Workflow ${name} not found`);
-  }
-});
 
 ipcMain.handle('wf-get-workflow-dir', async (_e, name: string) => {
   await ensureStore();
@@ -267,7 +285,7 @@ ipcMain.handle('wf-get-model-metadata', async (_e, wf_name: string) => {
   if (wf) {
     const metadata_path = path.join(app.getPath('userData'), wf.name, 'model_metadata.json');
     const raw_bytes = await fs.readFile(metadata_path, 'utf-8');
-    const data : ModelMetadataObject = JSON.parse(raw_bytes);
+    const data : Record<string, ModelMetadata> = JSON.parse(raw_bytes);
     return data;
   } else {
     throw new Error(`Workflow ${wf_name} not found`);
@@ -334,4 +352,65 @@ function createCustomWindow(options: { component: string; props: any }) {
 
 ipcMain.handle('open-child-window', (_evt, options) => {
   return createCustomWindow(options);
+});
+
+
+ipcMain.handle('get-app-state', () => {
+  if (!global.appState) {
+    throw new Error('App state is not initialized');
+  }
+  const { workflows, current } = global.appState;
+  return { workflows, current };
+});
+
+ipcMain.handle('get-eda-data', async (_evt) => {
+  if (!global.appState) {
+    throw new Error('App state is not initialized');
+  }
+  const data = global.appState.currentEDA;
+  return data;
+});
+
+ipcMain.handle('get-dataset-metadata', async (_evt) => {
+  if (!global.appState) {
+    throw new Error('App state is not initialized');
+  }
+  const data = global.appState.currentDatasetMetadata;
+  return data;
+});
+
+ipcMain.handle('get-model-metadata', async (_evt) => {
+  if (!global.appState) {
+    throw new Error('App state is not initialized');
+  }
+  const data = global.appState.currentModelMetadata;
+  return data;
+});
+
+ipcMain.handle('set-current-workflow', async (_evt, name: string) => {
+  if (!global.appState) {
+    throw new Error('App state is not initialized');
+  }
+  const success = await global.appState.setCurrentByName(name);
+  return success;
+});
+
+ipcMain.handle('add-new-workflow-and-set', async (_evt, name: string, problemType: string, target: string) => {
+  if (!global.appState) {
+    throw new Error('App state is not initialized');
+  }
+  const wf = await global.appState.addNewWorkflow(name, problemType, target);
+  await global.appState.setCurrent(wf);
+
+  console.log('New workflow added:', wf);
+  return wf;
+});
+
+ipcMain.handle('delete-workflow', async (_evt, name: string) => {
+  if (!global.appState) {
+    throw new Error('App state is not initialized');
+  }
+  global.appState.deleteWorkflow(name);
+  console.log(`Workflow ${name} deleted`);
+  return { success: true };
 });
