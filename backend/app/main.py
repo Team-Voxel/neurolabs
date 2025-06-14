@@ -10,6 +10,7 @@ import umap
 from data_analysis import generate_file_summary_report
 from data_generation import generate_and_save_data_return_stats
 from data_processing import *
+from unsupervised import cluster_data
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -111,6 +112,18 @@ async def train_model_simple(config: Dict):
     from models import make_train_and_evaluate_model
     data = make_train_and_evaluate_model(config)
     return JSONResponse(content=data)
+
+#----------------------------------------Unsupervised Clustering----------------------------------------
+@app.post("/simple-clustering")
+async def simple_clustering(config: Dict):
+    """
+    Clusters data using the specified clustering algorithm from the config.
+    """
+    try:
+        data = cluster_data(config)
+        return JSONResponse(content=data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 import axios from "axios";
-import {DatasetSummary, EDAData, ModelTrainingInfo, SimpleDataset} from "./types";
+import {DatasetSummary, UnsupervisedModelTrainingInfo, ModelTrainingInfo, SimpleDataset} from "./types";
 import { DatasetResponse } from "../components/data_model/types";
 
 
@@ -101,6 +101,19 @@ export async function getDatasetSimple(config: Record<string, any>): Promise<Sim
 export async function trainModelSimple(config: Record<string, any>): Promise<ModelTrainingInfo> {
   const response = await axios.post(
     "http://localhost:8000/train-model-simple",
+    config,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
+}
+
+export async function trainUnsupervisedSimple(config: Record<string, any>): Promise<UnsupervisedModelTrainingInfo> {
+  const response = await axios.post(
+    "http://localhost:8000/simple-clustering",
     config,
     {
       headers: {

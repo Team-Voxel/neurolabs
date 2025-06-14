@@ -22,6 +22,7 @@
     "@mui/x-data-grid": "^7.28.3",
     "@radix-ui/react-menubar": "^1.1.7",
     "@react-spring/web": "^9.7.5",
+    "@svgr/webpack": "^8.1.0",
     "@tailwindcss/vite": "^4.0.17",
     "@xyflow/react": "^12.5.5",
     "antd": "^5.25.1",

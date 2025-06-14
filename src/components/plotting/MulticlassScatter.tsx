@@ -21,6 +21,7 @@ interface MulticlassScatterProps {
     xLabel?: string;
     yLabel?: string;
     colors?: string[];
+    ignoreY?: boolean;
 }
 
 export const MulticlassScatterPlot: React.FC<MulticlassScatterProps> = ({
@@ -29,7 +30,8 @@ export const MulticlassScatterPlot: React.FC<MulticlassScatterProps> = ({
   title = '2D Multiclass Scatter Plot',
   xLabel = 'X-axis',
   yLabel = 'Y-axis',
-  colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52'] // Default Plotly colors
+  colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#FECB52'], // Default Plotly colors
+  ignoreY = false, // Show all points in the same color if true
 }) => {
   if (!X || !Y || X.length !== Y.length || X.length === 0) {
     return <p>Please provide valid X and Y data.</p>;
@@ -40,6 +42,34 @@ export const MulticlassScatterPlot: React.FC<MulticlassScatterProps> = ({
   }
 
   const uniqueLabels = [...new Set(Y)].sort((a, b) => a - b);
+  if (ignoreY) {
+    // If ignoreY is true, treat all points as the same class
+    return (
+      <Plot
+        data={[
+          {
+            x: X.map(point => point[0]),
+            y: X.map(point => point[1]),
+            mode: 'markers',
+            type: 'scatter',
+            name: 'All Points',
+            marker: { color: colors[0] } // Use the first color for all points
+          }
+        ]}
+        layout={{
+          title: title,
+          xaxis: { title: xLabel },
+          yaxis: { title: yLabel },
+          showlegend: false,
+          hovermode: false,
+          autosize: true,
+          margin: { l: 20, r: 20, t: 0, b: 20, pad: 0 }
+        }}
+        config={{ responsive: true }}
+        style={{ width: '100%', height: '100%' }}
+      />
+    );
+  }
   const data = uniqueLabels.map(label => {
     const xValues: number[] = [];
     const yValues: number[] = [];

@@ -108,6 +108,12 @@ export interface ModelTrainingInfo {
   trainedSupportVectors: number[][];
 }
 
+export interface UnsupervisedModelTrainingInfo {
+  X: number[][];
+  labels: number[];
+  silhouette: number;
+  CHI: number;
+}
 
 export interface ModelMetadata {
   name: string;

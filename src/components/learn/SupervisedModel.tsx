@@ -3,8 +3,8 @@ import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import ContourPlot from '../plotting/ContourPlot';
 import { Splitter, Flex, Typography, Switch, Checkbox, Slider, Button, Tabs, TabsProps, Divider, Statistic, Card, Popover, Segmented} from 'antd';
 import type { ModelTrainingInfo } from '../../backend_api/types';
-import Settings from '../../components/settings/Settings';
-import { SettingControl as SettingControlType, SelectOption } from '../../components/settings/types';
+import Settings from '../settings/Settings';
+import { SettingControl as SettingControlType, SelectOption } from '../settings/types';
 import { trainModelSimple } from '../../backend_api/data_api';
 import { PlotlyHeatmap } from '../plotting/BoxHeat';
 import { PiQuestionBold } from 'react-icons/pi';
@@ -13,7 +13,7 @@ interface ModelProps {
     type: string;
 }
 
-export const Model: React.FC<ModelProps> = ({type}) => {
+export const SupervisedModel: React.FC<ModelProps> = ({type}) => {
     const [modelInfo, setModelInfo] = useState<ModelTrainingInfo | null>(null);
     const [epochs, setEpochs] = useState<number>(100);
     const [batchSize, setBatchSize] = useState<number>(32);
@@ -295,14 +295,7 @@ export const Model: React.FC<ModelProps> = ({type}) => {
                     <Splitter layout='horizontal' style={{ height: '100%' }}>
                         <Splitter.Panel min="60%">
                             <div className='h-full w-full p-2'>
-                            {modelInfo ? <ContourPlot 
-                                            X={modelInfo.decisionBoundary} 
-                                            zValues={modelInfo.predictedClasses} 
-                                            xLabel='x1' 
-                                            yLabel='x2'
-                                            lineWidth={1.0}
-                                            title='Decision Boundary'
-                                        /> : 
+                            {modelInfo ?  <MulticlassScatterPlot X={modelInfo?.decisionBoundary} Y={modelInfo?.predictedClasses} xLabel="X1" yLabel="X2" title='Decision Boundary' /> : 
                             <div className='flex justify-center items-center h-full w-full border-2 border-dashed border-gray-300 rounded-md'>
                                 {isTraining ? <Typography.Title level={4}>Training the model...</Typography.Title> : <Typography.Title level={4}>Train the model to see the decision boundary</Typography.Title>}
                             </div>}
@@ -420,6 +413,17 @@ export const PrecisionRecallCurve: React.FC<{type: string, modelInfo: ModelTrain
 }
 
 /**
+ * 
+ * <ContourPlot
+        X={modelInfo.decisionBoundary} 
+        zValues={modelInfo.predictedClasses} 
+        xLabel='x1' 
+        yLabel='x2'
+        lineWidth={1.0}
+        title='Decision Boundary'
+    />
+ * 
+ * 
  * 
  *             <div className='flex h-full w-8/10 p-2'>
                             {modelInfo ? 
