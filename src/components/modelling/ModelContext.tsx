@@ -29,17 +29,23 @@ export enum ModelType {
 
 
 export const ModelContext : React.FC = () => {
+    const [currentWorkflow, setCurrentWorkflow] = useState<Workflow | undefined>(undefined);
     const [openDialogIdx, setOpenDialogIdx] = useState<number>(-1);
     const [modelMetadataObjects, setModelMetadataObjects] = useState<Record<string, ModelMetadata> | null>(null);
     const [selectedModel, setSelectedModel] = useState<string | null>(null);
     
     useEffect(() => {
-        if (global.appState.currentModelMetadata) {
-            setModelMetadataObjects(global.appState.currentModelMetadata);
-        }
-        else {
-            message.error('Critical Error! Missing model metadata');
-        }
+        window.stateAPI.getModelMetadata().then((metas) => {
+            setModelMetadataObjects(metas);
+        }).catch(error => {
+            message.error("Couldn't fetch model metadata.");
+        })
+
+        window.stateAPI.getAppState().then(({ workflows, current }) => {
+            setCurrentWorkflow(current);
+        }).catch(error => {
+            message.error("Couldn't fetch app state: " + error.message);
+        });
     }, []);
 
     const handleCancel = () => {
@@ -49,7 +55,7 @@ export const ModelContext : React.FC = () => {
     return (
         <>
         <div className='flex flex-col w-full h-full'>
-            <Toolbar 
+            {/* <Toolbar 
                 onNew={() => setOpenDialogIdx(1)}
                 onOpen={() => setOpenDialogIdx(2)}
                 onSettings={() => console.log('Settings clicked')}
@@ -58,8 +64,8 @@ export const ModelContext : React.FC = () => {
                 onTrain={() => console.log('Train clicked')}
                 onInspect={() => console.log('Inspect clicked')}
                 onEvaluate={() => console.log('Evaluate clicked')}
-            />
-            {true ? 
+            /> */}
+            {modelMetadataObjects && Object.keys(modelMetadataObjects).length > 0 ? 
             (
                 <div className="flex flex-row h-full w-full">
                 <div className="flex flex-col w-1/2 overflow-y-auto">
@@ -78,9 +84,9 @@ export const ModelContext : React.FC = () => {
                             pointer-events-none
                             `}></div>
                     </div>
-                {modelMetadataObjects && Object.keys(modelMetadataObjects).length > 0 && 
-                    (                        
-                        Object.entries(modelMetadataObjects).map(([modelName, metadata]) => {
+                
+                                            
+                        {Object.entries(modelMetadataObjects).map(([modelName, metadata]) => {
                             return (
                             <ModelCard 
                                 key={modelName} 
@@ -93,7 +99,6 @@ export const ModelContext : React.FC = () => {
                             />
                         );
                         })
-                    )    
                 }
                 </div>
                 <div className="flex-1 w-1/2 overflow-y-auto">
@@ -133,7 +138,8 @@ export const ModelContext : React.FC = () => {
             )
             }
         </div>
-        <AddNewModel 
+        {currentWorkflow && <AddNewModel 
+            currentWF={currentWorkflow}
             open={openDialogIdx === 1}
             onConfirm={(modelType: ModelType, modelName: string) => {
                 console.log('New model confirmed:', modelType, modelName);
@@ -141,7 +147,7 @@ export const ModelContext : React.FC = () => {
             }}
             onCancel={handleCancel}
             type='class'
-        />
+        />}
         </>
     );
 

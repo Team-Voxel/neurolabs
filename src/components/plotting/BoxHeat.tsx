@@ -21,6 +21,14 @@ interface BasePlotlyProps {
    * @default '450px'
    */
   height?: string | number;
+  
+  margin?: {
+    l?: number; // Left margin
+    r?: number; // Right margin
+    b?: number; // Bottom margin
+    t?: number; // Top margin
+    pad?: number; // Padding around the plot area
+  }
 }
 
 // --- 1. PlotlyHeatmap Component ---
@@ -44,6 +52,7 @@ interface PlotlyHeatmapProps extends BasePlotlyProps {
    * @default 'Viridis'
    */
   colorscale?: string | (string | number)[][];
+
 }
 
 /**
@@ -58,6 +67,13 @@ export const PlotlyHeatmap: React.FC<PlotlyHeatmapProps> = ({
   config: customConfig,
   height = '100%',
   colorscale = 'YlOrRd',
+  margin = {
+    l: 50, // Adjust as needed for y-axis labels/ticks
+    r: 20, // Adjust as needed for legend or if no elements on right
+    t: 20, // Adjust as needed for title
+    b: 0, // Adjust as needed for x-axis labels/ticks
+    pad: 0   // Minimal padding around the plot area itself
+  },
 }) => {
 
   if (!z || z.length === 0 || !Array.isArray(z[0])) {
@@ -82,13 +98,7 @@ export const PlotlyHeatmap: React.FC<PlotlyHeatmapProps> = ({
     xaxis: { ticks: '', side: 'top' },
     yaxis: { ticks: '', side: 'left' },
     autosize: true,
-    margin: {
-        l: 50, // Adjust as needed for y-axis labels/ticks
-        r: 20, // Adjust as needed for legend or if no elements on right
-        t: 20, // Adjust as needed for title
-        b: 0, // Adjust as needed for x-axis labels/ticks
-        pad: 0   // Minimal padding around the plot area itself
-      },
+    margin: margin,
   };
 
   // Deep merge layout objects - this is a simple implementation
@@ -142,6 +152,7 @@ export const PlotlyBoxplot: React.FC<PlotlyBoxplotProps> = ({
   layout: customLayout,
   config: customConfig,
   height = '450px',
+  margin = { l: 40, r: 30, b: 80, t: 100 , pad: 0 } // Default margins,
 }) => {
 
   if (!series || series.length === 0) {
@@ -174,7 +185,7 @@ const data: any[] = series.map((s: BoxplotData) => ({
       zerolinecolor: 'rgb(255, 255, 255)',
       zerolinewidth: 2,
     },
-    margin: { l: 40, r: 30, b: 80, t: 100 },
+    margin: margin,
     paper_bgcolor: 'rgb(243, 243, 243)',
     plot_bgcolor: 'rgb(243, 243, 243)',
     showlegend: false,

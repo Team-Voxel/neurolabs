@@ -1,5 +1,5 @@
 
-import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import React from 'react';
 import MainMenu from './components/main_menu/MainMenu';
 import { ProjectSelection } from './components/ProjectSelection';
@@ -10,8 +10,6 @@ import  MainNavigation from './components/MainNavigation';
 import WaitForComputation from './components/NewWorkflow/WaitForComputation';
 import { ChildWindowHost } from './components/ChildWindowHost';
 import { LearnInterface } from './components/learn/LearnInterface';
-import { AppWithSVM } from './components/plotting/SVCScatter';
-import { LinearProgress } from '@mui/material';
 
 /* // Extend the Window interface to include electronAPI
 declare global {
@@ -25,7 +23,6 @@ declare global {
 const componentMap: Record<string, React.FC<any>> = {
   'WorkflowWizard': WorkflowWizard,
   'MainNavigation': MainNavigation,
-  'WaitForComputation': WaitForComputation,
 };
 
 

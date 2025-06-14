@@ -50,6 +50,8 @@ electron.contextBridge.exposeInMainWorld("wfStore", {
 });
 electron.contextBridge.exposeInMainWorld("stateAPI", {
   getAppState: () => electron.ipcRenderer.invoke("get-app-state"),
+  getDataPath: () => electron.ipcRenderer.invoke("get-data-path"),
+  copyDataFileToWFDir: (src, wfName) => electron.ipcRenderer.invoke("get-copy-file-to-wfdir", src, wfName),
   getEDAData: () => electron.ipcRenderer.invoke("get-eda-data", name),
   getDatasetMetadata: () => electron.ipcRenderer.invoke("get-dataset-metadata", name),
   getModelMetadata: () => electron.ipcRenderer.invoke("get-model-metadata", name),

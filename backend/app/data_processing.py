@@ -302,11 +302,11 @@ def compute_relationships(config : Dict):
     }).sort_values(by='importance', ascending=False).to_dict(orient='records')
 
     return {
-        'correlation_pearson': convert_correlation_dict(corr_pearson.to_dict()),
-        'correlation_spearman': convert_correlation_dict(corr_spearman.to_dict()),
-        'high_correlation_features': high_corr_features,
+        'correlationPearson': convert_correlation_dict(corr_pearson.to_dict()),
+        'correlationSpearman': convert_correlation_dict(corr_spearman.to_dict()),
+        'highCorrelationFeatures': high_corr_features,
         'interactions': interactions,
-        'feature_importance': importance_df
+        'featureImportance': importance_df
     }
 
 
@@ -504,13 +504,14 @@ def apply_preprocess_to_dataset(config : Dict):
         raise ValueError("The DataFrame is empty. Please check the data path and content.")
     
     scaling_strategy = config.get('scale', 'none')
-    preprocess_dataframe(df, config.get('target'), config.get('wfDir'), test_size=0.8, random_state=42, encoding_strategy='ordinal', scaling_strategy=scaling_strategy)
+    preprocess_dataframe(df, config.get('target'), config.get('wfDir'), test_size=0.2, random_state=42, encoding_strategy='ordinal', scaling_strategy=scaling_strategy)
 
+    json.dump({}, open(config.get('wfDir', '') + '\\model_metadata.json', 'w'))
     return True
 
 
 
-def preprocess_dataframe(df, target_column, wfDir, test_size=0.8, random_state=42, encoding_strategy='ordinal', scaling_strategy='none'):
+def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, random_state=42, encoding_strategy='ordinal', scaling_strategy='none'):
     """
     Splits a pandas DataFrame into train/test sets, separates numerical and categorical columns,
     applies encoding to categorical columns, and scaling to numerical columns.
@@ -518,19 +519,9 @@ def preprocess_dataframe(df, target_column, wfDir, test_size=0.8, random_state=4
     Args:
         df (pd.DataFrame): The input pandas DataFrame.
         target_column (str): The name of the target column.
-        test_size (float): The proportion of the dataset to include in the test split (default is 0.8).
+        test_size (float): The proportion of the dataset to include in the test split (default is 0.2).
         random_state (int): Controls the shuffling applied to the data before applying the split (default is 42).
         encoding_strategy (str): 'label' for LabelEncoder (for single columns) or 'ordinal' for OrdinalEncoder (for multiple columns).
-
-    Returns:
-        tuple: A tuple containing:
-            - X_train_processed (pd.DataFrame): Processed training features.
-            - X_test_processed (pd.DataFrame): Processed test features.
-            - y_train (pd.Series): Training target variable.
-            - y_test (pd.Series): Test target variable.
-            - preprocessor (sklearn.compose.ColumnTransformer): The fitted preprocessor object.
-            - categorical_features (list): List of identified categorical feature names.
-            - numerical_features (list): List of identified numerical feature names.
     """
     
     preprocessor_path = wfDir + '\\preprocessor.joblib'
@@ -548,6 +539,7 @@ def preprocess_dataframe(df, target_column, wfDir, test_size=0.8, random_state=4
         target_encoder = skp.LabelEncoder()
         y_train = target_encoder.fit_transform(y_train)
         y_test = target_encoder.transform(y_test)
+        y = target_encoder.transform(y)
     else:
         encode_target = False
 
@@ -582,6 +574,8 @@ def preprocess_dataframe(df, target_column, wfDir, test_size=0.8, random_state=4
     X_train_processed = preprocessor.fit_transform(X_train)
     X_test_processed = preprocessor.transform(X_test)
 
+    df_processed = preprocessor.transform(X)
+
     categorical_features.extend(categorical_encoded_features)
 
     # Get the names of the transformed columns for DataFrame conversion
@@ -595,6 +589,8 @@ def preprocess_dataframe(df, target_column, wfDir, test_size=0.8, random_state=4
     X_test_processed = pd.DataFrame(X_test_processed, columns=transformed_column_names, index=X_test.index)
     y_train_processed = pd.Series(y_train, name='target', index=X_train.index)
     y_test_processed = pd.Series(y_test, name='target', index=X_test.index)
+    df_processed = pd.DataFrame(df_processed, columns=transformed_column_names, index=df.index)
+    df_processed[target_column] = y
 
     joblib.dump(preprocessor, preprocessor_path)
     if encode_target:
@@ -604,11 +600,15 @@ def preprocess_dataframe(df, target_column, wfDir, test_size=0.8, random_state=4
     Xtest_loc = wfDir + '\\Xtest.csv'
     ytrain_loc = wfDir + '\\ytrain.csv'
     ytest_loc = wfDir + '\\ytest.csv'
+    df_proc_loc = wfDir + '\\data.csv' # Replaces the original data
+    df_orig_loc = wfDir + '\\data_original.csv'
 
+    df.to_csv(df_orig_loc, index=False)
     X_train_processed.to_csv(Xtrain_loc, index=False)
     X_test_processed.to_csv(Xtest_loc, index=False)
     y_train_processed.to_csv(ytrain_loc, index=False)
     y_test_processed.to_csv(ytest_loc, index=False)
+    df_processed.to_csv(df_proc_loc, index=False)
 
     dataset_metadata = {
         'rows': df.shape[0],

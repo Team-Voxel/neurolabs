@@ -2,9 +2,9 @@ import React, {useState, useEffect, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "./CreateNewButton";
 import Plus from "../assets/plus.png"
-import Card from "./Card";
+import {Card} from "./Card";
 import { Workflow } from "../AppState";
-import { message } from "antd";
+import { message, Typography } from "antd";
 
 // Show workflow selection screen
 // New -> New workflow window
@@ -16,8 +16,7 @@ export const WorkflowSelection : React.FC = () => {
     const navigate = useNavigate();
 
     const loadWorkflow = (name: string) => {
-      global.appState.setCurrentByName(name).then(() => {
-        global.appState.setCurrentByName(name);
+      window.stateAPI.setCurrentWorkflow(name).then(() => {
         message.success('Current workflow set successfully');
       }).catch((error) => {
         message.error('Error loading workflow: ' + error.message);
@@ -26,8 +25,17 @@ export const WorkflowSelection : React.FC = () => {
     }
     
     const deleteWorkflow = (name: string) => {
-      window.global.appState.deleteWorkflow(name);
-      setWfs(window.global.appState.workflows);
+      window.stateAPI.deleteWorkflow(name).then(() => {
+        message.success('Workflow deleted successfully');
+        window.stateAPI.getAppState().then(({ workflows, current }) => {
+          setWfs(workflows);
+        }).catch((error) => {
+          message.error('Error fetching app state after deletion: ' + error.message);
+        }
+      ).catch((error) => {
+        message.error('Error deleting workflow: ' + error.message);
+      });
+      });
     }
 
     useEffect(() => {
@@ -41,13 +49,13 @@ export const WorkflowSelection : React.FC = () => {
       
     return (
         <div className="flex flex-col items-center w-screen h-screen bg-gray-100 p-4 gap-8">
-            <h1>Workflow Selection</h1>
+            <Typography.Title level={1} style={{userSelect:'none'}}>Workflow Selection</Typography.Title>
         
             <div className=" overflow-y-auto">
             <div className="grid grid-cols-4 gap-4">
               <Button icon={Plus} label="New Workflow" onClick={() => navigate("/new-workflow")}/>
               {wfs.map((wf) => (
-                <Card name={wf.name} imageSrc="../assets/folders.svg" imageAlt="WorkFlow" onOpen={loadWorkflow} onDelete={deleteWorkflow} />
+                <Card key={wf.name} label={wf.name} problemType={wf.problemType as 'regress' | 'classify'} onOpen={loadWorkflow} onDelete={deleteWorkflow} />
               ))}
             </div>
             </div>

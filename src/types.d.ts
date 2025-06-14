@@ -45,6 +45,8 @@ declare global {
     };
     stateAPI: {
       getAppState: () => Promise<{workflows: Workflow[], current: Workflow | undefined}>;
+      getDataPath: () => Promise<string>;
+      copyDataFileToWFDir: (src: string, wfName: string) => Promise<void>;
       // Add fetch methods for EDA, Dataset Metadata, Model Metadata
       getEDAData: () => Promise<EDAData>;
       getDatasetMetadata: () => Promise<DatasetMetadata>;

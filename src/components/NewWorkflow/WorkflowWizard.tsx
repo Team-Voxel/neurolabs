@@ -12,6 +12,7 @@ import { FeatureOverview, TargetOverview } from './DatasetPreview';
 import { DataGeneration } from './GenerationUI';
 import { useWaitForComputationStore } from './WaitForComputation';
 import { PreprocessModal } from './Preprocess';
+import { Workflow } from '../../AppState';
 
 
 enum SetupSteps {
@@ -24,6 +25,7 @@ enum SetupSteps {
 type ColumnHeaderItem = { value: string };
 
 export const WorkflowWizard: React.FC = () => {
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   const [workflowName, setWorkflowName] = useState<string>('');
   const [nameError, setNameError] = useState<string>('Enter a name');
@@ -50,6 +52,15 @@ export const WorkflowWizard: React.FC = () => {
     setStep(SetupSteps.Finish);
   }
 
+  useEffect(() => {
+    window.stateAPI.getAppState().then(({workflows, current}) => {
+      setWorkflows(workflows);
+      message.success('Loaded workflows.');
+    }).catch(error => {
+      message.error("Could't load workflows." + error);
+    })
+  }, []);
+
   const navigate = useNavigate();
 
   const handleBack = () => {
@@ -61,9 +72,12 @@ export const WorkflowWizard: React.FC = () => {
 
   const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
-    
     setWorkflowName(name);
-    global.appState.hasWorkflowByName(name) ? setNameError('Name already exists') : setNameError('none');
+    
+    if (workflows.some(item => item.name === name)) {
+      setNameError('Name already exists');
+      return;
+    }
     if (name.length < 3) {
       setNameError('Name too short');
       return;
@@ -145,20 +159,14 @@ export const WorkflowWizard: React.FC = () => {
       message.error('Problem type is required');
       return;
     }
-    if (global.appState.hasWorkflowByName(workflowName)) {
-      message.error('Workflow with this name already exists');
-      return;
-    }
-    
-    global.appState.addNewWorkflow(workflowName, problemType, targetColumn).then(() => {
-      message.success('Workflow created successfully');
-      global.appState.setCurrentByName(workflowName).then(() => {
 
-        message.success('Current workflow set successfully');});
+    /* window.stateAPI.addNewWorkflowAndSet(workflowName, problemType, targetColumn).then((wf) => {
+      message.success('Workflow created successfully');
       setStep(SetupSteps.Finish);
-    }).catch((error) => {
+    }).catch(error => {
       message.error('Error creating workflow: ' + error.message);
-    });
+    }) */
+
     return;
   };
 
@@ -181,10 +189,12 @@ export const WorkflowWizard: React.FC = () => {
       dataPath = csvFile.path;
     }
     else {
-      dataPath = global.appState.getTempDatasetPath();
+      window.stateAPI.getDataPath().then(datapath => {
+        dataPath = datapath + 'tempdata.csv';
+      });
     }
-    
-    global.appState.copyDataFileToWorkflowDirectory(dataPath, workflowName).then(() => {
+    console.log("Data path: ", dataPath);
+    window.stateAPI.copyDataFileToWFDir(dataPath, workflowName).then(() => {
       message.info('Generated data copied successfully');
     }).catch((error) => {
       message.error('Error copying generated data:', error);
@@ -205,8 +215,7 @@ export const WorkflowWizard: React.FC = () => {
     
     const waitStore = useWaitForComputationStore.getState();
     window.wfStore.getWfDir(workflowName).then((wfdir) => {
-      console.log('state vals: ', wfdir, problemType, targetColumn, `${wfdir}\\data.csv`);
-      waitStore.setAll(wfdir, problemType, targetColumn, `${wfdir}\\data.csv`);
+      waitStore.setAll(workflowName, wfdir, problemType, targetColumn, `${wfdir}\\data.csv`);
     });
 
     navigate('/wait-screen');

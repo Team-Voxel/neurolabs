@@ -10,8 +10,8 @@ const MainMenu: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const navigate = useNavigate();
   const menuOptions = [
-    { label: 'Start', onClick: () => navigate('/learn') },
-    { label: 'Explore', onClick: () => navigate('/workflow-selection') },
+    { label: 'Explore Models', onClick: () => navigate('/learn') },
+    { label: 'Solve a Problem', onClick: () => navigate('/workflow-selection') },
     { label: 'Settings', onClick: () => console.log('Settings clicked') },
     { label: 'Exit', onClick: () => {window.electronAPI.openChildWindow({component: 'WaitForComputation', props: {}}); console.log('Open Component') }},
   ];

@@ -54,6 +54,10 @@ function createAppStateInstance() {
     },
     addNewWorkflow: async (name, problemType, target) => {
       const wfDirectory = path$1.join(APP_DATA_DIR, name);
+      if (appState.hasWorkflowByName(name)) {
+        console.warn(`Workflow with name ${name} already exists.`);
+        return appState.getWorkflowByName(name);
+      }
       try {
         await fs.mkdir(wfDirectory, { recursive: true });
         const wf = createWorkflowInstance(name, problemType, target, wfDirectory);
@@ -64,8 +68,17 @@ function createAppStateInstance() {
         throw new Error(`Failed to create directory for workflow ${name}`);
       }
     },
-    deleteWorkflow: (name) => {
+    deleteWorkflow: async (name) => {
       appState.workflows = appState.workflows.filter((wf) => wf.name !== name);
+      await appState.saveToDiskAsync();
+      await fs.rm(path$1.join(APP_DATA_DIR, name), { recursive: true, force: true });
+      await appState.loadFromDiskAsync();
+      if (appState.current && appState.current.name === name) {
+        appState.current = void 0;
+        appState.currentEDA = void 0;
+        appState.currentModelMetadata = void 0;
+        appState.currentDatasetMetadata = void 0;
+      }
     },
     getWorkflowByName: (name) => {
       return appState.workflows.find((wf) => wf.name === name);
@@ -390,12 +403,26 @@ function createCustomWindow(options) {
 ipcMain.handle("open-child-window", (_evt, options) => {
   return createCustomWindow(options);
 });
-ipcMain.handle("get-app-state", () => {
+ipcMain.handle("get-app-state", async (_evt) => {
   if (!global.appState) {
     throw new Error("App state is not initialized");
   }
   const { workflows, current } = global.appState;
   return { workflows, current };
+});
+ipcMain.handle("get-data-path", async (_evt) => {
+  return DATA_PATH;
+});
+ipcMain.handle("get-copy-file-to-wfdir", async (_evt, src, wfName) => {
+  const wfDir = path$1.join(app.getPath("userData"), wfName);
+  try {
+    await fs.mkdir(wfDir, { recursive: true });
+  } catch (error) {
+    console.error("Error creating workflow directory:", error);
+    throw new Error(`Failed to create directory for workflow ${wfName}`);
+  }
+  const dest = path$1.join(app.getPath("userData"), wfName, "data.csv");
+  return await fs.copyFile(src, dest);
 });
 ipcMain.handle("get-eda-data", async (_evt) => {
   if (!global.appState) {
@@ -431,6 +458,7 @@ ipcMain.handle("add-new-workflow-and-set", async (_evt, name, problemType, targe
   }
   const wf = await global.appState.addNewWorkflow(name, problemType, target);
   await global.appState.setCurrent(wf);
+  await global.appState.saveToDiskAsync();
   console.log("New workflow added:", wf);
   return wf;
 });
@@ -439,7 +467,6 @@ ipcMain.handle("delete-workflow", async (_evt, name) => {
     throw new Error("App state is not initialized");
   }
   global.appState.deleteWorkflow(name);
-  console.log(`Workflow ${name} deleted`);
   return { success: true };
 });
 export {

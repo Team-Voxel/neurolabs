@@ -63,6 +63,9 @@ contextBridge.exposeInMainWorld('wfStore', {
 
 contextBridge.exposeInMainWorld('stateAPI', {
   getAppState: (): Promise<{workflows: Workflow[], current: Workflow | undefined}> => ipcRenderer.invoke('get-app-state'),
+  getDataPath: (): Promise<string> => ipcRenderer.invoke('get-data-path'),
+  copyDataFileToWFDir: (src: string, wfName: string): Promise<void> => ipcRenderer.invoke('get-copy-file-to-wfdir', src, wfName),
+
   getEDAData: (): Promise<EDAData> => ipcRenderer.invoke('get-eda-data', name),
   getDatasetMetadata: (): Promise<DatasetMetadata> => ipcRenderer.invoke('get-dataset-metadata', name),
   getModelMetadata: (): Promise<Record<string, ModelMetadata>> => ipcRenderer.invoke('get-model-metadata', name),

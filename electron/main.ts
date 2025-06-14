@@ -355,12 +355,29 @@ ipcMain.handle('open-child-window', (_evt, options) => {
 });
 
 
-ipcMain.handle('get-app-state', () => {
+ipcMain.handle('get-app-state', async (_evt) => {
   if (!global.appState) {
     throw new Error('App state is not initialized');
   }
   const { workflows, current } = global.appState;
   return { workflows, current };
+});
+
+ipcMain.handle('get-data-path', async (_evt) => {
+  return DATA_PATH;
+});
+
+ipcMain.handle('get-copy-file-to-wfdir', async (_evt, src: string, wfName: string) => {
+  // Check if the directory with the wfname exists in the userData path, if not, create it
+  const wfDir = path.join(app.getPath('userData'), wfName);
+  try {
+    await fs.mkdir(wfDir, { recursive: true });
+  } catch (error) {
+    console.error('Error creating workflow directory:', error);
+    throw new Error(`Failed to create directory for workflow ${wfName}`);
+  }
+  const dest = path.join(app.getPath('userData'), wfName, 'data.csv');
+  return await fs.copyFile(src, dest);
 });
 
 ipcMain.handle('get-eda-data', async (_evt) => {
@@ -401,6 +418,8 @@ ipcMain.handle('add-new-workflow-and-set', async (_evt, name: string, problemTyp
   }
   const wf = await global.appState.addNewWorkflow(name, problemType, target);
   await global.appState.setCurrent(wf);
+  // Save the new workflow to disk
+  await global.appState.saveToDiskAsync();
 
   console.log('New workflow added:', wf);
   return wf;
@@ -411,6 +430,5 @@ ipcMain.handle('delete-workflow', async (_evt, name: string) => {
     throw new Error('App state is not initialized');
   }
   global.appState.deleteWorkflow(name);
-  console.log(`Workflow ${name} deleted`);
   return { success: true };
 });

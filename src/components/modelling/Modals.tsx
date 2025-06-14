@@ -10,6 +10,7 @@ import { Workflow } from "../../AppState";
 import LogisticVideo from "../../assets/videos/logistic.mp4";
 import SVMVideo from "../../assets/videos/svm.mp4";
 import { SettingControl } from "../settings/types";
+import { error } from "console";
 
 
 /* const modelTypes = {
@@ -239,14 +240,14 @@ const ClassificationModels : ModelInfo[] = [
 ]
  */
 interface AddNewModelProps {
+    currentWF: Workflow;
     open : boolean;
     type : 'reg' | 'class';
     onCancel: () => void;
     onConfirm: (model: ModelType, name : string) => void;
 }
 
-export const AddNewModel : React.FC<AddNewModelProps> = ({open, onCancel, onConfirm}) => {
-    const [currentWF, setCurrentWF] = useState<Workflow>(global.appState.current!);
+export const AddNewModel : React.FC<AddNewModelProps> = ({currentWF, open, onCancel, onConfirm}) => {
     const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
     const [name, setName] = useState<string>('');
     const [step, setStep] = useState<number>(1);
@@ -480,17 +481,6 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, onCancel, onConf
         }
     ];
 
-    
-
-    useEffect(() => {
-        global.appState.currentDatasetMetadata?.rows && setDatasetSize(global.appState.currentDatasetMetadata!.rows);
-        if (global.appState.current) {
-            setCurrentWF(global.appState.current);
-        } else {
-            message.error('No current workflow found');
-        }
-    }, [open]);
-
     const handleModelTraining = () => {
 
     }
@@ -528,7 +518,7 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({open, onCancel, onConf
                 <Input placeholder= "Enter a name" value={name} onChange={(e) => setName(e.target.value)} size="large"/>
                 <div className="flex flex-row items-start justify-center w-full gap-4">
                 <div className="flex flex-col h-full w-1/3">
-                    <VerticalSelector  options={currentWF.problemType == 'regression' ? regressionOptions : classificationOptions} onChange={(value) => setType(value)} selectedValue={type}/>
+                    <VerticalSelector  options={currentWF!.problemType == 'regression' ? regressionOptions : classificationOptions} onChange={(value) => setType(value)} selectedValue={type}/>
                 </div>
                 <div className="flex flex-col items-center justify-center h-full w-2/3 gap-4">
                     <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden h-1/2">  

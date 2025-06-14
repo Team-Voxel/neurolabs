@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Home, Database, Brain, Cpu } from 'lucide-react';
-import Canvas from "./nodes/Canvas";
 import { DataModel } from './data_model/DataModel';
-import { ReactFlowProvider } from "@xyflow/react";
 import { NNModel } from './modelling/NNModel';
 import { ModelContext } from './modelling/ModelContext';
+import { Sidebar } from './Sidebar';
 
 interface NavButtonProps {
   icon: React.ReactNode;
@@ -47,7 +46,7 @@ const NavButton: React.FC<NavButtonProps> = ({
 };
 
 const MainNavigation: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState<number | null>(0);
+  const [selectedTab, setSelectedTab] = useState<number>(0);
   const navigate = useNavigate();
   const handleHomeClick = () => {
     navigate('/');
@@ -74,7 +73,7 @@ const MainNavigation: React.FC = () => {
 
   return (
     <div className="h-screen w-screen flex bg-white">
-      <nav className="w-[60px] bg-gray-100 flex flex-col border-r border-gray-200">
+      {/* <nav className="w-[60px] bg-gray-100 flex flex-col border-r border-gray-200">
         <NavButton
           icon={<Home size={40} />}
           tooltip="Home"
@@ -100,7 +99,28 @@ const MainNavigation: React.FC = () => {
           isSelected={selectedTab === 2}
           onClick={() => setSelectedTab(2)}
         />
-      </nav>
+      </nav> */}
+      <Sidebar
+        onHome={handleHomeClick}
+        buttons={[
+          {
+            label: 'Data',
+            icon: <Database size={32} />,
+            callback: () => setSelectedTab(0),
+          },
+          {
+            label: 'Model',
+            icon: <Brain size={32} />,
+            callback: () => setSelectedTab(1),
+          },
+          {
+            label: 'Inference',
+            icon: <Cpu size={32} />,
+            callback: () => setSelectedTab(2),
+          },
+        ]}
+        selectedTab={selectedTab}
+      />
       <main className="flex-1 overflow-auto">
         {getContent()}
       </main>

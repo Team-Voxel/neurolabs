@@ -10,7 +10,7 @@ export interface PreprocessModalProps {
 }
 
 export const PreprocessModal: React.FC<PreprocessModalProps> = ({issues , open, onClose, onOk}) => {
-    const [missingImputation, setMissingImputation] = useState<string>("none");
+    const [missingImputation, setMissingImputation] = useState<string>("mean");
     const [outlierDetection, setOutlierDetection] = useState<boolean>(false);
     const [featureScaling, setFeatureScaling] = useState<string>("none");
     const [issueCheck, setIssueCheck] = useState<string[]>([]);
@@ -55,15 +55,19 @@ export const PreprocessModal: React.FC<PreprocessModalProps> = ({issues , open, 
                 <Divider />
                 {issueCheck.includes("missing") && <div className="flex flex-row gap-2 justify-between">
                     <Typography.Text>Impute Missing Values</Typography.Text>
+                    <div className="w-48">
                     <Select options={[{"label": "Mean", "value": "mean"}, {"label": "Median", "value": "median"}, {"label": "Mode", "value": "mode"}]} value={missingImputation} onChange={(value) => setMissingImputation(value)} />
+                    </div>
                 </div>}
                 {issueCheck.includes("outlier") && <div className="flex flex-row gap-2 justify-between">
                     <Typography.Text>Remove Outliers</Typography.Text>
-                    <Checkbox value={outlierDetection} onChange={(e) => setOutlierDetection(e.target.checked)} />
+                    <Checkbox checked={outlierDetection} onChange={(e) => setOutlierDetection(e.target.checked)} />
                 </div>}
-                {issueCheck.includes("scale") && <div className="flex flex-row gap-2 justify-between">
+                {issueCheck.includes("scale") && <div className="flex flex-row gap-2 justify-start">
                     <Typography.Text>Scale Features</Typography.Text>
+                    <div className="w-48">
                     <Select options={[{"label": "Standardize", "value": "standardize"}, {"label": "Normalize", "value": "normalize"}]} value={featureScaling} onChange={(value) => setFeatureScaling(value)} />
+                    </div>
                 </div>}
             </div>
         </Modal>

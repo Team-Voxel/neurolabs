@@ -1,36 +1,37 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requestAutoEDA, requestDimRedux } from '../../backend_api/data_api';
-import { Spin, Typography } from 'antd';
-import { useWorkflowStore } from '../../AppState';
 import { create } from 'zustand';
+import { Spin, Typography, message} from 'antd';
 import Particles from "react-tsparticles";
 import { loadSlim } from "tsparticles-slim";
 import type { Container, Engine } from "tsparticles-engine";
 import { ThreeCircles } from "react-loader-spinner";
 
 export interface WaitForComputationStore {
+    name: string;
     wfDir: string;
     problemType: string;
     target: string;
     dataPath: string;
-    setAll: (wfDir: string, problemType: string, target: string, dataPath: string) => void;
+    setAll: (name:string, wfDir: string, problemType: string, target: string, dataPath: string) => void;
 }
 
 export const useWaitForComputationStore = create<WaitForComputationStore>((set) => ({
+    name: '',
     wfDir: '',
     problemType: '',
     target: '',
     dataPath: '',
-    setAll: (wfDir: string, problemType: string, target: string, dataPath: string) => set({ wfDir, problemType, target, dataPath }),
+    setAll: (name: string, wfDir: string, problemType: string, target: string, dataPath: string) => set({ name, wfDir, problemType, target, dataPath }),
 }));
 
 // This component is used to wait until the data analysis computations are finished
 // It will display a loading screen until the computations are finished
 // It will then navigate to the sandbox page
 // Loading screen will have an animated background and section in the middle with a spinner and a animating message
-// Message will change state from "Analyzing Data" to "Generating Visualizations" to "Computing Relationships" to 
-// "Computing Distributions" to "Thinking..." and will wait until the computations are finished
+// Message will change state from "Analyzing Data" to "Generating Visualizations" to "Computing Relationships..." to 
+// "Computing Distributions..." to "Thinking..." and will wait until the computations are finished
 
 const messages = [
     "Analyzing Data...", 
@@ -111,29 +112,37 @@ const WaitForComputation : React.FC = () => {
     }, []);
 
     const particlesLoaded = useCallback(async (container: Container | undefined) => {
-        console.log("Particles loaded", container);
     }, []);
 
+    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const timerRef = useRef<NodeJS.Timeout | null>(null);
+
     // Use the hook to subscribe to state changes
-    const { wfDir, problemType, target, dataPath } = useWaitForComputationStore();
+    const { name, wfDir, problemType, target, dataPath } = useWaitForComputationStore();
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            const nMsg = finalizing ? Math.floor(Math.random() * finalizingMessages.length) : Math.floor(Math.random() * messages.length);
+        intervalRef.current = setInterval(() => {
+            const nMsg = finalizing
+                ? Math.floor(Math.random() * finalizingMessages.length)
+                : Math.floor(Math.random() * messages.length);
             setCurrentMessage(nMsg);
         }, 3000);
-
-        return () => clearInterval(interval);
+    
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
     }, [finalizing]);
-
+    
     useEffect(() => {
-        const timerInterval = setInterval(() => {
+        timerRef.current = setInterval(() => {
             if (completed) {
                 navigate('/sandbox');
             }
         }, 1000);
-
-        return () => clearInterval(timerInterval);
+    
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current);
+        };
     }, [completed, navigate]);
 
     useEffect(() => {
@@ -141,29 +150,48 @@ const WaitForComputation : React.FC = () => {
             console.log('Missing required configuration:', { wfDir, problemType, target, dataPath });
             return;
         }
-
+    
+        let isCancelled = false;
+    
         const config = {
-            wfDir: wfDir,
+            wfDir,
             data_path: dataPath,
             problem_type: problemType,
-            target: target,
+            target,
             n_samples: 1000,
             random_state: 43,
             n_components: 2,
             n_clusters: 3,
             method: 'umap',
-        }
-
+        };
+    
         console.log('Starting computation with config:', config);
         
-        requestDimRedux(config).then((result) => {
-            console.log('DimRedux completed:', result['success']);
+        requestDimRedux(config).then(() => {
+            if (isCancelled) return;
             setFinalizing(true);
-            requestAutoEDA(config).then((result) => {
-                console.log('AutoEDA completed:', result['success']);
+    
+            requestAutoEDA(config).then(() => {
+                if (isCancelled) return;
                 setCompleted(true);
+            }).then(() => {
+                if (isCancelled) return;
+                window.stateAPI.addNewWorkflowAndSet(name, problemType, target).then(() => {
+                    if (!isCancelled) {
+                        message.success('Workflow created successfully');
+                    }
+                }).catch(error => {
+                    if (!isCancelled) {
+                        message.error('Error creating workflow: ' + error.message);
+                        navigate('/');  
+                    }
+                });
             });
         });
+    
+        return () => {
+            isCancelled = true; // prevents state updates after unmount
+        };
     }, [wfDir, problemType, target, dataPath]);
 
     const messageToShow = finalizing 

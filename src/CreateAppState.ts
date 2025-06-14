@@ -30,6 +30,10 @@ export function createAppStateInstance() : Promise<AppState> {
         },
         addNewWorkflow: async (name: string, problemType: string, target: string) => {
             const wfDirectory = path.join(APP_DATA_DIR, name);
+            if (appState.hasWorkflowByName(name)) {
+                console.warn(`Workflow with name ${name} already exists.`);
+                return appState.getWorkflowByName(name)!;
+            }
             try {
                 await fs.mkdir(wfDirectory, { recursive: true });
                 const wf = createWorkflowInstance(name, problemType, target, wfDirectory);
@@ -40,8 +44,17 @@ export function createAppStateInstance() : Promise<AppState> {
                 throw new Error(`Failed to create directory for workflow ${name}`);
             }
         },
-        deleteWorkflow: (name: string) => {
+        deleteWorkflow: async (name: string) => {
             appState.workflows = appState.workflows.filter(wf => wf.name !== name);
+            await appState.saveToDiskAsync();
+            await fs.rm(path.join(APP_DATA_DIR, name), { recursive: true, force: true });
+            await appState.loadFromDiskAsync();
+            if (appState.current && appState.current.name === name) {
+                appState.current = undefined;
+                appState.currentEDA = undefined;
+                appState.currentModelMetadata = undefined;
+                appState.currentDatasetMetadata = undefined;
+            }
         },
         getWorkflowByName: (name: string) => {
             return appState.workflows.find(wf => wf.name === name);

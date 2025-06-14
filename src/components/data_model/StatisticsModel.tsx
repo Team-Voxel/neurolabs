@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DFStats } from '../../backend_api/types';
-import { Typography, Card, Table } from 'antd';
+import { Typography, Card, Table, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import { error } from 'node:console';
 
 export interface StatisticsModelProps {
     stats: DFStats;
@@ -59,12 +60,11 @@ export const StatisticsModel: React.FC<StatisticsModelProps> = ({stats}) => {
               }));
             setDataSource(data);
         }
-        if (global.appState.current) {
-            setProjectName(global.appState.current.name || 'Unknown Project');
-        } else {
-            setProjectName('No Project Selected');
-        }
-    }, [stats]);
+        window.stateAPI.getAppState().then(({workflows, current}) => {
+            console.log('Current workflow:', current);
+            setProjectName(current?.name || 'Unknown Project');
+        }).catch((error) => {message.error("Couldn't fetch app state: " + error)});
+    }, []);
 
     return (
         <div className='flex flex-row items-center justify-center h-full w-full p-4'>

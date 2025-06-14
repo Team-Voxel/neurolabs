@@ -95,12 +95,17 @@ export const DataModel: React.FC = () => {
     const [selected, setSelected] = useState<string>('statistics');
     
     useEffect(() => {
-      if (!global.appState.currentEDA) {
-        message.error("Critical Error! No EDA file for the current project.");
-        return;
-      }
-      setEdaFile(global.appState.currentEDA!);
-    }, [global.appState.currentEDA]);
+      window.stateAPI.getEDAData().then((data) => {
+        if(data){
+          setEdaFile(data);
+        }
+        else{
+          message.error("Critical Error! No EDA file for the current project.");
+        }
+      }).catch((error) => {
+        message.error("Error fetching EDA data: " + error.message);
+      });
+    }, []);
 
     return (
         <div className="flex flex-row h-full w-full">
@@ -126,7 +131,7 @@ export const DataModel: React.FC = () => {
                 )}
                 {edaFile && (
                     selected === 'correlation' && (
-                        <div className='flex max-h-full w-full overflow-auto'>
+                        <div className='flex h-full w-full'>
                             <RelationsModel rels={edaFile.relationships} cols={edaFile.statistics.columns} />
                         </div>
                     )
