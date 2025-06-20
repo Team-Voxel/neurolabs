@@ -111,6 +111,7 @@ export interface ModelTrainingInfo {
 export interface UnsupervisedModelTrainingInfo {
   X: number[][];
   labels: number[];
+  actualLabels: number[]; // Used for comparison with ground truth if available
   silhouette: number;
   CHI: number;
 }

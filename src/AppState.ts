@@ -27,9 +27,9 @@ export interface Workflow {
 export interface AppState {
   workflows: Workflow[];
   current?: Workflow;
-  currentEDA?: EDAData;
-  currentDatasetMetadata?: DatasetMetadata;
-  currentModelMetadata?: Record<string, ModelMetadata>;
+  getCurrentEDA(): Promise<EDAData>;
+  getCurrentDatasetMetadata(): Promise<DatasetMetadata>;
+  getCurrentModelMetadata(): Promise<Record<string, ModelMetadata>>;
 
   globalDataDirectory: string;
 

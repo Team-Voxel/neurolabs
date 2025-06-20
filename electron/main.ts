@@ -384,7 +384,7 @@ ipcMain.handle('get-eda-data', async (_evt) => {
   if (!global.appState) {
     throw new Error('App state is not initialized');
   }
-  const data = global.appState.currentEDA;
+  const data = global.appState.getCurrentEDA();
   return data;
 });
 
@@ -392,7 +392,7 @@ ipcMain.handle('get-dataset-metadata', async (_evt) => {
   if (!global.appState) {
     throw new Error('App state is not initialized');
   }
-  const data = global.appState.currentDatasetMetadata;
+  const data = global.appState.getCurrentDatasetMetadata();
   return data;
 });
 
@@ -400,7 +400,7 @@ ipcMain.handle('get-model-metadata', async (_evt) => {
   if (!global.appState) {
     throw new Error('App state is not initialized');
   }
-  const data = global.appState.currentModelMetadata;
+  const data = global.appState.getCurrentModelMetadata();
   return data;
 });
 

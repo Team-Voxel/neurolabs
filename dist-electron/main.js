@@ -45,9 +45,24 @@ function createAppStateInstance() {
   var appState = {
     workflows: [],
     current: void 0,
-    currentEDA: void 0,
-    currentDatasetMetadata: void 0,
-    currentModelMetadata: void 0,
+    /* currentEDA: undefined,
+    currentDatasetMetadata: undefined,
+    currentModelMetadata: undefined, */
+    getCurrentEDA: async () => {
+      const edapath = path$1.join(appState.current.wfDir, "edadata.json");
+      const bytes = await fs.readFile(edapath, "utf-8");
+      return JSON.parse(bytes);
+    },
+    getCurrentDatasetMetadata: async () => {
+      const datasetMetadataPath = path$1.join(appState.current.wfDir, "dataset_metadata.json");
+      const bytes = await fs.readFile(datasetMetadataPath, "utf-8");
+      return JSON.parse(bytes);
+    },
+    getCurrentModelMetadata: async () => {
+      const modelMetadataPath = path$1.join(appState.current.wfDir, "model_metadata.json");
+      const bytes = await fs.readFile(modelMetadataPath, "utf-8");
+      return JSON.parse(bytes);
+    },
     globalDataDirectory: APP_DATA_DIR,
     hasWorkflowByName: (name) => {
       return appState.workflows.some((wf) => wf.name === name);
@@ -75,9 +90,6 @@ function createAppStateInstance() {
       await appState.loadFromDiskAsync();
       if (appState.current && appState.current.name === name) {
         appState.current = void 0;
-        appState.currentEDA = void 0;
-        appState.currentModelMetadata = void 0;
-        appState.currentDatasetMetadata = void 0;
       }
     },
     getWorkflowByName: (name) => {
@@ -105,30 +117,12 @@ function createAppStateInstance() {
     },
     setCurrent: async (wf) => {
       appState.current = wf;
-      const edapath = path$1.join(wf.wfDir, "edadata.json");
-      let bytes = await fs.readFile(edapath, "utf-8");
-      appState.currentEDA = JSON.parse(bytes);
-      const modelMetadataPath = path$1.join(wf.wfDir, "model_metadata.json");
-      bytes = await fs.readFile(modelMetadataPath, "utf-8");
-      appState.currentModelMetadata = JSON.parse(bytes);
-      const datasetMetadataPath = path$1.join(wf.wfDir, "dataset_metadata.json");
-      bytes = await fs.readFile(datasetMetadataPath, "utf-8");
-      appState.currentDatasetMetadata = JSON.parse(bytes);
       return true;
     },
     setCurrentByName: async (name) => {
       const wf = appState.getWorkflowByName(name);
       if (wf) {
         appState.current = wf;
-        const edapath = path$1.join(wf.wfDir, "edadata.json");
-        let bytes = await fs.readFile(edapath, "utf-8");
-        appState.currentEDA = JSON.parse(bytes);
-        const modelMetadataPath = path$1.join(wf.wfDir, "model_metadata.json");
-        bytes = await fs.readFile(modelMetadataPath, "utf-8");
-        appState.currentModelMetadata = JSON.parse(bytes);
-        const datasetMetadataPath = path$1.join(wf.wfDir, "dataset_metadata.json");
-        bytes = await fs.readFile(datasetMetadataPath, "utf-8");
-        appState.currentDatasetMetadata = JSON.parse(bytes);
         return true;
       } else {
         console.warn(`Workflow with name ${name} not found`);
@@ -428,21 +422,21 @@ ipcMain.handle("get-eda-data", async (_evt) => {
   if (!global.appState) {
     throw new Error("App state is not initialized");
   }
-  const data = global.appState.currentEDA;
+  const data = global.appState.getCurrentEDA();
   return data;
 });
 ipcMain.handle("get-dataset-metadata", async (_evt) => {
   if (!global.appState) {
     throw new Error("App state is not initialized");
   }
-  const data = global.appState.currentDatasetMetadata;
+  const data = global.appState.getCurrentDatasetMetadata();
   return data;
 });
 ipcMain.handle("get-model-metadata", async (_evt) => {
   if (!global.appState) {
     throw new Error("App state is not initialized");
   }
-  const data = global.appState.currentModelMetadata;
+  const data = global.appState.getCurrentModelMetadata();
   return data;
 });
 ipcMain.handle("set-current-workflow", async (_evt, name) => {

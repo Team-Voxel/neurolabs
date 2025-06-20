@@ -37,8 +37,8 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
         raise ValueError("The DataFrame has no rows. Please check the data path and content.")
 
     # Apply dim-reduction if the feature count is greater than 2
-    fc = len(df.columns) - 1 # -1 for target column
-    df_viz : pd.DataFrame = df
+    # Deprecated: Dimensionality reduction is not applied any more, but kept for reference.
+    """ fc = len(df.columns) - 1 # -1 for target column
 
     if fc >= 3:
         from sklearn.pipeline import Pipeline
@@ -51,8 +51,9 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
 
         X = pipeline.fit_transform(df.drop(columns=[target_col]))
         df_viz = pd.DataFrame(X, columns=['PC1', 'PC2'], index=df.index)
-        df_viz[target_col] = df[target_col]
+        df_viz[target_col] = df[target_col] """
 
+    df_viz : pd.DataFrame = df.copy()
     # Re-Sample the dataframe to reduce size if necessary
     if config['problem_type'] == 'regression':
         df_viz = sku.resample(df_viz, n_samples=config['n_samples'], random_state=config['random_state'])
@@ -62,7 +63,8 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
     # Drop target column if it exists
     df_viz: pd.DataFrame = df_viz.drop(columns=[config.get('target')], errors='ignore')
 
-    unsupervised_clustering_path = config.get('wfDir', '') + '\\data_usc.csv'
+    # The file is now called reduced_data.csv. (previously data_usc.csv)
+    unsupervised_clustering_path = config.get('wfDir', '') + '\\reduced_data.csv'
 
     df_viz.to_csv(unsupervised_clustering_path, index=False)
     return True
@@ -433,7 +435,8 @@ def compute_and_save_dataset_stats(config : Dict):
 
 def compute_and_store_dim_redux(config : Dict):
 
-    methods = 'umap', 'pca', 'ica', 'isomap', 'lle', 'mds'
+    # This is now deprecated, but kept for consistency.
+    """ methods = 'umap', 'pca', 'ica', 'isomap', 'lle', 'mds'
     try:
         common_df = create_a_sample_df(config)
         for method in methods:
@@ -450,12 +453,8 @@ def compute_and_store_dim_redux(config : Dict):
                 json = json.dumps(embedding)
                 with open(save_location, 'w') as f:
                     f.write(json)
-
-        return True
-
-    except Exception as e:
-        print(f"Error computing and storing dimensionality reduction: {e}")
-        return False
+    """
+    return True
 
     
     

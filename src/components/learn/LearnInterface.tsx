@@ -8,8 +8,9 @@ import { getDatasetSimple } from '../../backend_api/data_api';
 import ModelModal from './ModelModal';
 import './LearnInterface.css';
 import { Sidebar } from '../Sidebar';
-import { Eye, EyeOff } from 'lucide-react';
+import { Brain, ScatterChart } from 'lucide-react';
 import { UnsupervisedModel } from './UnsupervisedModel';
+import { UnsupervisedInterface } from '../UnsupervisedInterface';
 
 
 
@@ -117,7 +118,7 @@ const models : TabsProps['items'] = [
     }
 ];
 
-export const UnsupervisedInterface = () => {
+/* export const UnsupervisedInterface = () => {
     const [activeKey, setActiveKey] = useState('kmeans');
 
     return (
@@ -138,7 +139,7 @@ export const UnsupervisedInterface = () => {
         />
         </div>
     )
-}
+} */
 
 export const LearnInterface: React.FC = () => {
     const [mode, setMode] = useState<number>(0);
@@ -169,12 +170,12 @@ export const LearnInterface: React.FC = () => {
                 buttons={[
                     {
                         label: 'Supervised Learning',
-                        icon: <Eye />,
+                        icon: <Brain />,
                         callback: () => setMode(0)
                     },
                     {
                         label: 'Unsupervised Learning',
-                        icon: <EyeOff />,
+                        icon: <ScatterChart />,
                         callback: () => setMode(1)
                     }
                 ]}
@@ -214,7 +215,7 @@ export const LearnInterface: React.FC = () => {
             {/** Right Panel */}
             {mode === 0 ?
                 <SupervisedInterface /> : 
-                <UnsupervisedInterface />
+                <UnsupervisedInterface dataSrc={tempDataFile} targetColumn='y' />
             }
             </div>
         </div>
