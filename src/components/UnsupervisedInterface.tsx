@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MulticlassScatterPlot } from './plotting/MulticlassScatter';
 import { trainUnsupervisedSimple } from './../backend_api/data_api';
 import { UnsupervisedModelTrainingInfo } from './../backend_api/types';
-import { Typography, Button, Checkbox, Card, Popover, Statistic } from 'antd';
+import { Typography, Button, Checkbox, Card, Popover, Statistic, message } from 'antd';
 import Settings from './settings/Settings';
 import { SettingControl as SettingControlType } from './settings/types';
 import Papa, {ParseResult} from 'papaparse';
@@ -31,7 +31,7 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
     const [findOptimalClusters, setFindOptimalClusters] = useState<boolean>(false);
     const [optimalClusterMethod, setOptimalClusterMethod] = useState<string>('elbow');
 
-    const [clusters, setClusters] = useState<string>('actual');
+    const [clusters, setClusters] = useState<string>('predicted');
 
     window.fsAPI.readFile(dataSrc).then((data) => {
         if (data) {
@@ -79,9 +79,9 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
                     optimal_clusters_method: optimalClusterMethod,
                 });
             setTrainingInfo(response);
-            console.log("Model training info:", response);
+            message.success("Model trained successfully!");
         } catch (error) {
-            console.error("Error training model:", error);
+            message.error("Error training model: " + (error instanceof Error ? error.message : "Unknown error"));
         } finally {
             setIsTraining(false);
         }
@@ -96,6 +96,11 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
         if (isTraining || !realTimeUpdate) return; // Prevent multiple fetches if already training
         fetchModelInfo();
     }, [numClusters, bandwidth, epsilon, minSamples, affinity, linkage, xi, threshold, optimalClusterMethod]);
+    
+    useEffect(() => {
+        if (isTraining) return; // Prevent multiple fetches if already training
+        fetchModelInfo();
+    }, [findOptimalClusters]);
 
     const trainingParameters: SettingControlType[] = [
         {
@@ -144,7 +149,7 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
             onChange: (value) => {setOptimalClusterMethod(value);},
             visible: findOptimalClusters,
             tooltip: 'Elbow Method: Plots the sum of squared distances to find the optimal number of clusters. Silhouette Score: Measures how similar an object is to its own cluster compared to other clusters.',
-        },
+        },/* 
         {
             id: 'clusters',
             label: 'Clusters',
@@ -154,7 +159,7 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
             onChange: (value) => {setClusters(value);},
             visible: true,
             tooltip: 'Actual: Clusters from the dataset, Predicted: Clusters from the model',
-        },
+        }, */
         {
             id: 'n_clusters',
             label: 'Number of Clusters',
@@ -259,11 +264,14 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
 
     return (
         <div className='h-full w-full flex flex-row' style={{ minHeight: '100%' }}>
-            <div className="flex h-full w-2/3 p-4">
-                {trainingInfo ? <MulticlassScatterPlot X={trainingInfo?.X} Y={clusters === 'actual' ? trainingInfo.actualLabels : trainingInfo?.labels} xLabel="X1" yLabel="X2" /> : 
-                <div className="flex items-center justify-center w-full h-full border-2 border-dashed border-gray-300 rounded-md m-4 mb-4">
-                    <Typography.Title level={4} className="text-center">Click Compute!</Typography.Title>
-                </div>}
+            <div className='flex flex-col h-full  w-2/3 p-4'>
+                <Typography.Title level={3} className="text-center mb-4 w-full">Clustering Output</Typography.Title>
+                <div className="flex-1 w-full">
+                    {trainingInfo ? <MulticlassScatterPlot X={trainingInfo?.X} Y={clusters === 'actual' ? trainingInfo.actualLabels : trainingInfo?.labels} xLabel="X1" yLabel="X2" /> : 
+                    <div className="flex items-center justify-center w-full h-full border-2 border-dashed border-gray-300 rounded-md mb-4">
+                        <Typography.Title level={4} className="text-center">Click Compute!</Typography.Title>
+                    </div>}
+                </div>
             </div>
             <div className="flex flex-col h-full w-1/3 p-4 border-l-2 border-gray-200 overflow-y-auto">
                 <Typography.Title level={4} className="mt-2 mb-4 mx-2 text-center">Parameters</Typography.Title>

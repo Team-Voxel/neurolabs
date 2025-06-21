@@ -15,7 +15,15 @@ import { UnsupervisedInterface } from '../UnsupervisedInterface';
 
 
 type TargetKey = React.MouseEvent | React.KeyboardEvent | string;
-
+const modelMap : Record<string, string> = {
+    'logistic' : 'Logistic',
+    'svm' : 'SVM',
+    'tree': 'Decision Tree',
+    'forest': 'Random Forest',
+    'gb': 'Gradient Boosting',
+    'knn': 'KNN',
+    'nn': 'Neural Network',
+}
 
 export const SupervisedInterface = () => {
     const [models, setModels] = useState<TabsProps['items']>([]);
@@ -27,7 +35,7 @@ export const SupervisedInterface = () => {
         if (models) {
             setModels([...models, {
                 key: `${models.length + 1}`,
-                label: model,
+                label: modelMap[model] || model,
                 children: <SupervisedModel type={model} />
             }]);
             setActiveKey(`${models.length + 1}`);
@@ -117,29 +125,6 @@ const models : TabsProps['items'] = [
         children: <UnsupervisedModel model='optics' />
     }
 ];
-
-/* export const UnsupervisedInterface = () => {
-    const [activeKey, setActiveKey] = useState('kmeans');
-
-    return (
-        <div className='h-full w-full flex flex-col'>
-        <Tabs type="card"
-            size='small'
-            activeKey={activeKey}
-            onChange={setActiveKey}
-            items={models}
-            className='h-full flex-1'
-            style={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                height: '100%'
-            }}
-            tabBarStyle={{ margin: 0 }}
-            tabPosition="top"
-        />
-        </div>
-    )
-} */
 
 export const LearnInterface: React.FC = () => {
     const [mode, setMode] = useState<number>(0);

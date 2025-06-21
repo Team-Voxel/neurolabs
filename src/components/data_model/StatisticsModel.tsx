@@ -43,8 +43,14 @@ export const StatisticsModel: React.FC<StatisticsModelProps> = ({stats}) => {
     const [columns, setColumns] = useState<{ title: string; dataIndex: string; key: string }[]>([]);
     const [dataSource, setDataSource] = useState<DynamicRow[]>([]);
     const [projectName, setProjectName] = useState<string>('');
+    const [size, setSize] = useState<number>(0);
 
     useEffect(() => {
+        let memoryUsage = 0; 
+        Object.entries(stats.memory_usage).forEach(([key, value]) => {
+            memoryUsage += value;
+        });
+        setSize(memoryUsage / (1024)); // Convert bytes to MB
         if (stats && stats.columns) {
             const cols = stats.columns.map((col, index) => ({
                 title: col,
@@ -79,7 +85,7 @@ export const StatisticsModel: React.FC<StatisticsModelProps> = ({stats}) => {
                 <Typography.Text>{`${stats.column_count}`}</Typography.Text>
             </Card>
             <Card title="Memory Usage" className='w-full'>
-                <Typography.Text>{`${stats.memory_usage} MB`}</Typography.Text>
+                <Typography.Text>{`${size.toFixed(2)} KB`}</Typography.Text>
             </Card>
             {/* <Card title="Data Types">
                 {Object.entries(stats.dtypes).map(([key, value]) => (

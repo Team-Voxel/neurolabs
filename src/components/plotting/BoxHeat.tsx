@@ -152,7 +152,7 @@ export const PlotlyBoxplot: React.FC<PlotlyBoxplotProps> = ({
   layout: customLayout,
   config: customConfig,
   height = '450px',
-  margin = { l: 40, r: 30, b: 80, t: 100 , pad: 0 } // Default margins,
+  margin = { l: 40, r: 30, b: 80, t: 0 , pad: 0 } // Default margins,
 }) => {
 
   if (!series || series.length === 0) {
@@ -167,7 +167,7 @@ const data: any[] = series.map((s: BoxplotData) => ({
     y: s.y,
     name: s.name,
     type: 'box',
-    boxpoints: 'all', // Show all underlying data points
+    //boxpoints: 'all', // Show all underlying data points
     jitter: 0.3,      // Spread out the points for better visibility
     pointpos: -1.8,   // Position points to the left of the box
     ...(s.options || {}),

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import ContourPlot from '../plotting/ContourPlot';
-import { Splitter, Flex, Typography, Switch, Checkbox, Slider, Button, Tabs, TabsProps, Divider, Statistic, Card, Popover, Segmented} from 'antd';
+import { Splitter, Flex, Typography, Switch, Checkbox, Slider, Button, Tabs, TabsProps, Divider, Statistic, Card, Popover, Segmented, message} from 'antd';
 import type { ModelTrainingInfo } from '../../backend_api/types';
 import Settings from '../settings/Settings';
 import { SettingControl as SettingControlType, SelectOption } from '../settings/types';
@@ -280,8 +280,9 @@ export const SupervisedModel: React.FC<ModelProps> = ({type}) => {
                 setModelInfo(null);
                 const response = await trainModelSimple(config);
                 setModelInfo(response);
+                message.success('Model Trained!');
             } catch (error) {
-                console.error('Error training model:', error);
+                message.error('Training Failed...');
             } finally {
                 setIsTraining(false);
             }
@@ -303,13 +304,11 @@ export const SupervisedModel: React.FC<ModelProps> = ({type}) => {
                         </Splitter.Panel>
                         <Splitter.Panel min="30%" size='40%'>
                         {/*Training Parameters*/}
-                        <div className='flex-1 flex-col gap-4 items-center mt-4 justify-between pr-4'>
+                        <div className='flex-1 m-4'>
                             <Typography.Title level={4}>Training Parameters</Typography.Title>
-                        <Settings controls={trainingParams} />
-                        <div className='flex flex-row justify-items-stretch gap-4 my-8 pl-4'>
-                            <Button block type="primary" onClick={onClickTrain}>Train Model</Button>
+                            <Settings controls={trainingParams} />
                         </div>
-                        </div>
+                        <Button block type="primary" onClick={onClickTrain}>Train Model</Button>
                         </Splitter.Panel>
                     </Splitter>
                 </div>
@@ -340,7 +339,7 @@ export const SupervisedModel: React.FC<ModelProps> = ({type}) => {
                         />
                     </div>
                 ) : (
-                    <div className='flex justify-center items-center h-full w-full border-2 border-dashed border-gray-300 rounded-md'>
+                    <div className='flex-1 flex justify-center items-center border-2 border-dashed border-gray-300 rounded-md m-2'>
                         <Typography.Title level={4}>Train the model to see the performance metrics</Typography.Title>
                     </div>
                 )}

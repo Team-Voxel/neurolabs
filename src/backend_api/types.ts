@@ -27,7 +27,7 @@ export interface DFStats {
   column_count: number;
   columns: string[];
   dtypes: Record<string, string>; // Maps column names to their data types
-  memory_usage: string;
+  memory_usage: Record<string, number>;
   missing_values: { [key: string]: number };
   sample_data: Record<string, number>[]; // Maps column names to arrays of sample values
 }
@@ -67,12 +67,17 @@ export interface ColumnDistributions {
   [columnName: string]: ContinuousDistribution | DiscreteDistribution;
 }
 
+export interface FeatureImportanceData {
+  feature: string;
+  importance: number;
+}
+
 export interface DFRelationship {
   correlationPearson: number[][];
   correlationSpearman: number[][];
   highCorrelationFeatures: string[];
   interactions: string[];
-  featureImportance: {[feature: string]: number};
+  featureImportance: FeatureImportanceData[];
 }
 
 export interface ColumnSample {

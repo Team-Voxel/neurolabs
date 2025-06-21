@@ -4,9 +4,11 @@ import { Menu, MenuItem } from "../Menu";
 import { Workflow } from "../../AppState";
 import { message, Typography } from "antd";
 import { StatisticsModel } from "./StatisticsModel";
-import { EDAData, DatasetSummary } from "../../backend_api/types";
+import { EDAData, DatasetMetadata } from "../../backend_api/types";
 import { OverviewModel } from "./DFOverviewModel";
 import { RelationsModel } from "./RelationsModel";
+import { FeatureImportance } from "./FeatureImportance";
+import { NumericalDistributions } from "./DistributionModel";
 
 
 //type MenuItem = Required<MenuProps>['items'][number];
@@ -52,47 +54,13 @@ const items: MenuItem[] = [
         },
       ]
     },
-    {
-      key: 'visualization',
-      label: 'Visualization',
-      children: [
-        {
-          key: 'projection',
-          label: 'XY Projection',
-        },
-      ]
-    },
-    {
-      key: 'unsupervised',
-      label: 'Unsupervised',
-        children: [
-          {
-            key: 'clustering',
-            label: 'Clustering',
-            //icon: <ClusterOutlined />,
-          },
-          {
-            key: 'dim-redux',
-            label: 'Dimensionality Reduction',
-            //icon: <ShrinkOutlined />,
-          },
-          {
-            key: 'gmm',
-            label: 'Gaussian Mixture Model',
-            //icon: <ClusterOutlined />,
-          },
-          {
-            key: 'brbm',
-            label: 'Restricted Boltzmann Machine',
-            //icon: <ClusterOutlined />,
-          },
-      ]
-    }
 ]
 
 export const DataModel: React.FC = () => {
     const [edaFile, setEdaFile] = useState<EDAData | null>(null);
+    const [datasetMetadata, setDatasetMetadata] = useState<DatasetMetadata | null>(null);
     const [selected, setSelected] = useState<string>('statistics');
+    const [wfDir, setWfDir] = useState<string>('');
     
     useEffect(() => {
       window.stateAPI.getEDAData().then((data) => {
@@ -104,6 +72,23 @@ export const DataModel: React.FC = () => {
         }
       }).catch((error) => {
         message.error("Error fetching EDA data: " + error.message);
+      });
+
+      window.stateAPI.getDatasetMetadata().then((metadata) => {
+        if(metadata){
+          setDatasetMetadata(metadata);
+        }
+        else{
+          message.error("Critical Error! No dataset metadata for the current project.");
+        }
+      }).catch((error) => {
+        message.error("Error fetching dataset metadata: " + error.message);
+      });
+
+      window.stateAPI.getAppState().then(({workflows, current}) => {
+        setWfDir(current?.wfDir || '');
+      }).catch((error) => {
+        message.error("Error fetching app state: " + error.message);
       });
     }, []);
 
@@ -133,6 +118,20 @@ export const DataModel: React.FC = () => {
                     selected === 'correlation' && (
                         <div className='flex h-full w-full'>
                             <RelationsModel rels={edaFile.relationships} cols={edaFile.statistics.columns} />
+                        </div>
+                    )
+                )}
+                {edaFile && (
+                    selected === 'feature-importance' && (
+                        <div className='flex h-full w-full'>
+                            <FeatureImportance relationships={edaFile.relationships} />
+                        </div>
+                    )
+                )}
+                {datasetMetadata && (
+                    selected === 'numeric' && (
+                        <div className='flex h-full w-full'>
+                            <NumericalDistributions dataset={datasetMetadata} wfDir={wfDir}/>
                         </div>
                     )
                 )}
