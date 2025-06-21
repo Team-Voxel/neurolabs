@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MulticlassScatterPlot } from './plotting/MulticlassScatter';
 import { trainUnsupervisedSimple } from './../backend_api/data_api';
 import { UnsupervisedModelTrainingInfo } from './../backend_api/types';
-import { Typography, Button, Checkbox } from 'antd';
+import { Typography, Button, Checkbox, Card, Popover, Statistic } from 'antd';
 import Settings from './settings/Settings';
 import { SettingControl as SettingControlType } from './settings/types';
 import Papa, {ParseResult} from 'papaparse';
@@ -28,6 +28,8 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
     const [realTimeUpdate, setRealTimeUpdate] = useState<boolean>(false);
     const [requireDimensionReduction, setRequireDimensionReduction] = useState<boolean>(false);
     const [dimReductionMethod, setDimensionReductionMethod] = useState<string>('pca');
+    const [findOptimalClusters, setFindOptimalClusters] = useState<boolean>(false);
+    const [optimalClusterMethod, setOptimalClusterMethod] = useState<string>('elbow');
 
     const [clusters, setClusters] = useState<string>('actual');
 
@@ -38,7 +40,7 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
                 skipEmptyLines: true,
                 complete: (results: ParseResult<unknown>) => {
                     const numColumns = Object.keys(results.data[0]).length;
-                    if (numColumns > 2) {
+                    if (numColumns > 3) {
                         setRequireDimensionReduction(true);
                     } else {
                         setRequireDimensionReduction(false);
@@ -72,7 +74,9 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
                     data_path: dataSrc,
                     require_dimension_reduction: requireDimensionReduction,
                     dim_redux_method: dimReductionMethod,
-                    target: targetColumn
+                    target: targetColumn,
+                    find_optimal_clusters: findOptimalClusters,
+                    optimal_clusters_method: optimalClusterMethod,
                 });
             setTrainingInfo(response);
             console.log("Model training info:", response);
@@ -91,9 +95,18 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
     useEffect(() => {
         if (isTraining || !realTimeUpdate) return; // Prevent multiple fetches if already training
         fetchModelInfo();
-    }, [numClusters, bandwidth, epsilon, minSamples, affinity, linkage, xi, threshold]);
+    }, [numClusters, bandwidth, epsilon, minSamples, affinity, linkage, xi, threshold, optimalClusterMethod]);
 
     const trainingParameters: SettingControlType[] = [
+        {
+            id: 'update-mode',
+            label: 'Update in Realtime',
+            type: 'switch',
+            value: realTimeUpdate,
+            onChange: (value) => {setRealTimeUpdate(value);},
+            visible: true,
+            tooltip: 'If enabled, the model will be updated in real-time as parameters change.',
+        },
         {
             id: 'model',
             label: 'Model',
@@ -111,6 +124,28 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
             visible: true,
         },
         {
+            id: 'find-opt',
+            label: 'Find Optimal Clusters',
+            type: 'switch',
+            value: findOptimalClusters,
+            onChange: (value) => {setFindOptimalClusters(value);},
+            visible: true,
+            tooltip: 'If enabled, the optimal number of clusters will be determined using the specified method.',
+        },
+        {
+            id: 'optimal-cluster-method',
+            label: 'Optimal Cluster Method',
+            type: 'select',
+            options: [
+                {label: 'Elbow Method', value: 'elbow'},
+                {label: 'Silhouette Score', value: 'silhouette'}
+            ],
+            value: optimalClusterMethod,
+            onChange: (value) => {setOptimalClusterMethod(value);},
+            visible: findOptimalClusters,
+            tooltip: 'Elbow Method: Plots the sum of squared distances to find the optimal number of clusters. Silhouette Score: Measures how similar an object is to its own cluster compared to other clusters.',
+        },
+        {
             id: 'clusters',
             label: 'Clusters',
             type: 'select',
@@ -121,22 +156,6 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
             tooltip: 'Actual: Clusters from the dataset, Predicted: Clusters from the model',
         },
         {
-            id: 'dim_redux_method',
-            label: 'Dimensionality Reduction Method',
-            type: 'select',
-            options: [
-                {label: 'PCA', value: 'pca'},
-                {label: 'UMAP', value: 'umap'},
-                {label: 'ISOMAP', value: 'isomap'},
-                {label: 'LLE', value: 'lle'},
-                {label: 'MDS', value: 'mds'},
-            ],
-            tooltip: 'PCA: Principal Component Analysis, LLE: Locally Linear Embedding, MDS: Multidimensional Scaling, UMAP: Uniform Manifold Approximation and Projection',
-            value: dimReductionMethod,
-            onChange: (value) => {setDimensionReductionMethod(value);},
-            visible: requireDimensionReduction,
-        },
-        {
             id: 'n_clusters',
             label: 'Number of Clusters',
             type: 'slider',
@@ -145,7 +164,7 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
             max: 10,
             step: 1,
             onChange: (value) => {setNumClusters(value);},
-            visible: model === 'kmeans' || model === 'spectral' || model === 'birch',
+            visible: (model === 'kmeans' || model === 'spectral' || model === 'birch') && !findOptimalClusters,
         },
         {
             id: 'bandwidth',
@@ -219,27 +238,51 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
             step: 0.1,
             onChange: (value) => {setThreshold(value);},
             visible: model === 'birch' || model === 'agglomerative',
-        }
+        },
+        {
+            id: 'dim_redux_method',
+            label: 'Dimensionality Reduction Method',
+            type: 'select',
+            options: [
+                {label: 'PCA', value: 'pca'},
+                {label: 'UMAP', value: 'umap'},
+                {label: 'ISOMAP', value: 'isomap'},
+                {label: 'LLE', value: 'lle'},
+                {label: 'MDS', value: 'mds'},
+            ],
+            tooltip: 'PCA: Principal Component Analysis, LLE: Locally Linear Embedding, MDS: Multidimensional Scaling, UMAP: Uniform Manifold Approximation and Projection',
+            value: dimReductionMethod,
+            onChange: (value) => {setDimensionReductionMethod(value);},
+            visible: requireDimensionReduction,
+        },
     ];
 
     return (
         <div className='h-full w-full flex flex-row' style={{ minHeight: '100%' }}>
             <div className="flex h-full w-2/3 p-4">
-                {trainingInfo ? <MulticlassScatterPlot X={trainingInfo?.X} Y={trainingInfo?.labels} xLabel="X1" yLabel="X2" /> : 
+                {trainingInfo ? <MulticlassScatterPlot X={trainingInfo?.X} Y={clusters === 'actual' ? trainingInfo.actualLabels : trainingInfo?.labels} xLabel="X1" yLabel="X2" /> : 
                 <div className="flex items-center justify-center w-full h-full border-2 border-dashed border-gray-300 rounded-md m-4 mb-4">
                     <Typography.Title level={4} className="text-center">Click Compute!</Typography.Title>
                 </div>}
             </div>
-            <div className="flex flex-col h-full w-1/3 p-4 border-l-2 border-gray-200">
-                <Typography.Title level={4} className="mt-2 mb-4 text-center">Parameters</Typography.Title>
-                <div className="flex flex-row gap-8 w-full ml-3">
-                    <Typography.Title level={5}>Update Realtime</Typography.Title>
-                    <Checkbox checked={realTimeUpdate} onChange={(e) => setRealTimeUpdate(!realTimeUpdate)}/>
-                </div>
+            <div className="flex flex-col h-full w-1/3 p-4 border-l-2 border-gray-200 overflow-y-auto">
+                <Typography.Title level={4} className="mt-2 mb-4 mx-2 text-center">Parameters</Typography.Title>
                 <div>
                 <Settings controls={trainingParameters} />
                 </div>
-                {!realTimeUpdate && <Button type="primary" onClick={onClickCompute}>Compute</Button>}
+                {!realTimeUpdate && <Button type="primary" onClick={onClickCompute} block>Compute</Button>}
+                <div className='flex-1 flex-row'>
+                <Popover content='Computed silhouette score. Higher is better' title="Clustering Score" placement='top' mouseEnterDelay={0.7}>
+                <Card variant="borderless" size='default'>
+                    <Statistic title="Clustering Score" valueStyle={{fontSize:'20px'}}  value={trainingInfo?.silhouette} precision={2}/>
+                </Card>
+                </Popover>
+                {trainingInfo?.explainedVariance && <Popover content='It is the number of true positives divided by the number of true positives and false positives.' title="Precision" placement='top' mouseEnterDelay={0.7}>
+                <Card variant="borderless" size='default'>
+                    <Statistic title="Precision" valueStyle={{fontSize:'20px'}}  value={trainingInfo?.explainedVariance} precision={2}/>
+                </Card>
+                </Popover>}
+                </div>
             </div>
         </div>
     );

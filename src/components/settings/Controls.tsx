@@ -1,6 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Button, InputNumber, Select, Slider, Space, Switch } from 'antd';
-import { NumberSettingControl, SelectSettingControl, SliderSettingControl, SwitchSettingControl, ListSettingControl} from './types';
+import { Button, InputNumber, Select, Slider, Space, Switch, Checkbox} from 'antd';
+import { 
+  NumberSettingControl, 
+  SelectSettingControl, 
+  SliderSettingControl, 
+  SwitchSettingControl, 
+  ListSettingControl,
+  CheckboxSettingControl,
+} from './types';
 import { CSSProperties } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
 
@@ -57,7 +64,6 @@ export const SelectControl: React.FC<SelectControlProps> = ({ control }) => {
     const { value, options, onChange } = control;
 
     return (
-        <div className="w-48">
         <Select
             value={value}
             onChange={onChange}
@@ -65,7 +71,6 @@ export const SelectControl: React.FC<SelectControlProps> = ({ control }) => {
             options={options}
             size="middle"
         />
-        </div>
     );
 };
   
@@ -77,7 +82,6 @@ export const SliderControl: React.FC<SliderControlProps> = ({ control }) => {
     const { value, min, max, step, onChange } = control;
 
     return (
-        <div className="w-32 sm:w-40 md:w-48">
         <Slider
             value={value}
             min={min}
@@ -86,7 +90,6 @@ export const SliderControl: React.FC<SliderControlProps> = ({ control }) => {
             onChange={onChange}
             className="settings-slider"
         />
-        </div>
     );
 };
   
@@ -191,3 +194,27 @@ export const ListControl: React.FC<ListControlProps> = ({ control }) => {
       </Space>
     );
 }
+
+export interface CheckboxControlProps {
+  control: CheckboxSettingControl;
+}
+
+export const CheckboxControl: React.FC<CheckboxControlProps> = ({ control }) => {
+  const { value, onChange, controlType } = control;
+
+  return (
+    controlType === 'checkbox' ? (
+      <Checkbox
+        checked={value}
+        onChange={(e) => onChange(e.target.checked)}
+        className="settings-checkbox"
+      />
+    ) :
+    <Switch
+      checked={value}
+      onChange={onChange}
+      size="default"
+      className="settings-checkbox"
+    />
+  );
+};

@@ -114,6 +114,7 @@ export interface UnsupervisedModelTrainingInfo {
   actualLabels: number[]; // Used for comparison with ground truth if available
   silhouette: number;
   CHI: number;
+  explainedVariance: number | null;
 }
 
 export interface ModelMetadata {

@@ -60,9 +60,6 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
     else:
         df_viz, _ = train_test_split(df_viz, stratify=df[config['target']], train_size=config['n_samples'], random_state=config['random_state'])
 
-    # Drop target column if it exists
-    df_viz: pd.DataFrame = df_viz.drop(columns=[config.get('target')], errors='ignore')
-
     # The file is now called reduced_data.csv. (previously data_usc.csv)
     unsupervised_clustering_path = config.get('wfDir', '') + '\\reduced_data.csv'
 
