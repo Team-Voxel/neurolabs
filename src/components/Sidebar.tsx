@@ -12,9 +12,10 @@ interface SidebarButton {
     onHome: () => void;
     buttons: SidebarButton[];
     selectedTab?: number; // Optional prop to highlight selected tab
+    homeIcon?: JSX.Element; // Optional custom home icon
   }
   
-  export const Sidebar: React.FC<SidebarProps> = ({ onHome, buttons, selectedTab = -1 }) => {
+  export const Sidebar: React.FC<SidebarProps> = ({ onHome, buttons, selectedTab = -1, homeIcon = undefined }) => {
     return (
       <div className="w-[60px] h-screen bg-white border-r-2 border-gray-200 shadow-lg flex flex-col py-4">
         {/* Home Button - Always at top */}
@@ -26,7 +27,7 @@ interface SidebarButton {
                        shadow-md hover:shadow-lg group"
             title="Home"
           >
-            <Home size={20} className="group-hover:scale-105 transition-transform duration-200" />
+            {homeIcon ? React.cloneElement(homeIcon, { size: 20, className: "group-hover:scale-105 transition-transform duration-200" }) : <Home size={20} className="group-hover:scale-105 transition-transform duration-200" />}
           </div>
         </div>
   

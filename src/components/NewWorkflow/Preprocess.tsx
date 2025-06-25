@@ -1,6 +1,8 @@
 import React, {useEffect, useState} from "react";
 import { Button, Typography, Modal, Divider, Select, Checkbox} from 'antd'
 import { CheckCircleOutlined, ExclamationCircleOutlined, CloseOutlined } from '@ant-design/icons'
+import Settings from '../settings/Settings';
+import { SettingControl as SettingControlType } from '../settings/types';
 
 export interface PreprocessModalProps {
     issues: string[];
@@ -16,7 +18,6 @@ export const PreprocessModal: React.FC<PreprocessModalProps> = ({issues , open, 
     const [issueCheck, setIssueCheck] = useState<string[]>([]);
 
     useEffect(() => {
-        setMissingImputation(issueCheck.includes("missing") ? "mean" : "none");
         setOutlierDetection(issueCheck.includes("outlier") ? true : false);
         setFeatureScaling(issueCheck.includes("scale") ? "standardize" : "none");
         
@@ -37,6 +38,43 @@ export const PreprocessModal: React.FC<PreprocessModalProps> = ({issues , open, 
         onOk(missingImputation, outlierDetection, featureScaling);
     }
 
+    const controls : SettingControlType[] = [
+        {
+            id: 'remove-outliers',
+            label: 'Remove Outliers',
+            type: 'switch',
+            value: outlierDetection,
+            onChange: (value) => setOutlierDetection(value),
+            visible: issueCheck.includes("outlier")
+        },
+        {
+            id: 'impute-missing',
+            label: 'Impute Missing Values',
+            type: 'select',
+            options: [
+                { label: 'Mean', value: 'mean' },
+                { label: 'Median', value: 'median' },
+                { label: 'Mode', value: 'mode' }
+            ],
+            value: missingImputation,
+            onChange: (value) => setMissingImputation(value),
+            visible: issueCheck.includes("missing")
+        },
+        {
+            id: 'feature-scaling',
+            label: 'Feature Scaling',
+            type: 'select',
+            options: [
+                { label: 'None', value: 'none' },
+                { label: 'Standardize', value: 'standardize' },
+                { label: 'Normalize', value: 'normalize' }
+            ],
+            value: featureScaling,
+            onChange: (value) => setFeatureScaling(value),
+            visible: issueCheck.includes("scale")
+        }
+    ]
+
     return (
         <Modal open={open} onCancel={onClose} onOk={handleOk}>
             <div className="flex flex-col gap-2">
@@ -53,22 +91,10 @@ export const PreprocessModal: React.FC<PreprocessModalProps> = ({issues , open, 
                     ))
                 }
                 <Divider />
-                {issueCheck.includes("missing") && <div className="flex flex-row gap-2 justify-between">
-                    <Typography.Text>Impute Missing Values</Typography.Text>
-                    <div className="w-48">
-                    <Select options={[{"label": "Mean", "value": "mean"}, {"label": "Median", "value": "median"}, {"label": "Mode", "value": "mode"}]} value={missingImputation} onChange={(value) => setMissingImputation(value)} />
-                    </div>
-                </div>}
-                {issueCheck.includes("outlier") && <div className="flex flex-row gap-2 justify-between">
-                    <Typography.Text>Remove Outliers</Typography.Text>
-                    <Checkbox checked={outlierDetection} onChange={(e) => setOutlierDetection(e.target.checked)} />
-                </div>}
-                {issueCheck.includes("scale") && <div className="flex flex-row gap-2 justify-start">
-                    <Typography.Text>Scale Features</Typography.Text>
-                    <div className="w-48">
-                    <Select options={[{"label": "Standardize", "value": "standardize"}, {"label": "Normalize", "value": "normalize"}]} value={featureScaling} onChange={(value) => setFeatureScaling(value)} />
-                    </div>
-                </div>}
+                <div className="flex flex-col gap-2">
+                    <Typography.Text>Recommended Actions:</Typography.Text>
+                    <Settings controls={controls} />
+                </div>
             </div>
         </Modal>
     )

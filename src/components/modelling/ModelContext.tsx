@@ -6,9 +6,10 @@ import { Modal, Button, Typography, message } from "antd";
 import { AddNewModel } from "./Modals";
 import { NNModel } from "./NNModel";
 import { LinearRegression } from "./LinearRegression";
-import { ModelCard } from "./ModelCard";
+import { useNavigate } from "react-router-dom";
+import { ModelCard, ActionCard, ActionCardProps} from "./ModelCard";
 import { PiPlus } from "react-icons/pi";
-
+import { Brain } from "lucide-react";
 
 export enum ModelType {
     LINEAR_REG = 0,
@@ -33,6 +34,8 @@ export const ModelContext : React.FC = () => {
     const [openDialogIdx, setOpenDialogIdx] = useState<number>(-1);
     const [modelMetadataObjects, setModelMetadataObjects] = useState<Record<string, ModelMetadata> | null>(null);
     const [selectedModel, setSelectedModel] = useState<string | null>(null);
+
+    const navigate = useNavigate();
     
     useEffect(() => {
         window.stateAPI.getModelMetadata().then((metas) => {
@@ -51,20 +54,111 @@ export const ModelContext : React.FC = () => {
     const handleCancel = () => {
         setOpenDialogIdx(-1);
     };
+    const keys : string[] = modelMetadataObjects ? Object.keys(modelMetadataObjects) : [];
+    const classificationModels : ActionCardProps[] = [
+        {
+            title: 'Logistic Regression',
+            description: 'Train a linear logistic regression classifier to make linear decision boundaries',
+            icon: <Brain/>,
+            isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'logistic') : false,
+            onTrain: () => navigate('/model-training/?model=logistic,startTab=preprocessing'),
+            onMetrics: () => navigate('/model-training/?model=logistic,startTab=metrics'),
+            onInfer: () => () => navigate('/model-training/?model=logistic,startTab=infer'),
+        },
+        {
+            title: 'Support Vector Classifier',
+            description: '',
+            icon: <PiPlus/>,
+            isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
+            onTrain: () => navigate('/model-training/?model=svm,startTab=preprocessing'),
+            onMetrics: () => navigate('/model-training/?model=svm,startTab=metrics'),
+            onInfer: () => () => navigate('/model-training/?model=svm,startTab=infer'),
+        },
+        {
+            title: 'Decision Tree Classifier',
+            description: '',
+            icon: <PiPlus/>,
+            isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
+            onTrain: () => navigate('/model-training/?model=tree,startTab=preprocessing'),
+            onMetrics: () => navigate('/model-training/?model=tree,startTab=metrics'),
+            onInfer: () => () => navigate('/model-training/?model=tree,startTab=infer'),
+        },
+        {
+            title: 'Random Forest Classifier',
+            description: '',
+            icon: <PiPlus/>,
+            isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
+            onTrain: () => navigate('/model-training/?model=forest,startTab=preprocessing'),
+            onMetrics: () => navigate('/model-training/?model=forest,startTab=metrics'),
+            onInfer: () => () => navigate('/model-training/?model=forest,startTab=infer'),
+        },
+        {
+            title: 'Gradient Boost Classifier',
+            description: '',
+            icon: <PiPlus/>,
+            isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
+            onTrain: () => navigate('/model-training/?model=gb,startTab=preprocessing'),
+            onMetrics: () => navigate('/model-training/?model=gb,startTab=metrics'),
+            onInfer: () => () => navigate('/model-training/?model=gb,startTab=infer'),
+        },
+        {
+            title: 'K-Nearest Neighbors Classifier',
+            description: '',
+            icon: <PiPlus/>,
+            isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
+            onTrain: () => navigate('/model-training/?model=knn,startTab=preprocessing'),
+            onMetrics: () => navigate('/model-training/?model=knn,startTab=metrics'),
+            onInfer: () => () => navigate('/model-training/?model=knn,startTab=infer'),
+        },
+        {
+            title: 'Naive Bayes Classifier',
+            description: '',
+            icon: <PiPlus/>,
+            isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
+            onTrain: () => navigate('/model-training/?model=nb,startTab=preprocessing'),
+            onMetrics: () => navigate('/model-training/?model=nb,startTab=metrics'),
+            onInfer: () => () => navigate('/model-training/?model=nb,startTab=infer'),
+        },
+        {
+            title: 'Neural Network',
+            description: 'Train a neural network model for regression or classification tasks.',
+            icon: <PiPlus/>,
+            isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'nn') : false,
+            onTrain: () => navigate('/model-training/?model=nn,startTab=preprocessing'),
+            onMetrics: () => navigate('/model-training/?model=nn,startTab=metrics'),
+            onInfer: () => () => navigate('/model-training/?model=nn,startTab=infer'),
+        },
+    ];
 
     return (
         <>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 h-full">
+                
+                {classificationModels.map((model, index) => (
+                    <ActionCard
+                        key={index}
+                        icon={model.icon}
+                        title={model.title}
+                        description={model.description}
+                        isTrained={model.isTrained}
+                        onTrain={model.onTrain}
+                        onMetrics={model.onMetrics}
+                        onInfer={model.onInfer}
+                    />
+                ))}
+            </div>
+        </>
+    );
+    
+};
+
+
+/*
+
+
+return (
+        <>
         <div className='flex flex-col w-full h-full'>
-            {/* <Toolbar 
-                onNew={() => setOpenDialogIdx(1)}
-                onOpen={() => setOpenDialogIdx(2)}
-                onSettings={() => console.log('Settings clicked')}
-                onHelp={() => console.log('Help clicked')}
-                onInfo={() => console.log('Info clicked')}
-                onTrain={() => console.log('Train clicked')}
-                onInspect={() => console.log('Inspect clicked')}
-                onEvaluate={() => console.log('Evaluate clicked')}
-            /> */}
             {modelMetadataObjects && Object.keys(modelMetadataObjects).length > 0 ? 
             (
                 <div className="flex flex-row h-full w-full">
@@ -151,4 +245,5 @@ export const ModelContext : React.FC = () => {
         </>
     );
 
-};
+
+*/

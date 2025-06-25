@@ -89,7 +89,7 @@ const regressionOptions : SelectionOption[] = [
         value: 'svm',
     },
     {
-        id: 'logistic',
+        id: 'tree',
         label: 'Decision Tree',
         value: 'tree',
     },

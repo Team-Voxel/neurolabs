@@ -6,6 +6,7 @@ import numpy as np
 from scipy.stats import gaussian_kde
 from data_cleanup import basic_data_cleanup
 from safe_csv import safe_read_csv
+from pandas.api.types import is_numeric_dtype
 
 
 def get_outliers_as_list(df: pd.DataFrame) -> dict:
@@ -19,7 +20,7 @@ def get_outliers_as_list(df: pd.DataFrame) -> dict:
     
     cols_to_drop = []
     for col in df.columns:
-        if df[col].nunique() < 20:
+        if (is_numeric_dtype(df[col]) and df[col].nunique() < 20) or not is_numeric_dtype(df[col]):
             cols_to_drop.append(col)
     
     numeric_df = df.drop(columns=cols_to_drop)
@@ -46,7 +47,7 @@ def should_scale_data(df: pd.DataFrame) -> bool:
     
     cols_to_drop = []
     for col in df.columns:
-        if df[col].nunique() < 20:
+        if (is_numeric_dtype(df[col]) and df[col].nunique() < 20) or not is_numeric_dtype(df[col]):
             cols_to_drop.append(col)
     
     numeric_df = df.drop(columns=cols_to_drop)
@@ -92,7 +93,14 @@ def compute_feature_summaries(df : pd.DataFrame, target_column : str = None):
         if missing_percent > 0:
             all_recs.append(f'{missing_percent:.2f}% missing values detected')
 
-        if pd.api.types.is_numeric_dtype(df[column]) and df[column].nunique() >= 20:
+        if is_numeric_dtype(df[column]) and df[column].nunique() >= 20:
+
+            if missing_percent > 0.0:
+                from sklearn.impute import SimpleImputer
+                imputer = SimpleImputer(strategy='mean')
+                df[column] = imputer.fit_transform(df[[column]])
+
+
             min = df[column].min()
             max = df[column].max()
 

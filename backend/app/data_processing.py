@@ -18,6 +18,7 @@ import numpy as np
 import umap
 from typing import Dict, List, Tuple
 from safe_csv import safe_read_csv
+from pandas.api.types import is_numeric_dtype
 
 
 def convert_correlation_dict(corr_dict):
@@ -472,15 +473,22 @@ def fill_missing_values(df : pd.DataFrame, method : str):
     
     import sklearn.impute as skim
     for col in df.columns:
-        if method == 'mean':
-            imputer = skim.SimpleImputer(strategy='mean')
-            df[col] = imputer.fit_transform(df[col].values.reshape(-1, 1))
-        elif method == 'median':
-            imputer = skim.SimpleImputer(strategy='median')
-            df[col] = imputer.fit_transform(df[col].values.reshape(-1, 1))
-        elif method == 'mode':
+        if is_numeric_dtype(df[col]) and df[col].nunique() >= 20:
+            if method == 'mean':
+                imputer = skim.SimpleImputer(strategy='mean')
+                df[col] = imputer.fit_transform(df[[col]])
+            elif method == 'median':
+                imputer = skim.SimpleImputer(strategy='median')
+                df[col] = imputer.fit_transform(df[[col]])
+            elif method == 'mode':
+                imputer = skim.SimpleImputer(strategy='most_frequent')
+                df[col] = imputer.fit_transform(df[[col]])
+        elif is_numeric_dtype(df[col]):
             imputer = skim.SimpleImputer(strategy='most_frequent')
-            df[col] = imputer.fit_transform(df[col].values.reshape(-1, 1))
+            df[col] = imputer.fit_transform(df[[col]])
+        elif df[col].dtype == 'object' or df[col].dtype == 'category' or df[col].dtype == 'string':
+            imputer = skim.SimpleImputer(strategy='most_frequent')
+            df[col] = imputer.fit_transform(df[[col]])
     return df
 
 
@@ -500,6 +508,7 @@ def apply_preprocess_to_dataset(config : Dict):
         raise ValueError("The DataFrame is empty. Please check the data path and content.")
     
     scaling_strategy = config.get('scale', 'none')
+    df = fill_missing_values(df, config.get('impute', 'mean'))
     preprocess_dataframe(df, config.get('target'), config.get('wfDir'), test_size=0.2, random_state=42, encoding_strategy='ordinal', scaling_strategy=scaling_strategy)
 
     json.dump({}, open(config.get('wfDir', '') + '\\model_metadata.json', 'w'))
