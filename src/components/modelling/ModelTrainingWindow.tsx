@@ -3,7 +3,18 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from '../Sidebar';
 import { ArrowBigLeft, Scaling, Variable, Gauge, SquareFunction, ScanSearch } from 'lucide-react';
 
-
+function string_to_number(str: string): number {
+    switch (str) {
+        case 'parameters':
+            return 0;
+        case 'tuning':
+            return 1;
+        case 'metrics':
+            return 2; 
+        default:
+            return -1;
+    }
+}
 
 export const ModelTrainingWindow: React.FC = () => {
 
@@ -30,7 +41,7 @@ export const ModelTrainingWindow: React.FC = () => {
           label: 'Model Tuning',
           icon: <ScanSearch size={32} />,
           callback: () => setSelectedTab('tuning'),
-        },
+        },  
         {
           label: 'Performance',
           icon: <Gauge size={32} />,
@@ -40,7 +51,7 @@ export const ModelTrainingWindow: React.FC = () => {
 
     return (
         <div className='flex flex-row h-full w-full'>
-            <Sidebar onHome={() => navigate('/sandbox')} buttons={sidebarButtons} homeIcon={<ArrowBigLeft size={40} />}></Sidebar>
+            <Sidebar onHome={() => navigate('/sandbox')} buttons={sidebarButtons} selectedTab={string_to_number(selectedTab)} homeIcon={<ArrowBigLeft size={40} />}></Sidebar>
             <div className='flex-1'>
                 <div className='flex flex-col h-full w-full p-4'>
                     {selectedTab === 'preprocessing' && (

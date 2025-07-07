@@ -308,7 +308,9 @@ export const SupervisedModel: React.FC<ModelProps> = ({type}) => {
                             <Typography.Title level={4}>Training Parameters</Typography.Title>
                             <Settings controls={trainingParams} />
                         </div>
-                        <Button block type="primary" onClick={onClickTrain}>Train Model</Button>
+                        <div className='m-6'>
+                            <Button block type="primary" onClick={onClickTrain}>Train Model</Button>
+                        </div>
                         </Splitter.Panel>
                     </Splitter>
                 </div>
