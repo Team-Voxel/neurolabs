@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { ModelCard, ActionCard, ActionCardProps} from "./ModelCard";
 import { PiPlus } from "react-icons/pi";
 import { Brain } from "lucide-react";
+import { Fa1, Fa2, Fa3, Fa4, Fa5, Fa6, Fa7, Fa8 } from "react-icons/fa6";
 
 export enum ModelType {
     LINEAR_REG = 0,
@@ -59,16 +60,16 @@ export const ModelContext : React.FC = () => {
         {
             title: 'Logistic Regression',
             description: 'Train a linear logistic regression classifier to make linear decision boundaries',
-            icon: <Brain/>,
+            icon: <Fa1/>,
             isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'logistic') : false,
-            onTrain: () => navigate('/model-training/?model=logistic,startTab=preprocessing'),
-            onMetrics: () => navigate('/model-training/?model=logistic,startTab=metrics'),
-            onInfer: () => () => navigate('/model-training/?model=logistic,startTab=infer'),
+            onTrain: () => navigate('/model-interface/?model=logistic,startTab=preprocessing'),
+            onMetrics: () => navigate('/model-interface/?model=logistic,startTab=metrics'),
+            onInfer: () => () => navigate('/model-interface/?model=logistic,startTab=infer'),
         },
         {
             title: 'Support Vector Classifier',
             description: '',
-            icon: <PiPlus/>,
+            icon: <Fa2/>,
             isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
             onTrain: () => navigate('/model-training/?model=svm,startTab=preprocessing'),
             onMetrics: () => navigate('/model-training/?model=svm,startTab=metrics'),
@@ -77,7 +78,7 @@ export const ModelContext : React.FC = () => {
         {
             title: 'Decision Tree Classifier',
             description: '',
-            icon: <PiPlus/>,
+            icon: <Fa3/>,
             isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
             onTrain: () => navigate('/model-training/?model=tree,startTab=preprocessing'),
             onMetrics: () => navigate('/model-training/?model=tree,startTab=metrics'),
@@ -86,7 +87,7 @@ export const ModelContext : React.FC = () => {
         {
             title: 'Random Forest Classifier',
             description: '',
-            icon: <PiPlus/>,
+            icon: <Fa4/>,
             isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
             onTrain: () => navigate('/model-training/?model=forest,startTab=preprocessing'),
             onMetrics: () => navigate('/model-training/?model=forest,startTab=metrics'),
@@ -95,7 +96,7 @@ export const ModelContext : React.FC = () => {
         {
             title: 'Gradient Boost Classifier',
             description: '',
-            icon: <PiPlus/>,
+            icon: <Fa5/>,
             isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
             onTrain: () => navigate('/model-training/?model=gb,startTab=preprocessing'),
             onMetrics: () => navigate('/model-training/?model=gb,startTab=metrics'),
@@ -104,7 +105,7 @@ export const ModelContext : React.FC = () => {
         {
             title: 'K-Nearest Neighbors Classifier',
             description: '',
-            icon: <PiPlus/>,
+            icon: <Fa6/>,
             isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
             onTrain: () => navigate('/model-training/?model=knn,startTab=preprocessing'),
             onMetrics: () => navigate('/model-training/?model=knn,startTab=metrics'),
@@ -113,7 +114,7 @@ export const ModelContext : React.FC = () => {
         {
             title: 'Naive Bayes Classifier',
             description: '',
-            icon: <PiPlus/>,
+            icon: <Fa7/>,
             isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'svm') : false,
             onTrain: () => navigate('/model-training/?model=nb,startTab=preprocessing'),
             onMetrics: () => navigate('/model-training/?model=nb,startTab=metrics'),
@@ -122,7 +123,7 @@ export const ModelContext : React.FC = () => {
         {
             title: 'Neural Network',
             description: 'Train a neural network model for regression or classification tasks.',
-            icon: <PiPlus/>,
+            icon: <Fa8/>,
             isTrained: modelMetadataObjects ? keys.some(key => modelMetadataObjects[key].type === 'nn') : false,
             onTrain: () => navigate('/model-training/?model=nn,startTab=preprocessing'),
             onMetrics: () => navigate('/model-training/?model=nn,startTab=metrics'),
@@ -132,7 +133,7 @@ export const ModelContext : React.FC = () => {
 
     return (
         <>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 h-full">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 p-8 h-full">
                 
                 {classificationModels.map((model, index) => (
                     <ActionCard

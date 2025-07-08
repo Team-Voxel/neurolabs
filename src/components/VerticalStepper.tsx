@@ -17,7 +17,7 @@ interface VerticalStepperProps {
   className?: string;
 }
 
-const VerticalStepper: React.FC<VerticalStepperProps> = ({
+export const VerticalStepper: React.FC<VerticalStepperProps> = ({
   steps,
   activeStep,
   onStepChange,

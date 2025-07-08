@@ -11,6 +11,7 @@ import WaitForComputation from './components/NewWorkflow/WaitForComputation';
 import { ChildWindowHost } from './components/ChildWindowHost';
 import { LearnInterface } from './components/learn/LearnInterface';
 import { ModelTrainingWindow } from './components/modelling/ModelTrainingWindow';
+import { ModelInterface } from './components/modelling/ModelInterface';
 
 /* // Extend the Window interface to include electronAPI
 declare global {
@@ -44,6 +45,7 @@ return (
       <Route path="/child" element={<ChildWindowHost componentMap={componentMap} />} />
       <Route path="/learn" element={<LearnInterface />} />
       <Route path="/model-training" element={<ModelTrainingWindow />} />
+      <Route path="/model-interface" element={<ModelInterface />} />
     </Routes>
   </HashRouter>
 );

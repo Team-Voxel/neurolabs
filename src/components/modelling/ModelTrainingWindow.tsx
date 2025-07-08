@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from '../Sidebar';
-import { ArrowBigLeft, Scaling, Variable, Gauge, SquareFunction, ScanSearch } from 'lucide-react';
+import { ArrowBigLeft, Scaling, Variable, Gauge, SquareFunction, ScanSearch, BookOpenText, History } from 'lucide-react';
+import { Fa1, Fa2, Fa3, Fa4 } from "react-icons/fa6";
 
 function string_to_number(str: string): number {
     switch (str) {
@@ -28,23 +29,28 @@ export const ModelTrainingWindow: React.FC = () => {
 
     const sidebarButtons = [
         {
-          label: 'Preprocessing',
-          icon: <Scaling size={32} />,
-          callback: () => setSelectedTab('preprocessing'),
+          label: 'Theory',
+          icon: <BookOpenText size={32} />,
+          callback: () => setSelectedTab('theory'),
+        },
+        {
+          label: 'Training History',
+          icon: <History size={32} />,
+          callback: () => setSelectedTab('history'),
         },
         {
           label: 'Select Parameters',
-          icon: <Variable size={32} />,
+          icon: <Fa1 size={32} />,
           callback: () => setSelectedTab('parameters'),
         },
         {
           label: 'Model Tuning',
-          icon: <ScanSearch size={32} />,
-          callback: () => setSelectedTab('tuning'),
+          icon: <Fa2 size={32} />,
+          callback: () => setSelectedTab('inference'),
         },  
         {
           label: 'Performance',
-          icon: <Gauge size={32} />,
+          icon: <Fa3 size={32} />,
           callback: () => setSelectedTab('metrics'),
         },
     ]

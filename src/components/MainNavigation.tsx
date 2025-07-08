@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Database, Brain, Cpu, ChartScatter, ScatterChart } from 'lucide-react';
 import { DataModel } from './data_model/DataModel';
 import { NNModel } from './modelling/NNModel';
@@ -8,7 +8,12 @@ import { Sidebar } from './Sidebar';
 import { UnsupervisedInterface } from './UnsupervisedInterface';
 
 const MainNavigation: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState<number>(0);
+
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const startTab = parseInt(queryParams.get('tab') || '0', 0);
+
+  const [selectedTab, setSelectedTab] = useState<number>(startTab);
   const [reducedDataPath, setReducedDataPath] = useState<string>('');
   const [targetColumn, setTargetColumn] = useState<string>('');
   const navigate = useNavigate();

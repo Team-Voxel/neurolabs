@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Typography, Card, Tooltip} from 'antd';
+import { Typography, Card, Tooltip, Flex} from 'antd';
 import {PiNetwork } from 'react-icons/pi';
 import Meta from 'antd/es/card/Meta';
 import { SettingOutlined, EllipsisOutlined } from '@ant-design/icons';
@@ -150,6 +150,11 @@ export const ModelCard: React.FC<ModelCardProps> = ({
     onMetrics: () => void;
     onInfer: () => void;
   }
+
+  const boxStyle: React.CSSProperties = {
+    width: '100%',
+    height: '100%',
+  };
   
   export const ActionCard: React.FC<ActionCardProps> = ({
     icon,
@@ -175,24 +180,18 @@ export const ModelCard: React.FC<ModelCardProps> = ({
       onInfer();
     };
 
-    const iconSize = 32; // Default icon size, can be adjusted as needed
+    const iconSize = 64; // Default icon size, can be adjusted as needed
   
     return (
       <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md
-                      hover:shadow-l hover:border-gray-300 hover:scale-100
+                      hover:shadow-l hover:border-gray-300
                       transition-all duration-300 ease-in-out transform
-                      group min-w-60 flex-1">
+                      group max-w -60">
         
-        <div className="flex flex-col items-center gap-6">
-          {/* Left 1/3 - Icon */}
+        {/* <div className="flex flex-col items-center gap-6"> */}
+        <Flex style={boxStyle} justify='space-between' align='center' vertical>
           <div className='flex flex-col items-center justify-center mb-4'>
-          {/* <div className="flex-shrink-0 w-20 h-20 flex items-center justify-center
-                          transition-transform duration-300 group-hover:scale-110">
-            {React.cloneElement(icon, { 
-              size: iconSize, 
-              className: "text-gray-600 group-hover:text-gray-800 transition-colors duration-300" 
-            })}
-          </div> */}
+          
           <div className="flex-1 p-4 transition-transform duration-300 group-hover:scale-105">
           {React.cloneElement(icon, { 
               size: iconSize, 
@@ -211,8 +210,8 @@ export const ModelCard: React.FC<ModelCardProps> = ({
             {/* <p className="text-sm text-gray-600 group-hover:text-gray-700 
                           transition-colors duration-300 line-clamp-2">
               {description}
-            </p> */}
-            <Typography.Text type="secondary" style={{userSelect: 'none'}}>{description}</Typography.Text>
+            </p> */}{/* 
+            <Typography.Text type="secondary" style={{userSelect: 'none'}}>{description}</Typography.Text> */}
           </div>
           </div>
           {/* Right Section - Action Buttons */}
@@ -266,7 +265,7 @@ export const ModelCard: React.FC<ModelCardProps> = ({
             </Tooltip> 
             */}
           </div>
-        </div>
+          </Flex>
   
         {/* Subtle hover glow effect */}
         <div className="absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300
