@@ -179,7 +179,7 @@ export const ModelCard: React.FC<ModelCardProps> = ({
   
     return (
       <div className="bg-white rounded-xl p-6 border-2 border-gray-200 shadow-md
-                      hover:shadow-xl hover:border-gray-300 hover:scale-101
+                      hover:shadow-l hover:border-gray-300 hover:scale-100
                       transition-all duration-300 ease-in-out transform
                       group min-w-60 flex-1">
         

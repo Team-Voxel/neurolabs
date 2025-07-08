@@ -84,8 +84,8 @@ const VerticalStepper: React.FC<VerticalStepperProps> = ({
                     relative flex items-start gap-4 p-4 rounded-xl cursor-pointer
                     transition-all duration-300 ease-in-out transform group
                     ${isActive 
-                      ? 'bg-blue-50 border-2 border-blue-500 shadow-lg scale-105 ring-4 ring-blue-200 ring-opacity-50' 
-                      : 'bg-white border-2 border-gray-200 shadow-md hover:shadow-xl hover:border-gray-300 hover:scale-102'
+                      ? 'bg-blue-50 border-2 border-blue-500 shadow-lg scale-100 ring-4 ring-blue-200 ring-opacity-50' 
+                      : 'bg-white border-2 border-gray-200 shadow-md hover:shadow-xl hover:border-gray-300 hover:scale-100'
                     }
                     ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-2xl'}
                   `}
