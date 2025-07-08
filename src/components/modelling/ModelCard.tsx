@@ -217,7 +217,18 @@ export const ModelCard: React.FC<ModelCardProps> = ({
           </div>
           {/* Right Section - Action Buttons */}
           <div className="flex flex-row gap-4 flex-shrink-0">
-            {/* Train/Retrain Button */}
+          <div
+              onClick={handleTrain}
+              className={`p-2 rounded-lg transition-all duration-200 hover:scale-110 transform
+                         ${isTrained 
+                           ? 'bg-orange-100 hover:bg-orange-200 text-orange-700' 
+                           : 'bg-green-100 hover:bg-green-200 text-green-700'
+                         }`}
+              title='Make Model'
+            >
+              <Typography.Text style={{userSelect: 'none'}}>Make Model</Typography.Text>
+            </div>
+            {/* 
             <Tooltip title={isTrained ? 'Retrain Model' : 'Train Model'} placement="bottom">
             <div
               onClick={handleTrain}
@@ -232,7 +243,6 @@ export const ModelCard: React.FC<ModelCardProps> = ({
             </div>
             </Tooltip>
 
-            {/* Metrics Button */}
             <Tooltip title="View Metrics" placement="bottom">
             <div
               onClick={handleMetrics}
@@ -244,7 +254,6 @@ export const ModelCard: React.FC<ModelCardProps> = ({
             </div>
             </Tooltip>
   
-            {/* Infer Button */}
             <Tooltip title="Make Inference" placement="bottom">
             <div
               onClick={handleInfer}
@@ -254,7 +263,8 @@ export const ModelCard: React.FC<ModelCardProps> = ({
             >
               <Zap size={iconSize} />
             </div>
-            </Tooltip>
+            </Tooltip> 
+            */}
           </div>
         </div>
   
