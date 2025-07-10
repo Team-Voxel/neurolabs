@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Optional, Tuple, Union
 import numpy as np
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
+from sklearn.naive_bayes import GaussianNB
 import sklearn.svm as sv
 import sklearn.tree as tree
 import sklearn.ensemble as ensemble
@@ -32,7 +33,7 @@ class ModelConfig:
     epochs: int = 100
     batch_size: int = 32
     learning_rate: float = 0.001
-    regularization: str = 'l2'
+    regularization: str = 'none'
     kernel: str = 'rbf'
     C: float = 1.0
     max_depth: Optional[int] = None
@@ -46,6 +47,8 @@ class ModelConfig:
     wf_dir: str = ''
     problem_type: str = 'classify'
     dataset_size: int = 1000
+    min_samples_split: int = 2
+    params: Dict[str, Any] = None  # All parameters included and not included as fields
 
     def __post_init__(self):
         self._validate()
@@ -81,7 +84,7 @@ class ModelConfig:
             epochs=config.get('epochs', 100),
             batch_size=config.get('batchSize', 32),
             learning_rate=config.get('learningRate', 0.001),
-            regularization=config.get('regularization', 'l2'),
+            regularization=config.get('regularization', 'none'),
             kernel=config.get('kernel', 'rbf'),
             C=config.get('C', 1.0),
             max_depth=config.get('maxDepth'),
@@ -94,7 +97,9 @@ class ModelConfig:
             optimizer=config.get('optimizer', 'adam'),
             wf_dir=config.get('wfDir', ''),
             problem_type=config.get('problemType', 'classify'),
-            dataset_size=config.get('datasetSize', 1000)
+            dataset_size=config.get('datasetSize', 1000),
+            min_samples_split=config.get('minSamplesSplit', 2),
+            params=config
         )
 
 class ModelFactory:
@@ -161,27 +166,33 @@ class ModelFactory:
             ),
             'tree': lambda: tree.DecisionTreeClassifier(
                 criterion=config.criterion,
-                max_depth=config.max_depth
+                max_depth=config.max_depth,
+                min_samples_split=config.min_samples_split
             ),
             'forest': lambda: ensemble.RandomForestClassifier(
                 criterion=config.criterion,
                 n_estimators=config.n_estimators,
-                max_depth=config.max_depth
+                max_depth=config.max_depth,
+                min_samples_split=config.min_samples_split
             ),
             'knn': lambda: neighbors.KNeighborsClassifier(
                 n_neighbors=config.n_neighbors,
                 metric=config.metric
             ),
             'logistic': lambda: lm.LogisticRegression(
-                penalty=config.regularization,
+                penalty=None if config.regularization is 'none' else config.regularization,
                 solver='lbfgs' if config.regularization == 'l2' else 'saga',
-                max_iter=config.epochs
+                max_iter=config.epochs,
+                C=1.0/config.params.get('alpha', 1.0), # Inverse of regularization strength
             ),
             'gb': lambda: ensemble.GradientBoostingClassifier(
                 loss='log_loss',
                 n_estimators=config.n_estimators,
                 max_depth=config.max_depth,
                 learning_rate=config.learning_rate
+            ),
+            'nb': lambda: GaussianNB(
+                var_smoothing=config.params.get('var_smoothing', 1e-9)
             )
         }
         
@@ -203,12 +214,14 @@ class ModelFactory:
             ),
             'tree': lambda: tree.DecisionTreeRegressor(
                 criterion=params.get("criterion", "mse"),
-                max_depth=params.get("max_depth", None)
+                max_depth=params.get("max_depth", None),
+                min_samples_split=params.get("min_samples_split", 2)
             ),
             'forest': lambda: ensemble.RandomForestRegressor(
                 criterion=params.get("criterion", "mse"),
                 n_estimators=params.get("n_estimators", 100),
-                max_depth=params.get("max_depth", None)
+                max_depth=params.get("max_depth", None),
+                min_samples_split=params.get("min_samples_split", 2)
             ),
             'knn': lambda: neighbors.KNeighborsRegressor(
                 n_neighbors=params.get("n_neighbors", 5),
@@ -216,7 +229,7 @@ class ModelFactory:
             ),
             'linear': lambda: ModelFactory._create_linear_regressor(config),
             'gb': lambda: ensemble.GradientBoostingRegressor(
-                loss=config.get('loss', 'squared_error'),
+                loss=config.params.get('loss', 'squared_error'),
                 n_estimators=params.get("n_estimators", 100),
                 max_depth=params.get("max_depth", None),
                 learning_rate=params.get("learning_rate", 0.1)

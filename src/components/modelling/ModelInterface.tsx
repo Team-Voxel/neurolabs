@@ -4,47 +4,49 @@ import 'react-awesome-slider/dist/styles.css';
 import React from 'react';
 import { Typography, Card, Tooltip, Flex } from 'antd';
 
-import {Stepper, StepperStep} from '../Stepper';
+import Stepper, { Step } from '../HorizontalStepper';
+import { ParameterInterface } from './ParameterInterface';
 
 export interface ModelInterfaceProps {
 }
 
 export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
     const [currentStep, setCurrentStep] = React.useState(0);
-    const steps: StepperStep[] = [
+    const [algorithm, setAlgorithm] = React.useState<string>('svm');
+    const onStepChange = (stepIndex: number) => {
+        setCurrentStep(stepIndex);
+    };
+    const steps : Step[] = [
         {
-            id: 0,
-            title: 'Theory',
-            description: 'Learn the theory',
-            content: <div>Your content here</div>
+            id: 'algorithm',
+            title: 'Algorithm Selection',
+            content: <div>Algorithm Selection Content</div>
         },
         {
-            id: 1,
+            id: 'parameters',
             title: 'Parameter Selection',
-            description: 'Select training parameters and Train the model',
-            content: <div>Another content here</div>
+            content: <ParameterInterface model_type={algorithm} />
         },
         {
-            id: 2,
-            title: 'Evaluate',
-            description: 'Evaluate the model based on standard metrics',
-            content: <div>More content here</div>
+            id: 'training',
+            title: 'Training',
+            content: <div>Training Content</div>
         },
         {
-            id: 3,
-            title: 'Inference',
-            description: 'Make inferences based on the trained model',
-            content: <div>More content here</div>
+            id: 'evaluation',
+            title: 'Evaluation',
+            content: <div>Evaluation Content</div>
         },
         {
-            id: -1,
-            title: 'History',
-            content: <div>Content</div>
-        },
-    ]
+            id: 'results',
+            title: 'Results',
+            content: <div>Results Content</div>
+        }
+    ];
+    
     return (
-        <div>
-            <Stepper steps={steps} currentStep={currentStep}/>
+        <div className='flex h-screen w-screen'>
+            <Stepper currentStep={currentStep} steps={steps} onStepChange={(value) => onStepChange(value)}/>
         </div>
     );
 };
