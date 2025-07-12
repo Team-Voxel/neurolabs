@@ -96,6 +96,13 @@ async def create_train_save_model(config: Dict):
     data = create_train_save_model(config)
     return JSONResponse(content=data)
 
+#----------------------------------------Inference API---------------------------------------------------
+@app.post("/inference")
+async def make_inference(config: Dict):
+    from models import load_model_and_infer
+    data = load_model_and_infer(config)
+    return JSONResponse(content=data)
+
 
 #========================================FOR SIMPLIFIED INTERFACE=========================================
 #----------------------------------------Create and Save Dataset----------------------------------------

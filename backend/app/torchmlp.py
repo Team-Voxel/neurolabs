@@ -100,7 +100,16 @@ class _BaseMLP(BaseEstimator):
     def _is_classifier(self):
         return isinstance(self, TorchMLPClassifier)
     
-
+    def get_state_dict(self):
+        return self.model_.state_dict()
+    
+    def load_state_dict(self, state_dict):
+        self.model_.load_state_dict(state_dict)
+        self.model_.eval()  # Set the model to evaluation mode
+        return self
+    
+    def predict(self, X):
+        raise NotImplementedError("This method should be implemented in subclasses.")
 
 
 

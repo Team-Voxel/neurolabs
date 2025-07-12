@@ -2,6 +2,66 @@ import React, { useReducer, useState } from 'react';
 import { Typography, Card, Tooltip, Flex } from 'antd';
 import { SettingControl } from '../settings/types';
 import Settings from '../settings/Settings';
+import { BrainCog } from 'lucide-react';
+import { CircularProgressBar } from '../ProgressBar';
+import { SquareButton } from '../IconButton';
+import { useFakeProgress } from '../../lib/fakeProgress';
+import InteractiveList from '../InteractiveList';
+
+export interface AlgorithmSelectionProps {
+    onAlgorithmChange: (algorithm: string) => void;
+    problemType: 'classify' | 'regress';
+}
+
+export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgorithmChange, problemType }) => {
+    const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>('svm');
+    const onChangeAlgorithm = (algorithm: string) => {
+        setSelectedAlgorithm(algorithm);
+        onAlgorithmChange(algorithm);
+    }
+
+    const algorithms = [
+        { id: 'linear_simple', title: 'Linear Regression (Simple)' },
+        { id: 'linear_fs', title: 'Linear Regression (Feature Selection)' },
+        { id: 'logistic_simple', title: 'Logistic Regression (Simple)' },
+        { id: 'logistic_fs', title: 'Logistic Regression (Feature Selection)' },
+        { id: 'svm', title: 'Support Vector Machine' },
+        { id: 'tree', title: 'Decision Tree' },
+        { id: 'forest', title: 'Random Forest' },
+        { id: 'knn', title: 'K-Nearest Neighbors' },
+        { id: 'gb', title: 'Gradient Boosting' },
+        { id: 'nn', title: 'Neural Network' }
+    ];
+
+
+    const filteredAlgorithms = algorithms.filter(algo => {
+        if (problemType === 'classify') {
+            return algo.id !== 'linear_simple' && algo.id !== 'linear_fs';
+        }
+        else if (problemType === 'regress') {
+            return algo.id !== 'logistic_simple' && algo.id !== 'logistic_fs';
+        }
+        return true;
+    });
+
+    return (
+        <div className='flex flex-col items-center justify-center w-full h-full pt-6'>
+            <div>
+            <Typography.Title level={3}>Select Algorithm</Typography.Title>
+            </div>
+                
+            <div className='flex-1 flex flex-row items-center justify-between w-full h-full'>
+                <div className='flex h-full p-2'>
+                <InteractiveList items={filteredAlgorithms} onSelect={onChangeAlgorithm} selectedItems={[selectedAlgorithm]}/>
+                </div>
+                <div className='flex-1 flex flex-col border h-full p-2'>
+                    <div>Image</div>
+                    <div>Desc</div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const modelParameterInitialState: Record<string, Record<string, any>> = {
     linear_simple: {
@@ -514,42 +574,50 @@ export const ParameterInterface : React.FC<{ model_type: string }> = ({model_typ
 
 }
 
+export interface TrainInterfaceProps {
+    onClickTrain: () => void;
+    state: 'training' | 'ready' | 'trained';
+}
+
+export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, state}) => {
+    //const [progress, setProgress] = useState(0);
+    const progress = useFakeProgress(state);
+
+    return (
+        <div className="flex-1 flex items-center justify-center">
+            {state === 'training' && (
+                <CircularProgressBar
+                progress={progress}
+                size={250}
+                thickness={8}
+                className="text-blue-500"
+                showPercentage={true}
+                animate={true}
+                duration={500}
+                />
+            )}
+            {state === 'ready' && (
+                <SquareButton
+                title="Train"
+                icon={<BrainCog />}
+                size={250}
+                onClick={onClickTrain}
+                />
+            )}
+            {state === 'trained' && (
+                <Typography.Title level={3} className="text-green-500">
+                Model Trained Successfully!
+                </Typography.Title>
+            )}
+            </div>
+    );
+}
 
 
+export const EvaluationInterface: React.FC<{model_type:string}> = ({model_type}) => {
 
-
-/*   type Action =
-  | { type: 'SET_PARAM'; model: string; param: string; value: any }
-  | { type: 'RESET_MODEL'; model: string }
-  | { type: 'GET_MODEL'; model: string}
-  | { type: 'GET_PARAM'; model: string; param: string};
-
-    function controlsReducer(
-    state: Record<string, Record<string, any>>,
-    action: Action
-    ): typeof state {
-    switch (action.type) {
-        case 'SET_PARAM':
-        return {
-            ...state,
-            [action.model]: {
-            ...state[action.model],
-            [action.param]: action.value,
-            },
-        };
-        case 'RESET_MODEL':
-        return {
-            ...state,
-            [action.model]: {},
-        };
-        case 'GET_MODEL':
-        return state[action.model];
-        case 'GET_PARAM':
-        return state[action.model][action.param];
-        default:
-        return state;
-    }
-    }
-
-    
-    const [controls, dispatch] = useReducer(controlsReducer, {}); */
+    return (
+        <>
+        </>
+    );
+}

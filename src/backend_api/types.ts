@@ -98,19 +98,52 @@ export interface SimpleDataset {
   y: number[];
 }
 
+export interface LearningCurveData {
+  trainSizes: number[];
+  trainScoresMean: number[];
+  testScoresMean: number[];
+}
+
 export interface ModelTrainingInfo {
+
+  // classification metrics
   accuracy: number;
   precision: number;
   recall: number;
   f1Score: number;
   confusionMatrix: number[][];
-  decisionBoundary: number[][];
   classes: string[];
   baseAccuracy: number;
+
+  // classification metrics for probabilistic models
+  rocX: number[];
+  rocY: number[];
+  prX: number[];
+  prY: number[];
+  rocAuc: number;
+  averagePrecision: number;
+  
+  // decision boundary for classification models
+  decisionBoundary: number[][];
   predictedClasses: number[];
+
+  // model specific metrics
   trainedCoefficients: number[];
   trainedIntercept: number;
   trainedSupportVectors: number[][];
+
+  // regression metrics
+  r2: number;
+  mse: number;
+  rmse: number;
+  mae: number;
+  residuals: number[];
+  yTest: number[];
+  yPred: number[];
+
+  // common metrics
+  trainingTime: number; // in milli-seconds
+  learningCurve: LearningCurveData;
 }
 
 export interface UnsupervisedModelTrainingInfo {
@@ -120,6 +153,10 @@ export interface UnsupervisedModelTrainingInfo {
   silhouette: number;
   CHI: number;
   explainedVariance: number | null;
+}
+
+export interface InferenceData {
+  prediction: string;
 }
 
 export interface ModelMetadata {

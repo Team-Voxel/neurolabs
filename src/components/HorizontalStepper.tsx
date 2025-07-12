@@ -88,33 +88,6 @@ const Stepper: React.FC<StepperProps> = ({ steps, currentStep, onStepChange }) =
     <div className="flex flex-col h-full max-w-6xl mx-auto p-6">
       {/* Stepper Navigation */}
       <div className="relative mb-8">
-        {/* <div className="flex items-center justify-between mb-6">
-          
-          <div
-            onClick={handlePrevious}
-            className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              currentStep === 0
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300 hover:border-gray-400 shadow-sm'
-            }`}
-          >
-            <ChevronLeft className="w-4 h-4 mr-2" />
-            <Typography.Title level={5}>Previous</Typography.Title>
-          </div>
-          
-          <div
-            onClick={handleNext}
-            className={`flex items-center px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-              currentStep === steps.length - 1
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-blue-500 hover:bg-blue-600 shadow-sm'
-            }`}
-          >
-            <Typography.Title level={5}>Next</Typography.Title>
-            <ChevronRight className="w-4 h-4 ml-2" />
-          </div>
-        </div> */}
-
         {/* Step Indicators */}
         <div className="flex w-full items-center justify-center mx-auto">
           {steps.map((step, index) => {
@@ -168,8 +141,8 @@ const Stepper: React.FC<StepperProps> = ({ steps, currentStep, onStepChange }) =
               className="w-full flex-shrink-0 px-2"
               aria-hidden={index !== currentStep}
             >
-              <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-2 min-h-full">
-                <div className="flex-1 min-h-full">
+              <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-2 h-full  min-h-[400px]">
+                <div className="flex-1 flex min-h-full py-4">
                   {step.content}
                 </div>
               </div>

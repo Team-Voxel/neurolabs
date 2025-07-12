@@ -280,6 +280,7 @@ export const SupervisedModel: React.FC<ModelProps> = ({type}) => {
                 setModelInfo(null);
                 const response = await trainModelSimple(config);
                 setModelInfo(response);
+                console.log(response);
                 message.success('Model Trained!');
             } catch (error) {
                 message.error('Training Failed...');

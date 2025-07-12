@@ -5,10 +5,11 @@ import json
 from datetime import datetime
 from sklearn.base import BaseEstimator
 from torchmlp import _BaseMLP
+from typing import Union, Dict, Any
+from models import ModelConfig, ModelFactory
 
 
-
-def save_model(model, model_name: str, metadata_dict: dict, save_dir: str, metrics: dict, hyperparameters: dict) -> dict:
+def save_model(model: Union[_BaseMLP, BaseEstimator], config: ModelConfig, model_type: str, metadata_dict: dict, save_dir: str, baseMetric: str, hyperparameters: dict) -> dict:
     """
     Saves a PyTorch or scikit-learn model to disk and updates a metadata dictionary.
 
@@ -17,7 +18,7 @@ def save_model(model, model_name: str, metadata_dict: dict, save_dir: str, metri
         model_name (str): A unique name to identify the model.
         metadata_dict (dict): The dictionary containing metadata of all models.
         save_dir (str): The directory where the model file will be saved.
-        metrics (dict): A dictionary of performance metrics (e.g., {'accuracy': 0.95}).
+        baseMetric (dict): A dictionary of performance metrics (e.g., {'accuracy': 0.95}).
 
     Returns:
         dict: The updated metadata dictionary.
@@ -27,12 +28,10 @@ def save_model(model, model_name: str, metadata_dict: dict, save_dir: str, metri
 
     # Determine model type and set file extension and saver
     if isinstance(model, _BaseMLP):
-        model_type = 'pytorch'
         file_extension = 'pth'
         saver = torch.save
         lib = 'torch'
     elif isinstance(model, BaseEstimator):
-        model_type = 'sklearn'
         file_extension = 'joblib'
         saver = joblib.dump
         lib = 'sklearn'
@@ -42,30 +41,47 @@ def save_model(model, model_name: str, metadata_dict: dict, save_dir: str, metri
                         "This function supports custom PyTorch MLPs and scikit-learn estimators.")
 
     # Construct the full path for the model file
-    file_path = os.path.join(save_dir, f"{model_name}.{file_extension}")
+    file_path = os.path.join(save_dir, f"{model_type}.{file_extension}")
+    config_path = os.path.join(save_dir, 'config.joblib')
 
     # Save the model to the specified path
-    saver(model, file_path)
-    print(f"Model '{model_name}' saved to '{file_path}'")
+    if lib == 'torch':
+        saver(model.get_state_dict(), file_path)
+    else:
+        saver(model, file_path)
 
-    # Create the metadata entry
-    model_metadata = {
-        'name': model_name,
-        'type': model_type,
-        'hyperparameters': hyperparameters,
-        'path': file_path,
-        'metrics': metrics,
-        'dateTrained': datetime.now().isoformat(),
-        'lib': lib
+
+    joblib.dump(config, config_path)
+
+    print(f"Model '{model_type}' saved to '{file_path}'")
+
+    snapshot = {
+        'hyperParameters': hyperparameters,
+        'date': datetime.now().isoformat(),
+        'baseMetric': baseMetric
     }
 
+    if model_type in metadata_dict.keys():
+        metadata_dict[model_type]['snapshots'].append(snapshot)
+    else:
+        metadata_dict[model_type] = {
+            'modelType': model_type,
+            'path': file_path,
+            'config': config_path,
+            'lib': lib,
+            'snapshots': [snapshot]
+        }
+
     # Add the new metadata to the main dictionary
-    metadata_dict[model_name] = model_metadata
+    # Structure
+    # metadata_dict => Dict[model_type, model_details]
+    # model_details => (model_type, path, config, lib, snapshots[])
+    # snapshot => (hyperparameters, date, base_metric)
     
     return metadata_dict
 
 
-def load_model(model_name: str, metadata_dict: dict):
+def load_model(model_type: str, metadata_dict: dict) -> tuple[Union[_BaseMLP, BaseEstimator], ModelConfig]:
     """
     Loads a model from disk using its name and a metadata dictionary.
 
@@ -76,24 +92,28 @@ def load_model(model_name: str, metadata_dict: dict):
     Returns:
         The loaded model object.
     """
-    if model_name not in metadata_dict:
-        raise KeyError(f"Model '{model_name}' not found in the metadata dictionary.")
+    if model_type not in metadata_dict:
+        raise KeyError(f"Model '{model_type}' not found in the metadata dictionary.")
 
-    entry = metadata_dict[model_name]
+    entry = metadata_dict[model_type]
     model_path = entry['path']
+    config_path = entry['config']
     lib = entry['lib']
 
-    print(f"Loading model '{model_name}' from '{model_path}'...")
+    print(f"Loading model '{model_type}' from '{model_path}'...")
+    config : ModelConfig = joblib.load(config_path)
 
     # Load the model based on its type
     if lib == 'torch':
-        model = torch.load(model_path)
+        state_dict = torch.load(model_path)
+        model : _BaseMLP = ModelFactory._create_neural_network(config)
+        model.load_state_dict(state_dict)
     elif lib == 'sklearn':
-        model = joblib.load(model_path)
+        model : BaseEstimator = joblib.load(model_path)
     else:
-        raise ValueError(f"Unknown model type '{lib}' in metadata for model '{model_name}'.")
+        raise ValueError(f"Unknown model base type '{lib}' in metadata for model '{model_type}'.")
 
-    return model
+    return model, config    
 
 
 

@@ -1,11 +1,11 @@
 import AwesomeSliedr from 'react-awesome-slider';
 import 'react-awesome-slider/dist/styles.css';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Typography, Card, Tooltip, Flex } from 'antd';
 
 import Stepper, { Step } from '../HorizontalStepper';
-import { ParameterInterface } from './ParameterInterface';
+import { AlgorithmSelection, ParameterInterface, TrainInterface } from './Steps';
 
 export interface ModelInterfaceProps {
 }
@@ -13,14 +13,28 @@ export interface ModelInterfaceProps {
 export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
     const [currentStep, setCurrentStep] = React.useState(0);
     const [algorithm, setAlgorithm] = React.useState<string>('svm');
+    const [problemType, setProblemType] = React.useState<string>('classify');
     const onStepChange = (stepIndex: number) => {
         setCurrentStep(stepIndex);
     };
+    const [state, setState] = React.useState<'ready' | 'training' | 'trained'>('ready');
+
+    useEffect(() => {
+        window.stateAPI.getAppState().then(({ current }) => {
+            if (current) {
+                setProblemType(current.problemType || 'classify');
+                setState('ready');
+            }
+        }).catch((error) => {
+            console.error('Error fetching app state:', error);
+        });
+    }, []);
+
     const steps : Step[] = [
         {
             id: 'algorithm',
-            title: 'Algorithm Selection',
-            content: <div>Algorithm Selection Content</div>
+            title: 'Algorithm ',
+            content: <AlgorithmSelection onAlgorithmChange={setAlgorithm} problemType={problemType as 'classify' | 'regress'} />  
         },
         {
             id: 'parameters',
@@ -30,7 +44,7 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
         {
             id: 'training',
             title: 'Training',
-            content: <div>Training Content</div>
+            content: <TrainInterface onClickTrain={() => setState('trained')} state={state} />
         },
         {
             id: 'evaluation',
@@ -41,6 +55,11 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
             id: 'results',
             title: 'Results',
             content: <div>Results Content</div>
+        },
+        {
+            id: 'inference',
+            title: 'Make Predictions',
+            content: <div>Make predictions</div>
         }
     ];
     

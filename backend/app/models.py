@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Optional, Tuple, Union
 import numpy as np
 from dataclasses import dataclass
-from abc import ABC, abstractmethod
+from sklearn.decomposition import PCA
 from sklearn.naive_bayes import GaussianNB
 import sklearn.svm as sv
 import sklearn.tree as tree
@@ -10,6 +10,8 @@ import sklearn.neighbors as neighbors
 import sklearn.linear_model as lm
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from torchmlp import TorchMLPClassifier, TorchMLPRegressor, _BaseMLP
+import time
+from sklearn.preprocessing import label_binarize
 from safe_csv import safe_read_csv
 from sklearn.metrics import (
     confusion_matrix,
@@ -19,12 +21,94 @@ from sklearn.metrics import (
     f1_score,
     mean_squared_error,
     r2_score,
-    mean_absolute_error
+    mean_absolute_error,
+    auc,
+    roc_curve,
+    roc_auc_score,
+    precision_recall_curve,
+    average_precision_score
 )
+from sklearn.model_selection import learning_curve, validation_curve
 from sklearn.model_selection import train_test_split
 from sklearn.base import BaseEstimator
 from sklearn.exceptions import NotFittedError
 from arlinear import ARLinearRegressor
+
+def compute_macro_roc_pr_curves(
+    y_true: Union[np.ndarray, list],
+    y_scores: Union[np.ndarray, list],
+    num_classes: int
+) -> Dict[str, Any]:
+    """
+    Compute macro-averaged ROC and Precision-Recall curve data.
+    
+    Parameters:
+        y_true: Ground truth labels (1D array-like)
+        y_scores: Predicted probabilities or decision function (2D or 1D)
+        num_classes: Total number of classes
+
+    Returns:
+        Dictionary with keys: 'roc_x', 'roc_y', 'pr_x', 'pr_y'
+    """
+    y_true = np.array(y_true)
+    y_scores = np.array(y_scores)
+
+    is_multiclass = num_classes > 2
+
+    if is_multiclass:
+        # Binarize labels for OvR computation
+        y_true_bin = label_binarize(y_true, classes=np.arange(num_classes))
+        if y_scores.ndim == 1 or y_scores.shape[1] != num_classes:
+            raise ValueError("For multiclass, y_scores must be a 2D array with shape (n_samples, n_classes)")
+
+        # ==== ROC ====
+        all_fpr = np.unique(np.concatenate([
+            roc_curve(y_true_bin[:, i], y_scores[:, i])[0]
+            for i in range(num_classes)
+        ]))
+        mean_tpr = np.zeros_like(all_fpr)
+        for i in range(num_classes):
+            fpr_i, tpr_i, _ = roc_curve(y_true_bin[:, i], y_scores[:, i])
+            mean_tpr += np.interp(all_fpr, fpr_i, tpr_i)
+        mean_tpr /= num_classes
+
+        # ==== PR ====
+        all_recall = np.linspace(0, 1, 100)
+        mean_precision = np.zeros_like(all_recall)
+        for i in range(num_classes):
+            prec_i, rec_i, _ = precision_recall_curve(y_true_bin[:, i], y_scores[:, i])
+            # Reverse to make recall increasing for interpolation
+            prec_interp = np.interp(all_recall, rec_i[::-1], prec_i[::-1])
+            mean_precision += prec_interp
+        mean_precision /= num_classes
+
+        return {
+            'rocX': all_fpr.tolist(),
+            'rocY': mean_tpr.tolist(),
+            'prX': all_recall.tolist(),
+            'prY': mean_precision.tolist(),
+            'rocAuc': float(roc_auc_score(y_true_bin, y_scores, average='macro', multi_class='ovr')),
+            'averagePrecision': float(average_precision_score(y_true_bin, y_scores, average='macro'))
+        }
+
+    else:
+        # Binary case
+        if y_scores.ndim == 2:
+            y_scores_bin = y_scores[:, 1]
+        else:
+            y_scores_bin = y_scores
+
+        fpr, tpr, _ = roc_curve(y_true, y_scores_bin)
+        precision, recall, _ = precision_recall_curve(y_true, y_scores_bin)
+
+        return {
+            'rocX': fpr.tolist(),
+            'rocY': tpr.tolist(),
+            'prX': recall.tolist(),
+            'prY': precision.tolist(),
+            'rocAuc': float(roc_auc_score(y_true, y_scores[:, 1] if y_scores.ndim > 1 else y_scores)),
+            'averagePrecision': float(average_precision_score(y_true, y_scores[:, 1] if y_scores.ndim > 1 else y_scores))
+        }
 
 @dataclass
 class ModelConfig:
@@ -180,7 +264,7 @@ class ModelFactory:
                 metric=config.metric
             ),
             'logistic': lambda: lm.LogisticRegression(
-                penalty=None if config.regularization is 'none' else config.regularization,
+                penalty=None if config.regularization == 'none' else config.regularization,
                 solver='lbfgs' if config.regularization == 'l2' else 'saga',
                 max_iter=config.epochs,
                 C=1.0/config.params.get('alpha', 1.0), # Inverse of regularization strength
@@ -280,6 +364,8 @@ class ModelTrainer:
         self.X_test = None
         self.y_train = None
         self.y_test = None
+        self.trainingTime = 0.0
+        self.num_classes = 0
     
     def prepare_data(self, X_train, X_test, y_train, y_test) -> None:
         """Initialize with data."""
@@ -287,6 +373,8 @@ class ModelTrainer:
         if len(X_train) < 2:
             raise ValueError("Insufficient data for training")
         
+        self.num_classes = y_train.nunique()
+
         self.X_train = X_train.to_numpy()
         self.X_test = X_test.to_numpy()
         self.y_train = y_train.to_numpy()
@@ -296,11 +384,14 @@ class ModelTrainer:
         """Train the model with the prepared data."""
         if self.X_train is None or self.y_train is None:
             raise ValueError("Data not prepared. Call prepare_data() first")
-            
+        
+        start_time = time.time()
         self.model = ModelFactory.create_model(self.config)
         self.model.fit(self.X_train, self.y_train)
+        end_time = time.time()
+        self.trainingTime = (end_time - start_time) * 1000
     
-    def evaluate(self) -> Dict[str, Any]:
+    def evaluate(self, advanced_metrics: bool = True, compute_decision_boundary: bool = False) -> Dict[str, Any]:
         """Evaluate the trained model and return metrics."""
         if not self.model:
             raise ValueError("Model not trained. Call train() first")
@@ -312,6 +403,8 @@ class ModelTrainer:
             
         # Calculate metrics
         if self.config.problem_type == 'classify':
+            
+            # Base classification metrics
             metrics = {
                 'accuracy': float(accuracy_score(self.y_test, y_pred)),
                 'precision': float(precision_score(self.y_test, y_pred, average='weighted')),
@@ -319,13 +412,17 @@ class ModelTrainer:
                 'f1Score': float(f1_score(self.y_test, y_pred, average='weighted')),
                 'confusionMatrix': self.normalize_confusion_matrix(confusion_matrix(self.y_test, y_pred)).tolist(),
                 'classes': [f'Class {i}' for i in range(len(np.unique(self.y_test)))],
-                'baseAccuracy': float(self._calculate_base_accuracy())
+                'baseAccuracy': float(self._calculate_base_accuracy()),
             }
+
+            # Proba specific metrics (requires predict proba. Not avalable in some models)
+            if hasattr(self.model, "predict_proba") and advanced_metrics:
+                metrics.update(compute_macro_roc_pr_curves(self.y_test, self.model.predict_proba(self.X_test), self.num_classes))
             # Add model-specific metrics
             metrics.update(self._get_model_specific_metrics())
             
             # Add decision boundary if 2D data
-            if self.X_train.shape[1] == 2:
+            if self.X_train.shape[1] == 2 or compute_decision_boundary:
                 metrics.update(self._calculate_decision_boundary())
         else:
             metrics = {
@@ -333,8 +430,27 @@ class ModelTrainer:
                 'mse': float(mean_squared_error(self.y_test, y_pred)),
                 'rmse': float(np.sqrt(mean_squared_error(self.y_test, y_pred))),
                 'mae': float(mean_absolute_error(self.y_test, y_pred)),
+                'residuals': (self.y_test - y_pred).tolist(),
+                'yTest': self.y_test.tolist(),
+                'yPred': y_pred.tolist()
+            }
+
+        if advanced_metrics:
+            train_sizes, train_scores, test_scores = learning_curve(
+                self.model, self.X_train, self.y_train, cv=5, scoring='accuracy' if self.config.problem_type == 'classify' else 'r2',
+                train_sizes=np.linspace(0.1, 1.0, 5)
+            )
+
+            metrics['learningCurve'] = {
+                'trainSizes': train_sizes.tolist(),
+                'trainScoresMean': train_scores.mean(axis=1).tolist(),
+                #'trainScoresStd': train_scores.std(axis=1).tolist(),
+                'testScoresMean': test_scores.mean(axis=1).tolist(),
+                #'testScoresStd': test_scores.std(axis=1).tolist()
             }
         
+        metrics['trainingTime'] = self.trainingTime
+
         return metrics
     
     def normalize_confusion_matrix(self, confusion_matrix: np.ndarray) -> np.ndarray:
@@ -417,23 +533,46 @@ class ModelTrainer:
         return metrics
     
     def _calculate_decision_boundary(self) -> Dict[str, Any]:
-        """Calculate decision boundary for 2D data."""
-        x_min, x_max = float(self.X_train[:, 0].min() - 1), float(self.X_train[:, 0].max() + 1)
-        y_min, y_max = float(self.X_train[:, 1].min() - 1), float(self.X_train[:, 1].max() + 1)
-        xx, yy = np.meshgrid(np.linspace(x_min, x_max, 50), np.linspace(y_min, y_max, 50))
+        """Calculate decision boundary for 2D data with optional jitter."""
+
+        pca = None
+        if self.X_train.shape[1] == 2:
+            x_min, x_max = float(self.X_train[:, 0].min() - 1), float(self.X_train[:, 0].max() + 1)
+            y_min, y_max = float(self.X_train[:, 1].min() - 1), float(self.X_train[:, 1].max() + 1)
+        else:
+            pca = PCA(2)
+            reduced_x_train = pca.fit_transform(self.X_train)
+            x_min, x_max = float(reduced_x_train[:, 0].min() - 1), float(reduced_x_train[:, 0].max() + 1)
+            y_min, y_max = float(reduced_x_train[:, 1].min() - 1), float(reduced_x_train[:, 1].max() + 1)
+
+        grid_size = 50
+        jitter_strength = 0.1 * ((x_max - x_min) / grid_size)  # ~10% of grid step size
+
+        xx, yy = np.meshgrid(
+            np.linspace(x_min, x_max, grid_size),
+            np.linspace(y_min, y_max, grid_size)
+        )
+        
         grid_points = np.c_[xx.ravel(), yy.ravel()]
+
+        rng = np.random.default_rng(seed=42)  # consistent jitter across runs
+        jitter = rng.normal(loc=0.0, scale=jitter_strength, size=grid_points.shape)
+        jittered_points = grid_points + jitter
         
         if hasattr(self.model, 'predict_proba'):
-            Z_prob = self.model.predict_proba(grid_points)
+            Z_prob = self.model.predict_proba(jittered_points)
             if len(Z_prob.shape) == 2 and Z_prob.shape[1] > 1:
                 predicted_classes = np.argmax(Z_prob, axis=1)
             else:
                 predicted_classes = (Z_prob > 0.5).astype(int)
         else:
-            predicted_classes = self.model.predict(grid_points)
+            predicted_classes = self.model.predict(jittered_points)
         
+        if pca != None:
+            predicted_classes = pca.transform(predicted_classes)
+
         return {
-            'decisionBoundary': grid_points.tolist(),
+            'decisionBoundary': jittered_points.tolist(),
             'predictedClasses': predicted_classes.tolist()
         }
 
@@ -451,7 +590,7 @@ def make_train_and_evaluate_model(config: Dict[str, Any]) -> Dict[str, Any]:
         trainer.prepare_data(X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test)
         trainer.train()
         
-        evaluation = trainer.evaluate()
+        evaluation = trainer.evaluate(advanced_metrics=False, compute_decision_boundary=True)
         return evaluation
     except Exception as e:
         raise RuntimeError(f"Error in model training and evaluation: {e.__str__()}")
@@ -460,7 +599,9 @@ def make_train_and_evaluate_model(config: Dict[str, Any]) -> Dict[str, Any]:
 def create_train_save_model(config: Dict[str, Any]) -> Dict[str, Any]:
     """Main function to create, train and save a model."""
     try:
-        trainer = ModelTrainer(config)
+        param_conf : dict[str, any] = config['parameters']
+        param_conf['epochs'] = config['epochs']
+        trainer = ModelTrainer(param_conf)
         # measure time to train the model
         import time
         start_time = time.time()
@@ -475,11 +616,44 @@ def create_train_save_model(config: Dict[str, Any]) -> Dict[str, Any]:
         trainer.train()
         end_time = time.time()
 
-        evaluation = trainer.evaluate()
+        evaluation = trainer.evaluate(advanced_metrics=True, compute_decision_boundary=True)
+        score = f'R2: {evaluation["r2"]}' if trainer.config.problem_type == 'regress' else f'Accuracy: {evaluation["accuracy"]}'
+
         from serialize import save_model, load_metadata_object, save_metadata_object
         metadata = load_metadata_object(config['wfDir'])
-        save_model(trainer.model, config['modelName'], metadata, config['wfDir'], evaluation, config)
+        save_model(model=trainer.model, model_type=config['modelType'], metadata_dict=metadata, save_dir=config['wfDir'], metrics=score, hyperparameters=config['parameters'])
         save_metadata_object(metadata, config['wfDir'])
-        return {'success': True, 'time': '{:.3f}'.format(end_time - start_time)}
+        return evaluation
     except Exception as e:
         raise RuntimeError(f"Error in model creation, training and saving: {e.__str__()}")
+    
+
+def load_model_and_infer(config: dict[str, any]):
+    
+    from serialize import load_model, load_metadata_object
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.compose import ColumnTransformer
+    import os
+    import joblib
+
+    model_type = config['model_type']
+    wfDir = config['wfDir']
+    metadata_dict = load_metadata_object(wfDir)
+    model, model_config = load_model(model_type=model_type, metadata_dict=metadata_dict)
+
+    preprocessor_path = wfDir + '\\preprocessor.joblib'
+    target_encoder_path = wfDir + '\\target_encoder.joblib'
+
+
+    preprocessor : ColumnTransformer = joblib.load(preprocessor_path)
+
+    X_pred = config['xPred']
+    X_pred = preprocessor.transform(X_pred)
+
+    y_pred = model.predict(X_pred)
+
+    if os.path.exists(target_encoder_path):
+        target_enc : LabelEncoder = joblib.load(target_encoder_path)
+        y_pred = target_enc.inverse_transform(y_pred)[0]
+
+    return {'prediction': f'{y_pred}'}
