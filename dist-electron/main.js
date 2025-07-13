@@ -162,7 +162,8 @@ function createWindow() {
     minWidth: 1280,
     minHeight: 720,
     webPreferences: {
-      preload: path$1.join(__dirname, "preload.mjs")
+      preload: path$1.join(__dirname, "preload.mjs"),
+      webSecurity: false
     }
   });
   win.webContents.openDevTools({ mode: "detach" });
@@ -206,9 +207,20 @@ async function startApp() {
   createWindow();
 }
 ipcMain.handle("read-file", async (_e, filePath) => {
+  try {
+    await fs.access(filePath);
+  } catch (error) {
+    return Promise.reject("File not found: " + filePath);
+  }
   return await fs.readFile(filePath, "utf-8");
 });
 ipcMain.handle("write-file", async (_e, filePath, content) => {
+  const dirPath = path$1.dirname(filePath);
+  try {
+    await fs.access(dirPath);
+  } catch (error) {
+    throw new Error(`Directory not found: ${dirPath}`);
+  }
   return await fs.writeFile(filePath, content, "utf-8");
 });
 ipcMain.handle("create-dir", async (_e, dirPath) => {

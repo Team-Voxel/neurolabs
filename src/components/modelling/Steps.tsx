@@ -1,5 +1,5 @@
 import React, { useReducer, useState } from 'react';
-import { Typography, Card, Tooltip, Flex } from 'antd';
+import { Typography, Card, Tooltip, Flex, Button } from 'antd';
 import { SettingControl } from '../settings/types';
 import Settings from '../settings/Settings';
 import { BrainCog } from 'lucide-react';
@@ -7,10 +7,30 @@ import { CircularProgressBar } from '../ProgressBar';
 import { SquareButton } from '../IconButton';
 import { useFakeProgress } from '../../lib/fakeProgress';
 import InteractiveList from '../InteractiveList';
+import {Slider} from '../StyledSlider';
+import { DatasetMetadata, ModelTrainingInfo } from '../../backend_api/types';
+import { Slider as RangeSlider, Statistic} from 'antd';
+import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
+import {LineAreaChart} from '../plotting/LineAreaChart';
+import { Workflow } from '../../AppState';
 
 export interface AlgorithmSelectionProps {
     onAlgorithmChange: (algorithm: string) => void;
     problemType: 'classify' | 'regress';
+}
+
+const descriptions: Record<string, string> = {
+    'linear_simple': 'Predicts continuous values using a linear relationship between features and target. It fits a straight line by minimizing the sum of squared errors between predictions and actual values. Best for simple, low-dimensional data but sensitive to outliers and irrelevant features.',
+    'linear_fs': 'Adds regularization (Lasso/Ridge) to predict continuous values while automatically shrinking or eliminating unimportant features. Reduces overfitting in high-dimensional data. Lasso zeros weak features; Ridge handles correlated predictors.',    
+    'logistic_simple': 'Predicts class probabilities (e.g., spam/not-spam) by fitting an S-shaped curve (sigmoid) to linear feature relationships. Simple and interpretable but struggles with complex patterns. Requires scaled features.',
+    'logistic_fs': 'Classifies outcomes using regularization (L1/L2) to discard irrelevant features during training. Ideal for high-dimensional data (e.g., text). Lasso forces weak coefficients to zero, simplifying the model.',
+    'svm': 'Finds the optimal hyperplane that maximally separates classes. Uses "support vectors" (critical data points) and kernels (e.g., RBF) for non-linear boundaries. Effective for clear-margin problems but slow on large datasets.',
+    'tree': 'Builds a flowchart-like structure by splitting data on feature values to minimize impurity (e.g., Gini index). Highly interpretable but prone to overfitting. Use for intuitive, non-linear decisions.',
+    'forest': 'Ensemble of decision trees trained on random data subsets/features. Averages results to reduce overfitting and boost accuracy. Robust and versatile but less interpretable than single trees.',
+    'knn': 'Classifies/regresses based on majority vote or average of the K closest data points. Simple and training-free but computationally heavy for large data. Sensitive to *k* and distance metrics.',
+    'gb': 'Sequentially combines weak learners (usually trees), each correcting its predecessor’s errors. High accuracy for structured data but requires careful tuning. XGBoost/LightGBM are popular variants.',
+    'nn': 'Universal function approximators. They mimics the brain’s neurons using interconnected layers (input/hidden/output). Learns complex patterns via forward passes and backpropagation.',
+    'nb': 'Classifies by applying Bayes’ theorem with strong independence assumptions. Fast and effective for text classification but assumes features are independent, which is often not true.',
 }
 
 export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgorithmChange, problemType }) => {
@@ -65,22 +85,20 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
 
 const modelParameterInitialState: Record<string, Record<string, any>> = {
     linear_simple: {
-        loss: 'squared_loss',
-        optimizer: 'analytical',
-        epochs: 1000
+        useSGD: false,
     },
     linear_fs: {
         loss: 'squared_loss',
-        optimizer: 'analytical',
+        useSGD: false,
         regularization: 'none',
     },
     logistic_simple: {
-        epochs: 1000
+        useSGD: false,
     },
     logistic_fs: {
         epochs: 1000,
         regularization: 'none',
-        alpha: 1
+        alpha: 1,
     },
     svm: {
         kernel: 'rbf',
@@ -118,7 +136,7 @@ const modelParameterInitialState: Record<string, Record<string, any>> = {
     }
 };
 
-export const ParameterInterface : React.FC<{ model_type: string }> = ({model_type}) => {
+export const ParameterInterface : React.FC<{ model_type: string, onChange: (parameters: Record<string, any>) => void }> = ({model_type, onChange}) => {
     
     const [controls, setControls] = useState<Record<string, Record<string, any>>>(modelParameterInitialState);
     const setParam = (model: string, param: string, value: any) => {
@@ -129,6 +147,7 @@ export const ParameterInterface : React.FC<{ model_type: string }> = ({model_typ
               [param]: value,
             },
         }));
+        onChange(controls[model]);
     }
     const getParam = (model: string, param: string) => {
         return controls[model] ? controls[model][param] : undefined;
@@ -137,40 +156,13 @@ export const ParameterInterface : React.FC<{ model_type: string }> = ({model_typ
     const modelParameters : Record<string, SettingControl[]> = {
         linear_simple: [
             {
-                id: 'loss',
-                label: 'Loss',
-                type: 'select',
-                options: [
-                    {value: 'squared_loss', label: 'Squared Error'},
-                    {value: 'huger', label: 'Huber'},
-                ],
-                onChange: (value) => setParam('linear_simple', 'loss', value),
-                value: controls['linear_simple']['loss'],
-                tooltip: 'Loss function'
+                id: 'useSGD',
+                label: 'Use Stochastic Gradient Descent',
+                type: 'switch',
+                value: controls['linear_simple']['useSGD'],
+                onChange: (value) => setParam('linear_simple', 'useSGD', value),
+                tooltip: 'Whether to use stochastic gradient descent for finding weights (Works best with a lot of data)'
             },
-            {
-                id: 'optimizer',
-                label: 'Optimizer',
-                type: 'select',
-                options: [
-                    {value: 'analytical', label: 'Analytical'},
-                    {value: 'sgd', label: 'Stochastic Gradient Descent'},
-                ],
-                value: controls['linear_simple']['optimizer'],
-                onChange: (value) => setParam('linear_simple', 'optimizer', value),
-                tooltip: 'Optimization algorithm to use'
-            },
-            {
-                id: 'epochs',
-                label: 'Epochs',
-                type: 'number',
-                min: 1,
-                max: 10000,
-                step: 100,
-                value: controls['linear_simple']['epochs'] || 1000,
-                onChange: (value) => setParam('linear_simple', 'epochs', value),
-                tooltip: 'Number of training epochs (1000 by default)',
-            }
         ],
         linear_fs: [
             {
@@ -186,16 +178,12 @@ export const ParameterInterface : React.FC<{ model_type: string }> = ({model_typ
                 tooltip: 'Loss function'
             },
             {
-                id: 'optimizer',
-                label: 'Optimizer',
-                type: 'select',
-                options: [
-                    {value: 'analytical', label: 'Analytical'},
-                    {value: 'sgd', label: 'Stochastic Gradient Descent'},
-                ],
-                value: controls['linear_fs']['optimizer'],
-                onChange: (value) => setParam('linear_fs', 'optimizer', value),
-                tooltip: 'Optimization algorithm to use'
+                id: 'useSGD',
+                label: 'Use Stochastic Gradient Descent',
+                type: 'switch',
+                value: controls['linear_fs']['useSGD'],
+                onChange: (value) => setParam('linear_fs', 'useSGD', value),
+                tooltip: 'Whether to use stochastic gradient descent for finding weights (Works best with a lot of data)'
             },
             {
                 id: 'regularization',
@@ -225,43 +213,18 @@ export const ParameterInterface : React.FC<{ model_type: string }> = ({model_typ
                 tooltip: 'Regularization strength (0.01 by default)',
                 visible: getParam('linear_fs', 'regularization') !== 'none'
             },
-            {
-                id: 'epochs',
-                label: 'Epochs',
-                type: 'number',
-                min: 1,
-                max: 10000,
-                step: 100,
-                value: controls['linear_fs']['epochs'] || 1000,
-                onChange: (value) => setParam('linear_fs', 'epochs', value),
-                tooltip: 'Number of training epochs (1000 by default)',
-            }
         ],
         logistic_simple: [
             {
-                id: 'epochs',
-                label: 'Epochs',
-                type: 'number',
-                min: 1,
-                max: 10000,
-                step: 100,
-                value: controls['logistic_simple']['epochs'] || 1000,
-                onChange: (value) => setParam('logistic_simple', 'epochs', value),
-                tooltip: 'Number of training epochs (1000 by default)',
-            }
+                id: 'useSGD',
+                label: 'Use Stochastic Gradient Descent',
+                type: 'switch',
+                value: controls['logistic_simple']['useSGD'],
+                onChange: (value) => setParam('logistic_simple', 'useSGD', value),
+                tooltip: 'Whether to use stochastic gradient descent for finding weights (Works best with a lot of data)'
+            },
         ],
         logistic_fs: [
-            {
-                id: 'epochs',
-                label: 'Epochs',
-                type: 'number',
-                min: 1,
-                max: 10000,
-                step: 100,
-                value: controls['logistic_fs']['epochs'] || 1000,
-                onChange: (value) => setParam('logistic_fs', 'epochs', value),
-                tooltip: 'Number of training epochs (1000 by default)',
-            },
             {
                 id: 'regularization',
                 label: 'Regularization',
@@ -283,9 +246,10 @@ export const ParameterInterface : React.FC<{ model_type: string }> = ({model_typ
                 min: 0.01,
                 max: 10,
                 step: 0.1,
-                value: controls['logistic_fs']['c'] || 1,
+                value: controls['logistic_fs']['alpha'] || 1,
                 onChange: (value) => setParam('logistic_fs', 'alpha', value),
                 tooltip: 'Regularization strength (0.01 by default)',
+                visible: getParam('logistic_fs', 'regularization') !== 'none'
             }
         ],
         svm: [
@@ -575,13 +539,15 @@ export const ParameterInterface : React.FC<{ model_type: string }> = ({model_typ
 }
 
 export interface TrainInterfaceProps {
-    onClickTrain: () => void;
+    onClickTrain: (epochs: number) => void;
     state: 'training' | 'ready' | 'trained';
+    trainingData?: ModelTrainingInfo | null;
 }
 
-export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, state}) => {
+export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, state, trainingData}) => {
     //const [progress, setProgress] = useState(0);
     const progress = useFakeProgress(state);
+    const [epochs, setEpochs] = useState<number>(1);
 
     return (
         <div className="flex-1 flex items-center justify-center">
@@ -597,27 +563,189 @@ export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, sta
                 />
             )}
             {state === 'ready' && (
+                <div className='flex flex-col gap-2'>
                 <SquareButton
                 title="Train"
                 icon={<BrainCog />}
                 size={250}
-                onClick={onClickTrain}
+                onClick={() => onClickTrain(epochs)}
                 />
+                <RangeSlider min={1} max={1000} step={1} value={epochs} onChange={(value) => setEpochs(value[0])} className="w-full" />
+                </div>
             )}
             {state === 'trained' && (
+                <>
                 <Typography.Title level={3} className="text-green-500">
                 Model Trained Successfully!
                 </Typography.Title>
+                {trainingData && <Typography.Text>{`Model trained in ${trainingData.trainingTime}ms`}</Typography.Text>}
+                </>
             )}
             </div>
     );
 }
 
 
-export const EvaluationInterface: React.FC<{model_type:string}> = ({model_type}) => {
-
-    return (
-        <>
-        </>
+export const EvaluationInterface: React.FC<{trainingData:ModelTrainingInfo | null}> = ({trainingData}) => {
+    const numCols = trainingData?.rocAuc ? 3 : 2;
+    return trainingData ? (
+        trainingData.problemType === 'classify' ? (
+        <div className='flex-1 flex-col gap-4 overflow-y-auto'>
+            <div className={`grid grid-cols-${numCols} gap-4 p-8`}>
+                <Card variant="borderless" size='default'>
+                <Statistic precision={3} suffix={'%'} title={`Accuracy (base: ${trainingData.baseAccuracy*100}%)`} value={trainingData.accuracy*100} />
+                </Card>
+                <Card variant="borderless" size='default'>
+                <Statistic precision={3} suffix={'%'} title="Precision" value={trainingData.precision*100} />
+                </Card>
+                <Card variant="borderless" size='default'>
+                <Statistic precision={3} suffix={'%'} title="Recall" value={trainingData.recall*100} />
+                </Card>
+                <Card variant="borderless" size='default'>
+                <Statistic precision={3} suffix={'%'} title="F1 Score" value={trainingData.f1Score*100} />
+                </Card>
+                <Card variant="borderless" size='default'>
+                <Statistic precision={3} suffix={'%'} title="ROC AUC" value={trainingData.rocAuc*100} />
+                </Card>
+                <Card variant="borderless" size='default'>
+                <Statistic precision={3} suffix={'%'} title="Average Precision" value={trainingData.averagePrecision*100} />  
+                </Card>  
+            </div>
+            <div className='flex flex-row gap-4 p-4'>
+                <LineAreaChart data={[
+                    {
+                        x: trainingData.rocX,
+                        y: trainingData.rocY,
+                        name: 'ROC Curve',
+                        color: 'blue',
+                    }
+                ]} isAreaChart={false} interpolation='linear' title='ROC Curve' xAxisLabel='False Positive Rate' yAxisLabel='True Positive Rate'/>
+                <LineAreaChart data={[
+                    {
+                        x: trainingData.prX,
+                        y: trainingData.prY,
+                        name: 'Precision-Recall Curve',
+                        color: 'red',
+                    }
+                ]} isAreaChart={false} interpolation='linear' title='Precision-Recall Curve' xAxisLabel='Recall' yAxisLabel='Precision'/>
+            </div>
+            <div className='flex-1 flex flex-row gap-4 p-4'>
+                <div className='flex flex-1 flex-col gap-4 w-1/2'>
+                <LineAreaChart data={[
+                    {
+                        x: trainingData.learningCurve.trainSizes,
+                        y: trainingData.learningCurve.trainScoresMean,
+                        name: 'Train Scores',
+                        color: 'green',
+                    },
+                    {
+                        x: trainingData.learningCurve.trainSizes,
+                        y: trainingData.learningCurve.testScoresMean,
+                        name: 'Test Scores',
+                        color: 'orange',
+                    }
+                ]} isAreaChart={false} interpolation='linear' title='Learning Curve' xAxisLabel='Sample Size' yAxisLabel='Accuracy'/>
+                </div>
+                <div className='flex-1 flex flex-col gap-4 p-4'>
+                <Typography.Title level={4} className='text-gray-800'>Decision Boundary (Projected)</Typography.Title>
+                <MulticlassScatterPlot
+                    X={trainingData.decisionBoundary}
+                    Y={trainingData.predictedClasses}
+                    xLabel='Principal Component 1'
+                    yLabel='Principal Component 2'
+                    title='Decision Boundary'
+                />
+            </div>
+            </div>
+           {/*  {trainingData.decisionBoundary && } */}
+        </div>
+        ) : (
+        <div className='flex-1 flex flex-col gap-4'>
+            <div className='grid grid-cols-2 gap-4 p-4'>
+                <Statistic title="R2 Score" value={trainingData.r2} />
+                <Statistic title="MSE" value={trainingData.mse} />
+                <Statistic title="RMSE" value={trainingData.rmse} />
+                <Statistic title="MAE" value={trainingData.mae} />
+            </div>
+            <div className='flex flex-col gap-4 p-4'>
+                <LineAreaChart data={[
+                    {
+                        x: trainingData.yTest,
+                        y: trainingData.yPred,
+                        name: 'Predicted vs Actual',
+                        color: 'blue',
+                    }
+                ]} isAreaChart={false} interpolation='linear' />
+                <LineAreaChart data={[
+                    {
+                        x: trainingData.yTest,
+                        y: trainingData.residuals,
+                        name: 'Predicted vs Residuals',
+                        color: 'red',
+                    }
+                ]} isAreaChart={false} interpolation='linear' />
+            </div>
+        </div>
+        )
+    ) : (
+        <div className='flex-1 flex items-center justify-center'>
+            <Typography.Title level={3} className="text-gray-500">No training data available</Typography.Title>
+        </div>
     );
 }
+
+
+export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, workflow: Workflow | null}> = ({datasetData, workflow}) => {
+    
+    const [inputData, setInputData] = useState<Record<string, any>>({});
+    const numericCols = datasetData?.columns.filter(col => datasetData?.columnTypes[col] === 'num') || [];
+    const categoricalCols = datasetData?.columns.filter(col => datasetData?.columnTypes[col] === 'cat') || [];
+    
+    const catControls: SettingControl[] | undefined = categoricalCols.map((str) => ({
+        id: str,
+        label: str.charAt(0).toUpperCase() + str.slice(1), // Capitalize first letter
+        type: 'select',
+        value: inputData[str],
+        options: datasetData?.categoricalInfo[str]?.values.map(cat => ({ value: cat, label: cat })) || [],
+        onChange: (value: string | number) => {
+            setInputData(prev => ({
+                ...prev,
+                [str]: value
+            }));
+        },
+        tooltip: `Select value for ${str}`,
+      }));
+
+    const numControls: SettingControl[] | undefined = numericCols.map((str) => ({
+    id: str,
+    label: str.charAt(0).toUpperCase() + str.slice(1), // Capitalize first letter
+    type: 'slider',
+    min: datasetData?.numericalInfo[str]?.min || 0,
+    max: datasetData?.numericalInfo[str]?.max || 100,
+    value: inputData[str],
+    step: (datasetData?.numericalInfo[str]?.max! - datasetData?.numericalInfo[str]?.min!) / 100 || 1,
+    onChange: (value: number) => {
+        setInputData(prev => ({
+            ...prev,
+            [str]: value
+        }));
+    },
+    tooltip: `Enter value for ${str}`,
+    }));
+
+    const settingControls = [...catControls, ...numControls];
+
+    return (
+        <div className='flex-1 flex flex-row gap-4 p-0'>
+            <div className='w-1/2 border-r overflow-y-hidden p-2 pb-8'>
+            <Typography.Title level={3}>Enter Inputs</Typography.Title>
+            {datasetData && workflow && settingControls ? <Settings controls={settingControls} className='gap-2' /> : <Typography.Title>Failed to Load App State</Typography.Title>}
+            </div>
+            <div className='flex-1 flex flex-col justify-center items-center gap-8'>
+                <Typography.Title>Value</Typography.Title>
+                <Button type='primary' size='large'>Infer</Button>
+            </div>
+        </div>
+    );
+}
+

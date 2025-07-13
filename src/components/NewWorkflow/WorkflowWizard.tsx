@@ -287,12 +287,12 @@ export const WorkflowWizard: React.FC = () => {
       </Splitter>
       )}
       {step === SetupSteps.Finish && (
-        <div className="h-full flex flex-col justify-center items-center">
-          <Box component="form" sx={{ '& > :not(style)': { m: 4, width: '25ch' } }} noValidate autoComplete="off">
-            <h1>Setup Complete!</h1>
+        <div className="h-full flex flex-col justify-center items-center gap-8">
+            <Typography.Title level={2}>Finalize Workflow</Typography.Title>
+            <div className="flex flex-row gap-4 w-full max-w-md">
             <Button block type="primary" onClick={handleBack}>Back</Button>
             <Button block type="primary" onClick={handleFinalization}>Finish</Button>
-          </Box>
+            </div>
         </div>
       )}
       <PreprocessModal issues={dataSummary?.issues || []} open={preprocessModalOpen} onClose={() => setPreprocessModalOpen(false)} onOk={handlePreprocess} />

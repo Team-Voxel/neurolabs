@@ -12,7 +12,7 @@ export interface DataSummaryEntry {
   central : string;
   dispersion : string;
   range : string;
-  dist : Array<Record<string, string | number>>; // This can be a more complex type based on your distribution data
+  dist : Array<Record<string, string | number>>;
 }
 
 export interface DatasetSummary {
@@ -144,6 +144,8 @@ export interface ModelTrainingInfo {
   // common metrics
   trainingTime: number; // in milli-seconds
   learningCurve: LearningCurveData;
+
+  problemType: 'classify' | 'regress';
 }
 
 export interface UnsupervisedModelTrainingInfo {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, InputNumber, Select, Slider, Space, Switch, Checkbox} from 'antd';
+import { Button, InputNumber, Select, Slider, Space, Switch, Checkbox, Input, Typography} from 'antd';
 import { 
   NumberSettingControl, 
   SelectSettingControl, 
@@ -7,9 +7,11 @@ import {
   SwitchSettingControl, 
   ListSettingControl,
   CheckboxSettingControl,
+  StringSettingControl
 } from './types';
 import { CSSProperties } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
+import { on } from 'node:process';
 
 export const styles: Record<string, CSSProperties> = {
   container: {
@@ -79,16 +81,42 @@ interface SliderControlProps {
   }
   
 export const SliderControl: React.FC<SliderControlProps> = ({ control }) => {
-    const { value, min, max, step, onChange } = control;
+    const { isLogarithmic = false, value = 0, min, max, step, onChange } = control;
+    
+    const base = 20;
+    const transform = (value: number) => {
+      if (isLogarithmic) {
+        const t = (value - min) / (max - min);
+        return min + (max - min) * ((Math.pow(base, t) - 1) / (base - 1));
+      }
+      return value;
+    }
+
+    const invTransform = (value: number) => {
+      if (isLogarithmic) {
+        const t = (value - min) / (max - min);
+        return min + (max - min) * (Math.log(t * (base - 1) + 1) / Math.log(base))
+      }
+      return value;
+    }
 
     return (
+        isLogarithmic ? <Slider
+            value={transform(value)}
+            min={min}
+            max={max}
+            onChange={onChange}
+            className="settings-slider"
+            marks={{ [min]: `${min}`, [max]: `${max}` }}
+        /> : 
         <Slider
             value={value}
             min={min}
             max={max}
-            step={step || 1}
+            step={step}
             onChange={onChange}
             className="settings-slider"
+            marks={{ [min]: `${min}`, [max]: `${max}` }}
         />
     );
 };
@@ -179,7 +207,7 @@ export const ListControl: React.FC<ListControlProps> = ({ control }) => {
               onClick={() => handleRemoveNumber(index)}
               aria-label="Remove layer"
             >
-              Remove
+              <Typography.Title level={5}>Remove</Typography.Title>
             </Button>
           </Space>
         ))}
@@ -189,7 +217,7 @@ export const ListControl: React.FC<ListControlProps> = ({ control }) => {
           style={styles.addButton}
           icon={<PlusOutlined />}
         >
-          Add New Layer
+          <Typography.Title level={5}>Add New Layer</Typography.Title>
         </Button>
       </Space>
     );
@@ -215,6 +243,25 @@ export const CheckboxControl: React.FC<CheckboxControlProps> = ({ control }) => 
       onChange={onChange}
       size="default"
       className="settings-checkbox"
+    />
+  );
+};
+
+export interface StringControlProps {
+  control: StringSettingControl;
+}
+
+export const StringControl: React.FC<StringControlProps> = ({ control }) => {
+  const { value, onChange, id, label, placeholder } = control;
+
+  return (
+    <Input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="settings-string"
+      placeholder={placeholder}
+      id={id}
+      aria-label={label}
     />
   );
 };

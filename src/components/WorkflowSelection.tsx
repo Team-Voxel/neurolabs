@@ -1,11 +1,11 @@
 import React, {useState, useEffect, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import Button from "./CreateNewButton";
-import Plus from "../assets/plus.png"
 import {Card} from "./Card";
 import { Workflow } from "../AppState";
 import { message, Typography } from "antd";
-import { PackagePlus } from "lucide-react";
+import { PackagePlus, HomeIcon, Home } from "lucide-react";
+import { Sidebar } from "./Sidebar";
 
 // Show workflow selection screen
 // New -> New workflow window
@@ -49,7 +49,13 @@ export const WorkflowSelection : React.FC = () => {
     }, []);
       
     return (
-        <div className="flex flex-col items-center w-screen h-screen bg-gray-100 p-4 gap-8">
+      <div className="flex flex-row items-center w-screen h-screen bg-gray-100">
+        <Sidebar
+          buttons={[]}
+          onHome={() => navigate('/')}
+          selectedTab={-1}
+        />
+        <div className="flex-1 flex flex-col items-start justify-start h-full w-full bg-gray-100 p-4 gap-8 border">
             <Typography.Title level={1} style={{userSelect:'none'}}>Workflow Selection</Typography.Title>
         
             <div className=" overflow-y-auto">
@@ -60,6 +66,7 @@ export const WorkflowSelection : React.FC = () => {
               ))}
             </div>
             </div>
+        </div>
         </div>
     );
 }

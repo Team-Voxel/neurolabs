@@ -57,9 +57,9 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
     df_viz : pd.DataFrame = df.copy()
     # Re-Sample the dataframe to reduce size if necessary
     if config['problem_type'] == 'regression':
-        df_viz = sku.resample(df_viz, n_samples=config['n_samples'], random_state=config['random_state'])
+        df_viz = sku.resample(df_viz, n_samples=min(len(df_viz), config['n_samples']), random_state=config['random_state'])
     else:
-        df_viz, _ = train_test_split(df_viz, stratify=df[config['target']], train_size=config['n_samples'], random_state=config['random_state'])
+        df_viz, _ = train_test_split(df_viz, stratify=df[config['target']], train_size=min(len(df_viz) - 20, config['n_samples']), random_state=config['random_state'])
 
     # The file is now called reduced_data.csv. (previously data_usc.csv)
     unsupervised_clustering_path = config.get('wfDir', '') + '\\reduced_data.csv'
@@ -78,9 +78,9 @@ def create_a_sample_df(config : Dict):
 
     # Re-Sample the dataframe to reduce size if necessary
     if config['problem_type'] == 'regression':
-        df = df.sample(n=config['n_samples'], random_state=config['random_state'])
+        df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
     else:
-        df, _ = train_test_split(df, stratify=df[config['target']],train_size=config['n_samples'], random_state=config['random_state'])
+        df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
     
     # Drop target column if it exists
     df : pd.DataFrame = df.drop(columns=[config.get('target')], errors='ignore') 
@@ -156,9 +156,9 @@ def dimensionality_reduction(config : Dict, df : pd.DataFrame = None):
 
         # Re-Sample the dataframe to reduce size if necessary
         if config['problem_type'] == 'regression':
-            df = df.sample(n=config['n_samples'], random_state=config['random_state'])
+            df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
         else:
-            df, _ = train_test_split(df, stratify=df[config['target']],train_size=config['n_samples'], random_state=config['random_state'])
+            df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
         
         # Drop target column if it exists
         df : pd.DataFrame = df.drop(columns=[config.get('target')], errors='ignore') 
@@ -357,9 +357,9 @@ def get_reduced_sample(config : Dict):
     df = safe_read_csv(config['data_path'])
 
     if config['problem_type'] == 'regression':
-        df = df.sample(n=config['n_samples'], random_state=config['random_state'])
+        df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
     else:
-        df, _ = train_test_split(df, stratify=df[config['target']],train_size=config['n_samples'], random_state=config['random_state'])
+        df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
 
     reduced_sample = {}
     for col in df.columns:
@@ -468,28 +468,37 @@ def compute_stats_and_dim_redux(config : Dict):
 
 
 def fill_missing_values(df : pd.DataFrame, method : str):
-    if method == 'none':
-        return df
-    
+    # Make a copy to avoid modifying the original DataFrame in-place
     import sklearn.impute as skim
-    for col in df.columns:
-        if is_numeric_dtype(df[col]) and df[col].nunique() >= 20:
-            if method == 'mean':
-                imputer = skim.SimpleImputer(strategy='mean')
-                df[col] = imputer.fit_transform(df[[col]])
-            elif method == 'median':
-                imputer = skim.SimpleImputer(strategy='median')
-                df[col] = imputer.fit_transform(df[[col]])
-            elif method == 'mode':
-                imputer = skim.SimpleImputer(strategy='most_frequent')
-                df[col] = imputer.fit_transform(df[[col]])
-        elif is_numeric_dtype(df[col]):
+    df_copy = df.copy()
+
+    if method == 'none':
+        return df_copy
+    
+    # Validate the method for numeric columns
+    numeric_imputer_strategy = None
+    if method == 'mean':
+        numeric_imputer_strategy = 'mean'
+    elif method == 'median':
+        numeric_imputer_strategy = 'median'
+    elif method == 'mode':
+        numeric_imputer_strategy = 'most_frequent'
+    else:
+        raise ValueError(f"Invalid method: '{method}'. Must be 'none', 'mean', 'median', or 'mode'.")
+
+    for col in df_copy.columns:
+        if is_numeric_dtype(df_copy[col]):
+            imputer = skim.SimpleImputer(strategy=numeric_imputer_strategy)
+            # Flatten the 2D output of fit_transform to 1D
+            df_copy[col] = imputer.fit_transform(df_copy[[col]]).ravel()
+            # Alternatively: df_copy[col] = imputer.fit_transform(df_copy[[col]])[:, 0]
+        elif df_copy[col].dtype == 'object' or df_copy[col].dtype == 'category' or df_copy[col].dtype == 'string':
             imputer = skim.SimpleImputer(strategy='most_frequent')
-            df[col] = imputer.fit_transform(df[[col]])
-        elif df[col].dtype == 'object' or df[col].dtype == 'category' or df[col].dtype == 'string':
-            imputer = skim.SimpleImputer(strategy='most_frequent')
-            df[col] = imputer.fit_transform(df[[col]])
-    return df
+            # Flatten the 2D output of fit_transform to 1D
+            df_copy[col] = imputer.fit_transform(df_copy[[col]]).ravel()
+            # Alternatively: df_copy[col] = imputer.fit_transform(df_copy[[col]])[:, 0]
+            
+    return df_copy
 
 
 def apply_preprocess_to_dataset(config : Dict):
@@ -536,7 +545,11 @@ def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, 
     X = df.drop(columns=[target_column])
     y = df[target_column]
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+    if y.nunique() < 20:
+        print(f"Stratifying the split based on target column '{target_column}' with {y.nunique()} unique values.")
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y, random_state=random_state)
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
 
     # 1.1 Encode the target variable
     if df[target_column].dtype == 'object' or df[target_column].dtype == 'category' or df[target_column].dtype == 'string':
@@ -619,8 +632,8 @@ def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, 
         'rows': df.shape[0],
         'columns': transformed_column_names,
         'columnTypes': {col: 'cat' if col in categorical_features else 'num' for col in transformed_column_names},
-        'numericalInfo': {col: {'min': X_train_processed[col].min(), 'max': X_train_processed[col].max()} for col in numerical_features},
-        'categoricalInfo': {col: {'values': X_train_processed[col].unique().tolist()} for col in categorical_features},
+        'numericalInfo': {col: {'min': df[col].min(), 'max': df[col].max()} for col in numerical_features},
+        'categoricalInfo': {col: {'values': df[col].unique().tolist()} for col in categorical_features},
         'preprocessorPath': preprocessor_path,
         'targetEncoderPath': target_encoder_path if encode_target else None
     }

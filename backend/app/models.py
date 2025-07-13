@@ -13,6 +13,7 @@ from torchmlp import TorchMLPClassifier, TorchMLPRegressor, _BaseMLP
 import time
 from sklearn.preprocessing import label_binarize
 from safe_csv import safe_read_csv
+from json_sanitizer import sanitize_for_json
 from sklearn.metrics import (
     confusion_matrix,
     accuracy_score,
@@ -40,15 +41,16 @@ def compute_macro_roc_pr_curves(
     num_classes: int
 ) -> Dict[str, Any]:
     """
-    Compute macro-averaged ROC and Precision-Recall curve data.
+    Compute macro-averaged ROC and Precision-Recall curve data robustly,
+    only considering classes present in y_true.
     
     Parameters:
         y_true: Ground truth labels (1D array-like)
         y_scores: Predicted probabilities or decision function (2D or 1D)
-        num_classes: Total number of classes
+        num_classes: Total number of classes in the full dataset.
 
     Returns:
-        Dictionary with keys: 'roc_x', 'roc_y', 'pr_x', 'pr_y'
+        Dictionary with ROC/PR curve data and AUC/AP scores.
     """
     y_true = np.array(y_true)
     y_scores = np.array(y_scores)
@@ -56,31 +58,46 @@ def compute_macro_roc_pr_curves(
     is_multiclass = num_classes > 2
 
     if is_multiclass:
-        # Binarize labels for OvR computation
+        # Binarize labels against ALL possible classes to keep indices consistent
+        # with y_scores columns.
         y_true_bin = label_binarize(y_true, classes=np.arange(num_classes))
-        if y_scores.ndim == 1 or y_scores.shape[1] != num_classes:
-            raise ValueError("For multiclass, y_scores must be a 2D array with shape (n_samples, n_classes)")
+        
+        if y_scores.ndim != 2 or y_scores.shape[1] != num_classes:
+            raise ValueError(
+                "For multiclass, y_scores must be a 2D array with shape (n_samples, n_classes)"
+            )
 
-        # ==== ROC ====
-        all_fpr = np.unique(np.concatenate([
-            roc_curve(y_true_bin[:, i], y_scores[:, i])[0]
-            for i in range(num_classes)
-        ]))
+        present_class_indices = np.where(y_true_bin.sum(axis=0) > 0)[0]
+        
+        # If no classes are present, return default values
+        if len(present_class_indices) == 0:
+            return {
+                'rocX': [0., 1.], 'rocY': [0., 1.],
+                'prX': [0., 1.], 'prY': [1., 0.],
+                'rocAuc': 0.5, 'averagePrecision': 0.0
+            }
+
+        # Interpolate ROC curves for each PRESENT class onto a common axis
+        all_fpr = np.unique(np.concatenate(
+            [roc_curve(y_true_bin[:, i], y_scores[:, i])[0] for i in present_class_indices]
+        ))
+        
         mean_tpr = np.zeros_like(all_fpr)
-        for i in range(num_classes):
+        for i in present_class_indices:
             fpr_i, tpr_i, _ = roc_curve(y_true_bin[:, i], y_scores[:, i])
             mean_tpr += np.interp(all_fpr, fpr_i, tpr_i)
-        mean_tpr /= num_classes
+        
+        mean_tpr /= len(present_class_indices)
 
-        # ==== PR ====
-        all_recall = np.linspace(0, 1, 100)
+        # Interpolate PR curves for each PRESENT class onto a common axis
+        all_recall = np.linspace(0, 1, 101)
         mean_precision = np.zeros_like(all_recall)
-        for i in range(num_classes):
+        for i in present_class_indices:
             prec_i, rec_i, _ = precision_recall_curve(y_true_bin[:, i], y_scores[:, i])
-            # Reverse to make recall increasing for interpolation
-            prec_interp = np.interp(all_recall, rec_i[::-1], prec_i[::-1])
-            mean_precision += prec_interp
-        mean_precision /= num_classes
+            # Reverse recall to be increasing for interpolation
+            mean_precision += np.interp(all_recall, rec_i[::-1], prec_i[::-1])
+        
+        mean_precision /= len(present_class_indices)
 
         return {
             'rocX': all_fpr.tolist(),
@@ -91,8 +108,7 @@ def compute_macro_roc_pr_curves(
             'averagePrecision': float(average_precision_score(y_true_bin, y_scores, average='macro'))
         }
 
-    else:
-        # Binary case
+    else: # Binary case
         if y_scores.ndim == 2:
             y_scores_bin = y_scores[:, 1]
         else:
@@ -106,8 +122,8 @@ def compute_macro_roc_pr_curves(
             'rocY': tpr.tolist(),
             'prX': recall.tolist(),
             'prY': precision.tolist(),
-            'rocAuc': float(roc_auc_score(y_true, y_scores[:, 1] if y_scores.ndim > 1 else y_scores)),
-            'averagePrecision': float(average_precision_score(y_true, y_scores[:, 1] if y_scores.ndim > 1 else y_scores))
+            'rocAuc': float(roc_auc_score(y_true, y_scores_bin)),
+            'averagePrecision': float(average_precision_score(y_true, y_scores_bin))
         }
 
 @dataclass
@@ -132,6 +148,7 @@ class ModelConfig:
     problem_type: str = 'classify'
     dataset_size: int = 1000
     min_samples_split: int = 2
+    l1_ratio: float = 0.5
     params: Dict[str, Any] = None  # All parameters included and not included as fields
 
     def __post_init__(self):
@@ -142,14 +159,25 @@ class ModelConfig:
         if self.epochs < 1:
             raise ValueError("Epochs must be greater than 0")
         
-        valid_model_types = {'nn', 'svm', 'tree', 'forest', 'knn', 'logistic'}
+        valid_model_types = {'nn', 'svm', 'tree', 'forest', 'knn', 'logistic', 'gb', 'nb', 'linear_fs', 'linear_simple', 'logistic_fs', 'logistic_simple'}
+
         if self.model_type not in valid_model_types:
             raise ValueError(f"Invalid model_type. Must be one of {valid_model_types}")
+        
+        if self.problem_type not in {'classify', 'regress'}:
+            raise ValueError("Problem type must be 'classify' or 'regress'")
 
         # Model-specific validation
-        if self.model_type == 'logistic':
-            if self.regularization not in ['l1', 'l2', 'elasticnet']:
+        if self.model_type == 'logistic' or self.model_type == 'logistic_simple' or self.model_type == 'logistic_fs':
+            if self.regularization not in ['l1', 'l2', 'elasticnet', 'none']:
                 raise ValueError("Invalid regularization for logistic regression")
+        elif self.model_type == 'linear_fs' or self.model_type == 'linear_simple' or self.model_type == 'linear':
+            if self.regularization not in ['none', 'ridge', 'lasso', 'elasticnet', 'lars']:
+                raise ValueError("Invalid regularization for linear regression")
+            if self.optimizer not in ['sgd', 'analytical']:
+                raise ValueError("Invalid optimizer for linear regression")
+            if self.epochs < 1:
+                raise ValueError("Epochs must be greater than 0 for linear regression")
         elif self.model_type == 'svm':
             if self.kernel not in ['linear', 'rbf', 'poly', 'sigmoid']:
                 raise ValueError("Invalid kernel for SVM")
@@ -183,6 +211,7 @@ class ModelConfig:
             problem_type=config.get('problemType', 'classify'),
             dataset_size=config.get('datasetSize', 1000),
             min_samples_split=config.get('minSamplesSplit', 2),
+            l1_ratio=config.get('l1Ratio', 0.5),
             params=config
         )
 
@@ -268,6 +297,15 @@ class ModelFactory:
                 solver='lbfgs' if config.regularization == 'l2' else 'saga',
                 max_iter=config.epochs,
                 C=1.0/config.params.get('alpha', 1.0), # Inverse of regularization strength
+                l1_ratio=config.l1_ratio
+            ),
+            'logistic_simple': lambda: ModelFactory._create_logistic_regressor(config),
+            'logistic_fs': lambda: lm.LogisticRegression(
+                penalty=None if config.regularization == 'none' else config.regularization,
+                solver='lbfgs' if config.regularization == 'l2' else 'saga',
+                max_iter=config.epochs,
+                C=1.0/config.params.get('alpha', 1.0), # Inverse of regularization strength
+                l1_ratio=config.l1_ratio
             ),
             'gb': lambda: ensemble.GradientBoostingClassifier(
                 loss='log_loss',
@@ -275,9 +313,7 @@ class ModelFactory:
                 max_depth=config.max_depth,
                 learning_rate=config.learning_rate
             ),
-            'nb': lambda: GaussianNB(
-                var_smoothing=config.params.get('var_smoothing', 1e-9)
-            )
+            'nb': lambda: ModelFactory._create_naive_bayes(config),
         }
         
         if config.model_type not in model_map:
@@ -326,24 +362,70 @@ class ModelFactory:
         return model_map[config.model_type]()
 
     @staticmethod
+    def _create_logistic_regressor(config: ModelConfig) -> BaseEstimator:
+        """Create a logistic regression model."""
+        penalty = None if config.regularization == 'none' else config.regularization
+        use_sgd = config.params.get("useSGD", False)
+        
+        if use_sgd:
+            return lm.SGDClassifier(
+                loss='log',
+                penalty=penalty,
+                max_iter=config.epochs,
+                l1_ratio=config.l1_ratio
+            )
+
+        return lm.LogisticRegression(
+            penalty=penalty,
+            solver='lbfgs' if penalty == 'l2' else 'saga',
+            max_iter=config.epochs,
+            C=1.0/config.params.get('alpha', 1.0),  # Inverse of regularization strength
+            l1_ratio=config.l1_ratio
+        )
+    
+    @staticmethod
+    def _create_naive_bayes(config: ModelConfig) -> BaseEstimator:
+        """Create a Naive Bayes model."""
+        dist = config.params.get("distribution", "gaussian")
+        if dist == "gaussian":
+            return GaussianNB(var_smoothing=config.params.get("var_smoothing", 1e-9))
+        elif dist == "bernoulli":
+            from sklearn.naive_bayes import BernoulliNB
+            return BernoulliNB(alpha=config.params.get("alpha", 1.0))
+        elif dist == "multinomial":
+            from sklearn.naive_bayes import MultinomialNB
+            return MultinomialNB(alpha=config.params.get("alpha", 1.0))
+        else:
+            raise ValueError(f"Unsupported Naive Bayes type: {dist}")
+
+    @staticmethod
     def _create_linear_regressor(config: ModelConfig) -> BaseEstimator:
         params = config.params
         loss = params.get("loss", "squared_loss")
-        optimizer = params.get("optimizer", "analytical")
-        regularization = params.get("regularization", "l2")
-        
-        if optimizer == "sgd":
+        use_sgd = params.get("useSGD", False)
+        reg_map = {
+            'none': None,
+            'ridge': 'l2',
+            'lasso': 'l1',
+            'elasticnet': 'elasticnet',
+            'lars': 'l1',  # or None depending on context
+        }
+        regularization = params.get("regularization", 'none')
+
+        if use_sgd:
             return lm.SGDRegressor(
                 loss=loss,
-                penalty=regularization,
-                max_iter=config.epochs
+                penalty=reg_map[regularization],
+                max_iter=config.epochs,
+                l1_ratio=config.l1_ratio
             )
         
         if loss == "squared_loss":
             return ARLinearRegressor(
                 regularization_method=regularization,
                 alpha=params.get("alpha", 1.0),
-                max_iter=config.epochs
+                max_iter=config.epochs,
+                l1_ratio=config.l1_ratio
             )
         elif loss == "huber":
             return lm.HuberRegressor(
@@ -373,12 +455,12 @@ class ModelTrainer:
         if len(X_train) < 2:
             raise ValueError("Insufficient data for training")
         
-        self.num_classes = y_train.nunique()
+        self.num_classes = y_train.nunique().item()
 
         self.X_train = X_train.to_numpy()
         self.X_test = X_test.to_numpy()
-        self.y_train = y_train.to_numpy()
-        self.y_test = y_test.to_numpy()
+        self.y_train = y_train.to_numpy().ravel()
+        self.y_test = y_test.to_numpy().ravel()
     
     def train(self) -> None:
         """Train the model with the prepared data."""
@@ -450,6 +532,7 @@ class ModelTrainer:
             }
         
         metrics['trainingTime'] = self.trainingTime
+        metrics['problemType'] = self.config.problem_type
 
         return metrics
     
@@ -558,18 +641,24 @@ class ModelTrainer:
         rng = np.random.default_rng(seed=42)  # consistent jitter across runs
         jitter = rng.normal(loc=0.0, scale=jitter_strength, size=grid_points.shape)
         jittered_points = grid_points + jitter
+
+        if self.X_train.shape[1] != 2:
+            compute_points = pca.inverse_transform(jittered_points)
+        else:
+            compute_points = jittered_points
         
         if hasattr(self.model, 'predict_proba'):
-            Z_prob = self.model.predict_proba(jittered_points)
+            Z_prob = self.model.predict_proba(compute_points)
             if len(Z_prob.shape) == 2 and Z_prob.shape[1] > 1:
                 predicted_classes = np.argmax(Z_prob, axis=1)
             else:
                 predicted_classes = (Z_prob > 0.5).astype(int)
         else:
-            predicted_classes = self.model.predict(jittered_points)
+            predicted_classes = self.model.predict(compute_points)
         
-        if pca != None:
-            predicted_classes = pca.transform(predicted_classes)
+        
+        """ if pca != None:
+            predicted_classes = pca.transform(predicted_classes) """
 
         return {
             'decisionBoundary': jittered_points.tolist(),
@@ -601,10 +690,9 @@ def create_train_save_model(config: Dict[str, Any]) -> Dict[str, Any]:
     try:
         param_conf : dict[str, any] = config['parameters']
         param_conf['epochs'] = config['epochs']
+        param_conf['model_type'] = config['modelType']
         trainer = ModelTrainer(param_conf)
         # measure time to train the model
-        import time
-        start_time = time.time()
         # Load data
         dataDir = config['wfDir']
         X_train = safe_read_csv(dataDir + '\\Xtrain.csv')
@@ -614,29 +702,36 @@ def create_train_save_model(config: Dict[str, Any]) -> Dict[str, Any]:
 
         trainer.prepare_data(X_train=X_train, X_test=X_test, y_train=y_train, y_test=y_test)
         trainer.train()
-        end_time = time.time()
 
         evaluation = trainer.evaluate(advanced_metrics=True, compute_decision_boundary=True)
         score = f'R2: {evaluation["r2"]}' if trainer.config.problem_type == 'regress' else f'Accuracy: {evaluation["accuracy"]}'
-
-        from serialize import save_model, load_metadata_object, save_metadata_object
+        evaluation = sanitize_for_json(evaluation)
+        from serialize import save_model, load_metadata_object, save_metadata_object, save_model_training_data
         metadata = load_metadata_object(config['wfDir'])
-        save_model(model=trainer.model, model_type=config['modelType'], metadata_dict=metadata, save_dir=config['wfDir'], metrics=score, hyperparameters=config['parameters'])
+        save_model(model=trainer.model, 
+                   config=trainer.config,
+                   model_type=config['modelType'], 
+                   metadata_dict=metadata, 
+                   save_dir=config['wfDir'], 
+                   baseMetric=score, 
+                   hyperparameters=config['parameters'])
         save_metadata_object(metadata, config['wfDir'])
+        save_model_training_data(config['modelType'], evaluation, config['wfDir'])
+
         return evaluation
     except Exception as e:
         raise RuntimeError(f"Error in model creation, training and saving: {e.__str__()}")
     
+from serialize import load_model, load_metadata_object
+from sklearn.preprocessing import LabelEncoder
+from sklearn.compose import ColumnTransformer
+import os
+import joblib
 
 def load_model_and_infer(config: dict[str, any]):
     
-    from serialize import load_model, load_metadata_object
-    from sklearn.preprocessing import LabelEncoder
-    from sklearn.compose import ColumnTransformer
-    import os
-    import joblib
 
-    model_type = config['model_type']
+    model_type = config['modelType']
     wfDir = config['wfDir']
     metadata_dict = load_metadata_object(wfDir)
     model, model_config = load_model(model_type=model_type, metadata_dict=metadata_dict)

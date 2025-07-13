@@ -2,7 +2,7 @@ import React from 'react';
 import { Tooltip, Typography } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { SettingControl as SettingControlType } from './types';
-import {SliderControl, SwitchControl, SelectControl, NumberControl, ListControl, CheckboxControl} from './Controls';
+import {SliderControl, SwitchControl, SelectControl, NumberControl, ListControl, CheckboxControl, StringControl} from './Controls';
 
 interface SettingControlProps {
   control: SettingControlType;
@@ -25,6 +25,8 @@ const SettingControl: React.FC<SettingControlProps> = ({ control }) => {
         return <ListControl control={control} />;
       case 'checkbox':
         return <CheckboxControl control={control} />;
+      case 'string':
+        return <StringControl control={control} />
       default:
         return null;
     }

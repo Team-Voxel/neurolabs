@@ -141,8 +141,8 @@ const Stepper: React.FC<StepperProps> = ({ steps, currentStep, onStepChange }) =
               className="w-full flex-shrink-0 px-2"
               aria-hidden={index !== currentStep}
             >
-              <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-2 h-full  min-h-[400px]">
-                <div className="flex-1 flex min-h-full py-4">
+              <div className="flex bg-white rounded-xl shadow-sm border border-gray-200 p-0  h-full w-full min-h-[400px]">
+                <div className="flex-1 w-full flex min-h-full py-4">
                   {step.content}
                 </div>
               </div>

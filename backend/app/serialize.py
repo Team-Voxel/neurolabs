@@ -9,7 +9,14 @@ from typing import Union, Dict, Any
 from models import ModelConfig, ModelFactory
 
 
-def save_model(model: Union[_BaseMLP, BaseEstimator], config: ModelConfig, model_type: str, metadata_dict: dict, save_dir: str, baseMetric: str, hyperparameters: dict) -> dict:
+def save_model(
+        model: Union[_BaseMLP, BaseEstimator], 
+        config: ModelConfig, 
+        model_type: str, 
+        metadata_dict: dict, 
+        save_dir: str, 
+        baseMetric: str, 
+        hyperparameters: dict) -> dict:
     """
     Saves a PyTorch or scikit-learn model to disk and updates a metadata dictionary.
 
@@ -137,3 +144,17 @@ def save_metadata_object(metadata_dict: dict, data_dir: str) -> None:
     metadata_path = os.path.join(data_dir, 'metadata.json')
     with open(metadata_path, 'w') as f:
         json.dump(metadata_dict, f)
+
+
+def save_model_training_data(model_type: str, data: dict, data_dir: str) -> None:
+    """
+    Saves model training data to a JSON file.
+
+    Args:
+        model_type (str): The type of the model.
+        data (dict): The training data to save.
+        data_dir (str): The directory where the data will be saved.
+    """
+    file_path = os.path.join(data_dir, f"{model_type}_data.json")
+    with open(file_path, 'w') as f:
+        json.dump(data, f)

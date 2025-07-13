@@ -4,7 +4,6 @@ import Settings from '../../components/settings/Settings';
 import { SettingControl as SettingControlType, SelectOption } from '../../components/settings/types';
 import {generateDatasetPreview, generateSummaryFromFile} from '../../backend_api/data_api';
 import type { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
-import { useWorkflowStore } from '../../AppState';
 import { ipcMain } from 'electron';
 
 

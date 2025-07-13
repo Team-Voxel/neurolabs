@@ -1,4 +1,4 @@
-export type ControlType = 'slider' | 'switch' | 'select' | 'number' | 'list' | 'checkbox';
+export type ControlType = 'slider' | 'switch' | 'select' | 'number' | 'list' | 'checkbox' | 'string';
 
 export interface SelectOption {
   label: string;
@@ -16,6 +16,7 @@ export interface BaseSettingControl {
 
 export interface SliderSettingControl extends BaseSettingControl {
   type: 'slider';
+  isLogarithmic?: boolean;
   value: number;
   min: number;
   max: number;
@@ -54,13 +55,21 @@ export interface CheckboxSettingControl extends BaseSettingControl {
   controlType: 'checkbox' | 'switch';
 }
 
+export interface StringSettingControl extends BaseSettingControl {
+  type: 'string';
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}
+
 export type SettingControl =
   | SliderSettingControl
   | SwitchSettingControl
   | SelectSettingControl
   | NumberSettingControl
   | ListSettingControl
-  | CheckboxSettingControl;
+  | CheckboxSettingControl
+  | StringSettingControl;
 
 export interface SettingsProps {
   controls: SettingControl[];
