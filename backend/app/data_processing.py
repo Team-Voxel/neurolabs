@@ -520,7 +520,7 @@ def apply_preprocess_to_dataset(config : Dict):
     df = fill_missing_values(df, config.get('impute', 'mean'))
     preprocess_dataframe(df, config.get('target'), config.get('wfDir'), test_size=0.2, random_state=42, encoding_strategy='ordinal', scaling_strategy=scaling_strategy)
 
-    json.dump({}, open(config.get('wfDir', '') + '\\model_metadata.json', 'w'))
+    json.dump({}, open(config.get('wfDir', '') + '\\metadata.json', 'w'))
     return True
 
 

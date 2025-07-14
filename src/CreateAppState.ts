@@ -35,7 +35,7 @@ export function createAppStateInstance() : Promise<AppState> {
             return JSON.parse(bytes) as DatasetMetadata;
         },
         getCurrentModelMetadata: async (): Promise<Record<string, ModelMetadata>> => {
-            const modelMetadataPath = path.join(appState.current!.wfDir, 'model_metadata.json');
+            const modelMetadataPath = path.join(appState.current!.wfDir, 'metadata.json');
             const bytes = await fs.readFile(modelMetadataPath, 'utf-8');
             return JSON.parse(bytes) as Record<string, ModelMetadata>;
         },

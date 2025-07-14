@@ -691,6 +691,9 @@ def create_train_save_model(config: Dict[str, Any]) -> Dict[str, Any]:
     """Main function to create, train and save a model."""
     try:
         param_conf : dict[str, any] = config['parameters']
+        if 'model_type' in param_conf:
+            del config['parameters']['model_type']
+        param_conf['model_type'] = config['modelType']
         param_conf['epochs'] = config['epochs']
         param_conf['model_type'] = config['modelType']
         trainer = ModelTrainer(param_conf)
@@ -742,21 +745,90 @@ def load_model_and_infer(config: dict[str, any]):
     target_encoder_path = wfDir + '\\target_encoder.joblib'
 
 
-    preprocessor : ColumnTransformer = joblib.load(preprocessor_path)
-
+    preprocessor: ColumnTransformer = joblib.load(preprocessor_path)
+    
+    # Prepare input data
     X_pred = config['xPred']
-
     input_df = pd.DataFrame([X_pred])
+    
+    # Transform the input
+    X_pred_transformed = preprocessor.transform(input_df)
+    
+    # Make prediction
+    y_pred = model.predict(X_pred_transformed)
+    
+    # Initialize result dictionary
+    result = {}
+    
+    # Handle probabilities if available
+    if hasattr(model, 'predict_proba'):
+        probas = model.predict_proba(X_pred_transformed)[0]  # Get first (and only) prediction
+        
+        # Load target encoder if it exists
+        if os.path.exists(target_encoder_path):
+            target_enc: LabelEncoder = joblib.load(target_encoder_path)
+            class_names = target_enc.classes_
+            
+            # Create probability dictionary with class names
+            probas_dict = {class_name: float(prob) for class_name, prob in zip(class_names, probas)}
+            
+            # Get predicted class name
+            predicted_class_idx = np.argmax(probas)
+            predicted_class = class_names[predicted_class_idx]
+            
+            result['prediction'] = predicted_class
+            result['probas'] = probas_dict
+        else:
+            # No target encoder - handle binary classification
+            if len(probas) == 2:
+                # Binary classification
+                result['prediction'] = str(y_pred[0])
+                result['probas'] = {
+                    "0": float(probas[0]),
+                    "1": float(probas[1])
+                }
+            else:
+                # Multi-class without encoder
+                predicted_class_idx = np.argmax(probas)
+                result['prediction'] = str(predicted_class_idx)
+                result['probas'] = {str(i): float(prob) for i, prob in enumerate(probas)}
+    else:
+        # No probabilities available
+        if os.path.exists(target_encoder_path):
+            target_enc: LabelEncoder = joblib.load(target_encoder_path)
+            predicted_class = target_enc.inverse_transform(y_pred)[0]
+            result['prediction'] = predicted_class
+        else:
+            result['prediction'] = str(y_pred[0])
+        
+        result['probas'] = None
+    
+    return result
+
+
+
+
+
+
+
+
+""" features = preprocessor.get_feature_names_out
     features = input_df.columns.tolist()
     input_df = input_df[features]
-    """ input_arr = input_df.to_numpy()
-    print(input_arr) """
+    
     X_pred = preprocessor.transform(input_df)
 
     y_pred = model.predict(X_pred)
+
+    if hasattr(model, 'predict_proba'):
+        probas = model.predict_proba(X_pred)
+        if len(probas.shape) == 2 and probas.shape[1] > 1:
+            probas = np.argmax(probas, axis=1)
+        else:
+            y_pred = (probas > 0.5).astype(int)
 
     if os.path.exists(target_encoder_path):
         target_enc : LabelEncoder = joblib.load(target_encoder_path)
         y_pred = target_enc.inverse_transform(y_pred)[0]
 
-    return {'prediction': f'{y_pred}'}
+    return {'prediction': f'{y_pred}'} """

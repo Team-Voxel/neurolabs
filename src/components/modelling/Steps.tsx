@@ -1,5 +1,5 @@
-import React, { useEffect, useReducer, useState } from 'react';
-import { Typography, Card, Tooltip, Flex, Button, message } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Typography, Card, Tooltip, message, Button } from 'antd';
 import { SettingControl } from '../settings/types';
 import Settings from '../settings/Settings';
 import { BrainCog } from 'lucide-react';
@@ -7,17 +7,14 @@ import { CircularProgressBar } from '../ProgressBar';
 import { SquareButton } from '../IconButton';
 import { useFakeProgress } from '../../lib/fakeProgress';
 import InteractiveList from '../InteractiveList';
-import {Slider} from '../StyledSlider';
-import { DatasetMetadata, ModelTrainingInfo } from '../../backend_api/types';
+import { DatasetMetadata, ModelMetadataDict, ModelPrediction, ModelTrainingInfo } from '../../backend_api/types';
 import { Slider as RangeSlider, Statistic} from 'antd';
 import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import {LineAreaChart} from '../plotting/LineAreaChart';
 import { Workflow } from '../../AppState';
-import { ModelType } from './ModelContext';
 import { makeInference } from '../../backend_api/data_api';
-import { data } from 'react-router-dom';
 import { ReactComponent as KNN }from '../../assets/knn.svg';
-import { title } from 'process';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 
 export interface AlgorithmSelectionProps {
     onAlgorithmChange: (algorithm: string) => void;
@@ -39,7 +36,7 @@ const descriptions: Record<string, any> = {
 }
 
 export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgorithmChange, problemType }) => {
-    const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>('svm');
+    const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>(problemType === 'regress' ? 'linear_simple' : 'logistic_simple');
     const onChangeAlgorithm = (algorithm: string) => {
         setSelectedAlgorithm(algorithm);
         onAlgorithmChange(algorithm);
@@ -77,10 +74,10 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
             </div>
                 
             <div className='flex-1 flex flex-row items-center justify-between w-full h-full'>
-                <div className='flex h-full p-2'>
+                <div className='flex h-full p-2 border-r'>
                 <InteractiveList items={filteredAlgorithms} onSelect={onChangeAlgorithm} selectedItems={[selectedAlgorithm]}/>
                 </div>
-                <div className='flex-1 flex flex-col border h-full p-2'>
+                <div className='flex-1 flex flex-col h-full p-2'>
                     <div><KNN/>     </div>
                     <div className='flex flex-col gap-2 border-t'>
                         <Typography.Title level={4}>{descriptions[selectedAlgorithm].label}</Typography.Title>
@@ -105,14 +102,12 @@ const modelParameterInitialState: Record<string, Record<string, any>> = {
         useSGD: false,
     },
     logistic_fs: {
-        epochs: 1000,
         regularization: 'none',
         alpha: 1,
     },
     svm: {
         kernel: 'rbf',
         C: 1,
-        epochs: 1000
     },
     tree: {
         criterion: 'gini',
@@ -140,7 +135,6 @@ const modelParameterInitialState: Record<string, Record<string, any>> = {
         activation: 'relu',
         optimizer: 'adam',
         learningRate: 0.001,
-        epochs: 1000,
         batchSize: 32
     },
     nb: {
@@ -153,6 +147,16 @@ const modelParameterInitialState: Record<string, Record<string, any>> = {
 export const ParameterInterface : React.FC<{ model_type: string, onChange: (parameters: Record<string, any>) => void }> = ({model_type, onChange}) => {
     
     const [controls, setControls] = useState<Record<string, Record<string, any>>>(modelParameterInitialState);
+    const [modelMetadataDict, setModelMetadataDict] = useState<ModelMetadataDict>({});
+
+    const fetchModelMetadata = () => {
+            window.stateAPI.getModelMetadata().then((metadata) => {
+                setModelMetadataDict(metadata);
+            }).catch((error) => {
+                message.error('Failed to load model metadata: ' + error.message);
+            });
+        }
+
     const setParam = (model: string, param: string, value: any) => {
         setControls(prev => ({
             ...prev,
@@ -166,6 +170,11 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
     const getParam = (model: string, param: string) => {
         return controls[model] ? controls[model][param] : undefined;
     }
+
+    useEffect(() => {
+        onChange(controls[model_type]);
+        fetchModelMetadata();
+    }, []);
 
     const modelParameters : Record<string, SettingControl[]> = {
         linear_simple: [
@@ -292,17 +301,6 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
                 onChange: (value) => setParam('svm', 'C', value),
                 tooltip: 'Regularization parameter (C) for SVM'
             },
-            {
-                id: 'epochs',
-                label: 'Epochs',
-                type: 'number',
-                min: 1,
-                max: 10000,
-                step: 100,
-                value: controls['svm']['epochs'] || 1000,
-                onChange: (value) => setParam('svm', 'epochs', value),
-                tooltip: 'Number of training epochs (1000 by default)',
-            }
         ],
         tree: [
             {
@@ -510,17 +508,6 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
                 tooltip: 'Learning rate for the optimizer (0.001 by default)',
             },
             {
-                id: 'epochs',
-                label: 'Epochs',
-                type: 'number',
-                min: 1,
-                max: 10000,
-                step: 100,
-                value: controls['nn']['epochs'] || 1000,
-                onChange: (value) => setParam('nn', 'epochs', value),
-                tooltip: 'Number of training epochs (1000 by default)',
-            },
-            {
                 id: 'batchSize',
                 label: 'Batch Size',
                 type: 'number',
@@ -584,6 +571,19 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
             </div>
             <div className='flex flex-col w-2/3 gap-2'>
                 <Typography.Title level={3} className='text-gray-800'>Training History</Typography.Title>
+                <div className='grid grid-cols-2 gap-2 overflow-y-auto'>
+                {modelMetadataDict && modelMetadataDict[model_type] && modelMetadataDict[model_type].snapshots.map((snapshot, index) => (
+                    <Card key={index} className='mb-2'>
+                        <div className='flex flex-col'>
+                        <Typography.Text>{`date: ${snapshot.date}`}</Typography.Text>
+                        {Object.keys(snapshot.hyperParameters).map((key, i) => (
+                            <Typography.Text>{`${key}: ${snapshot.hyperParameters[key]}`}</Typography.Text>
+                        ))}
+                        <Typography.Text>{snapshot.baseMetric}</Typography.Text>
+                        </div>
+                    </Card>
+                ))}
+                </div>
             </div>
         </div>
     );
@@ -751,38 +751,53 @@ export const EvaluationInterface: React.FC<{trainingData:ModelTrainingInfo | nul
     );
 }
 
+export interface InferenceInterfaceProps {
+    datasetData: DatasetMetadata | null;
+    workflow: Workflow | null;
+    modelType: string;
+    featureImportances: Record<string, number>;
+}
 
-export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, workflow: Workflow | null, modelType: string}> = ({datasetData, workflow, modelType}) => {
+export const InferenceInterface: React.FC<InferenceInterfaceProps> = ({
+    datasetData, 
+    workflow, 
+    modelType, 
+    featureImportances
+}) => {
     
     const [inputData, setInputData] = useState<Record<string, any>>({});
     const numericCols = datasetData?.columns.filter(col => datasetData?.columnTypes[col] === 'num') || [];
     const categoricalCols = datasetData?.columns.filter(col => datasetData?.columnTypes[col] === 'cat') || [];
-    const [prediction, setPrediction] = useState<any>(null);
+    const [prediction, setPrediction] = useState<ModelPrediction | null>(null);
+    const [probas, setProbas] = useState<{ class: string; probability: number; }[]>([]);
+    const [modelMetadataDict, setModelMetadataDict] = useState<ModelMetadataDict>({});
+
+    const fetchModelMetadata = () => {
+            window.stateAPI.getModelMetadata().then((metadata) => {
+                setModelMetadataDict(metadata);
+            }).catch((error) => {
+                message.error('Failed to load model metadata: ' + error.message);
+            });
+        }
 
     useEffect(() => {
-        const result = {};
-        for (const col in datasetData?.columns){
+        const result: Record<string, any> = {};
+        for (const col of datasetData?.columns || []) {
             if (datasetData?.columnTypes[col] === 'num' && !inputData[col]) {
-                result[col] = datasetData?.numericalInfo[col]?.min || 0;
-            }
-            else if (datasetData?.columnTypes[col] === 'cat' && !inputData[col]) {
-                result[col] = datasetData?.categoricalInfo[col]?.values[0] || '';
+                result[col] = datasetData?.numericalInfo[col]?.min ?? 0;
+            } else if (datasetData?.columnTypes[col] === 'cat' && !inputData[col]) {
+                result[col] = datasetData?.categoricalInfo[col]?.values[0] ?? '';
             }
         }
         console.log('Initial Input Data:', result);
-/* 
-        const numInits = numericCols.map(col => ({
-            [col]: datasetData?.numericalInfo[col]?.min || 0
-        }));
-        const catInits = categoricalCols.map(col => ({
-            [col]: datasetData?.categoricalInfo[col]?.values[0] || ''
-        })); */
         setInputData(result);
+
+        fetchModelMetadata();
     }, []);
     
     const catControls: SettingControl[] | undefined = categoricalCols.map((str) => ({
         id: str,
-        label: str.charAt(0).toUpperCase() + str.slice(1), // Capitalize first letter
+        label: `${str.charAt(0).toUpperCase() + str.slice(1)} (Contribution: ${(featureImportances[str] * 100).toFixed(2)}%)`, // Capitalize first letter
         type: 'select',
         value: inputData[str],
         options: datasetData?.categoricalInfo[str]?.values.map(cat => ({ value: cat, label: cat })) || [],
@@ -797,7 +812,7 @@ export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, 
 
     const numControls: SettingControl[] | undefined = numericCols.map((str) => ({
     id: str,
-    label: str.charAt(0).toUpperCase() + str.slice(1), // Capitalize first letter
+    label: `${str.charAt(0).toUpperCase() + str.slice(1)} (Contribution: ${(featureImportances[str] * 100).toFixed(2)}%)`, // Capitalize first letter
     type: 'slider',
     min: datasetData?.numericalInfo[str]?.min || 0,
     max: datasetData?.numericalInfo[str]?.max || 100,
@@ -809,29 +824,41 @@ export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, 
             [str]: value
         }));
     },
-    tooltip: `Enter value for ${str}`,
+    tooltip: `Select value for ${str}`,
     }));
 
     const settingControls = [...catControls, ...numControls];
+    const request = async () => {
+        try {
+            const body = {
+                xPred: inputData,
+                modelType: modelType,
+                wfDir: workflow?.wfDir,
+            }
+            return await makeInference(body);
+        }
+        catch (error) {
+            console.error('Error making inference:', error);
+        }
+        return null;
+    }
 
     const onMakeInference = () => {
         console.log('Making inference with input data:', inputData);
-        const request = async () => {
-            try {
-                const body = {
-                    xPred: inputData,
-                    modelType: modelType,
-                    wfDir: workflow?.wfDir,
-                }
-                return await makeInference(body);
-            }
-            catch (error) {
-            }
-            
-        }
+        
         request().then((response) => {
-            setPrediction(response);
-            message.success('Inference made successfully!');
+            if (response) {
+                setPrediction(response);
+                if(response.probas){
+                    // Convert every key value pair in the probas array to an array of {class: string, probability: number}
+                    const probasArray = Object.entries(response.probas).map(([key, value]) => ({ class: key, probability: value }));
+                    setProbas(probasArray);
+                    console.log('Probas:', probasArray);
+                }
+                message.success('Inference made successfully!');
+            } else {
+                setPrediction(null);
+            }
         }).catch((error) => {
             message.error('Failed to make inference. Please check your inputs and try again.');
             setPrediction(null);
@@ -840,14 +867,41 @@ export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, 
 
     return (
         <div className='flex-1 flex flex-row gap-4 p-0'>
-            <div className='w-1/2 border-r overflow-y-hidden p-2 pb-8'>
-            <Typography.Title level={3}>Enter Inputs</Typography.Title>
-            {datasetData && workflow && settingControls ? <Settings controls={settingControls} className='gap-2' /> : <Typography.Title>Failed to Load App State</Typography.Title>}
-            </div>
+
+            {modelMetadataDict && modelMetadataDict[modelType] && modelMetadataDict[modelType].snapshots.length > 0 ? (
+            <>
+                <div className='w-1/3 border-r overflow-y-hidden p-2 pb-8'>
+                <div className='flex flex-row justify-between gap-4 px-4'>
+                    <Typography.Title level={3}>Enter Inputs</Typography.Title>
+                    <Button type='primary' onClick={onMakeInference} disabled={!workflow || !datasetData || !settingControls}>Predict</Button>
+                </div>
+                    {datasetData && workflow && settingControls ? <Settings controls={settingControls} className='gap-2 p-4' /> : <Typography.Title>Failed to Load App State</Typography.Title>}
+                </div>
+                <div className='flex-1 flex flex-col justify-center items-start'>
+                    <div className='flex flex-row items-start justify-start py-2 mt-2'>
+                    <Card variant='outlined' size='default'>
+                    <Statistic title='Predicted Value' value={prediction?.prediction} precision={3} className='text-2xl font-bold'/> 
+                    </Card>
+                    </div>
+                    {probas.length !== 0 && <div className='flex-1 flex flex-col w-full h-full gap-2 border rounded-sm mb-2'>
+                        <Typography.Title level={4} className='text-gray-800 pl-4 pt-2'>Class Probabilities</Typography.Title>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={probas} margin={{ top: 20, right: 30, left: 20, bottom: 10}}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis angle={-45} textAnchor="end" height={100} dataKey="class" />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar dataKey="probability" fill="#8884d8" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>}
+                </div>
+            </>
+            ) : (
             <div className='flex-1 flex flex-col justify-center items-center gap-8'>
-                <Typography.Title>{prediction}</Typography.Title>
-                <Button type='primary' size='large' onClick={onMakeInference}>Infer</Button>
-            </div>
+                <Typography.Title level={3} className='text-gray-500'>Model not trained yet</Typography.Title>
+                <Typography.Text>Please train the model first to make inferences.</Typography.Text>
+            </div>)}
         </div>
     );
 }

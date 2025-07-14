@@ -11,7 +11,7 @@ export function createWorkflowInstance(name: string, problemType: string, target
     datafile: path.join(wfDirectory, 'data.csv'),
     edaFile: path.join(wfDirectory, 'edadata.json'),
     datasetMetadataFile: path.join(wfDirectory, 'dataset_metadata.json'),
-    modelMetadataFile: path.join(wfDirectory, 'model_metadata.json'),
+    modelMetadataFile: path.join(wfDirectory, 'metadata.json'),
 
     /* async getEDAFile() {
       const data = await readFile(this.edaFile, 'utf-8');

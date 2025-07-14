@@ -157,18 +157,22 @@ export interface UnsupervisedModelTrainingInfo {
   explainedVariance: number | null;
 }
 
-export interface InferenceData {
-  prediction: string;
+export interface ModelSnapshot {
+  hyperParameters: Record<string, any>;
+  date: string;
+  baseMetric: string; 
 }
 
 export interface ModelMetadata {
-  name: string;
-  type: string;
-  hyperparameters: Record<string, any>;
+  modelType: string;
   path: string;
-  metrics: Record<string, any>;
-  dateTrained: string;
+  config: string;
   lib: string;
+  snapshots: ModelSnapshot[];
+}
+
+export interface ModelMetadataDict {
+  [modelName: string]: ModelMetadata;
 }
 
 export interface DatasetNumerics {
@@ -189,4 +193,10 @@ export interface DatasetMetadata {
   categoricalInfo: Record<string, DatasetCategorics>;
   preprocessorPath: string;
   targetEncoderPath?: string;
+}
+
+
+export interface ModelPrediction {
+  prediction: string;
+  probas: Record<string, number>;
 }
