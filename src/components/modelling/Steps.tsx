@@ -16,7 +16,8 @@ import { Workflow } from '../../AppState';
 import { ModelType } from './ModelContext';
 import { makeInference } from '../../backend_api/data_api';
 import { data } from 'react-router-dom';
-//import {ReactComponent as SVM } from '../../assets/svm.svg';
+import { ReactComponent as KNN }from '../../assets/knn.svg';
+import { title } from 'process';
 
 export interface AlgorithmSelectionProps {
     onAlgorithmChange: (algorithm: string) => void;
@@ -54,7 +55,8 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
         { id: 'forest', title: 'Random Forest' },
         { id: 'knn', title: 'K-Nearest Neighbors' },
         { id: 'gb', title: 'Gradient Boosting' },
-        { id: 'nn', title: 'Neural Network' }
+        { id: 'nn', title: 'Neural Network' },
+        { id: 'nb', title: 'Naive Bayes Classifier'}
     ];
 
 
@@ -63,7 +65,7 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
             return algo.id !== 'linear_simple' && algo.id !== 'linear_fs';
         }
         else if (problemType === 'regress') {
-            return algo.id !== 'logistic_simple' && algo.id !== 'logistic_fs';
+            return algo.id !== 'logistic_simple' && algo.id !== 'logistic_fs' && algo.id !== 'nb';
         }
         return true;
     });
@@ -79,7 +81,7 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
                 <InteractiveList items={filteredAlgorithms} onSelect={onChangeAlgorithm} selectedItems={[selectedAlgorithm]}/>
                 </div>
                 <div className='flex-1 flex flex-col border h-full p-2'>
-                    {/* <div>{React.cloneElement(<SVM/>)}</div> */}
+                    <div><KNN/>     </div>
                     <div className='flex flex-col gap-2 border-t'>
                         <Typography.Title level={4}>{descriptions[selectedAlgorithm].label}</Typography.Title>
                         <Typography.Text>{descriptions[selectedAlgorithm].desc}</Typography.Text>
@@ -140,6 +142,11 @@ const modelParameterInitialState: Record<string, Record<string, any>> = {
         learningRate: 0.001,
         epochs: 1000,
         batchSize: 32
+    },
+    nb: {
+        varSmoothing: 1e-9, // Smoothing parameter for Naive Bayes
+        alpha: 1.0, // Laplace smoothing parameter for Bernoulli Naive Bayes
+        distribution: 'gaussian' // Distribution type for Naive Bayes
     }
 };
 
@@ -524,6 +531,44 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
                 onChange: (value) => setParam('nn', 'batchSize', value),
                 tooltip: 'Batch size for training the neural network (32 by default)',
             }
+        ],
+        nb: [
+            {
+                id: 'distribution',
+                label: 'Distribution Type',
+                type: 'select',
+                options: [
+                    {value: 'gaussian', label: 'Gaussian'},
+                    {value: 'bernoulli', label: 'Bernoulli'},
+                    {value: 'multinomial', label: 'Multinomial'},
+                ],
+                value: controls['nb']['distribution'],
+                onChange: (value) => setParam('nb', 'distribution', value),
+                tooltip: 'Distribution type for Naive Bayes'
+            },
+            {
+                id: 'varSmoothing',
+                label: 'Variance Smoothing',
+                type: 'slider',
+                min: 1e-10,
+                max: 1e-1,
+                step: 1e-10,
+                value: controls['nb']['varSmoothing'] || 1e-9,
+                onChange: (value) => setParam('nb', 'varSmoothing', value),
+                tooltip: 'Variance smoothing parameter for Gaussian Naive Bayes (1e-9 by default)',
+                visible: getParam('nb', 'distribution') === 'gaussian'
+            },
+            {
+                id: 'alpha',
+                label: 'Laplace Smoothing',
+                type: 'slider',
+                min: 0.01,
+                max: 10,
+                step: 0.01,
+                value: controls['nb']['alpha'] || 1.0,
+                onChange: (value) => setParam('nb', 'alpha', value),
+                tooltip: 'Laplace smoothing parameter for Bernoulli Naive Bayes (1.0 by default)',
+            },
         ]
     }
 

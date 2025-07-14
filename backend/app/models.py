@@ -57,6 +57,7 @@ def compute_macro_roc_pr_curves(
     y_scores = np.array(y_scores)
 
     is_multiclass = num_classes > 2
+    print(f"Is multiclass: {is_multiclass}, Number of classes: {num_classes}")
 
     if is_multiclass:
         # Binarize labels against ALL possible classes to keep indices consistent
@@ -389,7 +390,7 @@ class ModelFactory:
         """Create a Naive Bayes model."""
         dist = config.params.get("distribution", "gaussian")
         if dist == "gaussian":
-            return GaussianNB(var_smoothing=config.params.get("var_smoothing", 1e-9))
+            return GaussianNB(var_smoothing=config.params.get("varSmoothing", 1e-9))
         elif dist == "bernoulli":
             from sklearn.naive_bayes import BernoulliNB
             return BernoulliNB(alpha=config.params.get("alpha", 1.0))
@@ -455,13 +456,13 @@ class ModelTrainer:
             
         if len(X_train) < 2:
             raise ValueError("Insufficient data for training")
-        
-        self.num_classes = len(set(y_train))
 
         self.X_train = X_train.to_numpy()
         self.X_test = X_test.to_numpy()
         self.y_train = y_train.to_numpy().ravel().astype(int)
         self.y_test = y_test.to_numpy().ravel().astype(int)
+        
+        self.num_classes = len(np.unique(self.y_train))
     
     def train(self) -> None:
         """Train the model with the prepared data."""

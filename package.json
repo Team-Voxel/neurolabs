@@ -68,6 +68,7 @@
     "zustand": "^5.0.4"
   },
   "devDependencies": {
+    "@svgr/rollup": "^8.1.0",
     "@types/node": "^22.14.0",
     "@types/plotly.js-dist-min": "^2.3.4",
     "@types/react": "^18.3.20",
