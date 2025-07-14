@@ -36,7 +36,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#---------------------------------------Data Generation and Import---------------------------------------
+
 @app.post("/generate_dataset_preview")
 async def generate_dataset_preview(config: Dict):
     summary = generate_and_save_data_return_stats(config)
