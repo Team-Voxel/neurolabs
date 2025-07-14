@@ -1,4 +1,5 @@
 from typing import Dict, Any, List, Optional, Tuple, Union
+import pandas as pd
 import numpy as np
 from dataclasses import dataclass
 from sklearn.decomposition import PCA
@@ -455,12 +456,12 @@ class ModelTrainer:
         if len(X_train) < 2:
             raise ValueError("Insufficient data for training")
         
-        self.num_classes = y_train.nunique().item()
+        self.num_classes = len(set(y_train))
 
         self.X_train = X_train.to_numpy()
         self.X_test = X_test.to_numpy()
-        self.y_train = y_train.to_numpy().ravel()
-        self.y_test = y_test.to_numpy().ravel()
+        self.y_train = y_train.to_numpy().ravel().astype(int)
+        self.y_test = y_test.to_numpy().ravel().astype(int)
     
     def train(self) -> None:
         """Train the model with the prepared data."""
@@ -743,7 +744,13 @@ def load_model_and_infer(config: dict[str, any]):
     preprocessor : ColumnTransformer = joblib.load(preprocessor_path)
 
     X_pred = config['xPred']
-    X_pred = preprocessor.transform(X_pred)
+
+    input_df = pd.DataFrame([X_pred])
+    features = input_df.columns.tolist()
+    input_df = input_df[features]
+    """ input_arr = input_df.to_numpy()
+    print(input_arr) """
+    X_pred = preprocessor.transform(input_df)
 
     y_pred = model.predict(X_pred)
 

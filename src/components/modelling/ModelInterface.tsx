@@ -107,7 +107,7 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
         {
             id: 'training',
             title: 'Training',
-            content: <TrainInterface onClickTrain={onClickTrain} state={state} trainingData={trainingData} />
+            content: <TrainInterface onClickTrain={onClickTrain} state={state} trainingData={trainingData} modelType={algorithm}/>
         },
         {
             id: 'evaluation',
@@ -117,7 +117,7 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
         {
             id: 'inference',
             title: 'Make Predictions',
-            content: <InferenceInterface datasetData={datasetMeta} workflow={currentWf} />
+            content: <InferenceInterface datasetData={datasetMeta} workflow={currentWf} modelType={algorithm}/>
         }
     ];
     

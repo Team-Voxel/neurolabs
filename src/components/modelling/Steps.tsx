@@ -1,5 +1,5 @@
-import React, { useReducer, useState } from 'react';
-import { Typography, Card, Tooltip, Flex, Button } from 'antd';
+import React, { useEffect, useReducer, useState } from 'react';
+import { Typography, Card, Tooltip, Flex, Button, message } from 'antd';
 import { SettingControl } from '../settings/types';
 import Settings from '../settings/Settings';
 import { BrainCog } from 'lucide-react';
@@ -13,24 +13,28 @@ import { Slider as RangeSlider, Statistic} from 'antd';
 import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import {LineAreaChart} from '../plotting/LineAreaChart';
 import { Workflow } from '../../AppState';
+import { ModelType } from './ModelContext';
+import { makeInference } from '../../backend_api/data_api';
+import { data } from 'react-router-dom';
+//import {ReactComponent as SVM } from '../../assets/svm.svg';
 
 export interface AlgorithmSelectionProps {
     onAlgorithmChange: (algorithm: string) => void;
     problemType: 'classify' | 'regress';
 }
 
-const descriptions: Record<string, string> = {
-    'linear_simple': 'Predicts continuous values using a linear relationship between features and target. It fits a straight line by minimizing the sum of squared errors between predictions and actual values. Best for simple, low-dimensional data but sensitive to outliers and irrelevant features.',
-    'linear_fs': 'Adds regularization (Lasso/Ridge) to predict continuous values while automatically shrinking or eliminating unimportant features. Reduces overfitting in high-dimensional data. Lasso zeros weak features; Ridge handles correlated predictors.',    
-    'logistic_simple': 'Predicts class probabilities (e.g., spam/not-spam) by fitting an S-shaped curve (sigmoid) to linear feature relationships. Simple and interpretable but struggles with complex patterns. Requires scaled features.',
-    'logistic_fs': 'Classifies outcomes using regularization (L1/L2) to discard irrelevant features during training. Ideal for high-dimensional data (e.g., text). Lasso forces weak coefficients to zero, simplifying the model.',
-    'svm': 'Finds the optimal hyperplane that maximally separates classes. Uses "support vectors" (critical data points) and kernels (e.g., RBF) for non-linear boundaries. Effective for clear-margin problems but slow on large datasets.',
-    'tree': 'Builds a flowchart-like structure by splitting data on feature values to minimize impurity (e.g., Gini index). Highly interpretable but prone to overfitting. Use for intuitive, non-linear decisions.',
-    'forest': 'Ensemble of decision trees trained on random data subsets/features. Averages results to reduce overfitting and boost accuracy. Robust and versatile but less interpretable than single trees.',
-    'knn': 'Classifies/regresses based on majority vote or average of the K closest data points. Simple and training-free but computationally heavy for large data. Sensitive to *k* and distance metrics.',
-    'gb': 'Sequentially combines weak learners (usually trees), each correcting its predecessor’s errors. High accuracy for structured data but requires careful tuning. XGBoost/LightGBM are popular variants.',
-    'nn': 'Universal function approximators. They mimics the brain’s neurons using interconnected layers (input/hidden/output). Learns complex patterns via forward passes and backpropagation.',
-    'nb': 'Classifies by applying Bayes’ theorem with strong independence assumptions. Fast and effective for text classification but assumes features are independent, which is often not true.',
+const descriptions: Record<string, any> = {
+    linear_simple: {label:'Linear Regression', desc: 'Predicts continuous values using a linear relationship between features and target. It fits a straight line by minimizing the sum of squared errors between predictions and actual values. Best for simple, low-dimensional data but sensitive to outliers and irrelevant features.'},
+    linear_fs: {label:'Linear Regression (with Feature Selection)', desc: 'Adds regularization (Lasso/Ridge) to predict continuous values while automatically shrinking or eliminating unimportant features. Reduces overfitting in high-dimensional data. Lasso zeros weak features; Ridge handles correlated predictors.'},    
+    logistic_simple: {label:'Logistic Regression', desc:'Predicts class probabilities (e.g., spam/not-spam) by fitting an S-shaped curve (sigmoid) to linear feature relationships. Simple and interpretable but struggles with complex patterns. Requires scaled features.'},
+    logistic_fs: {label:'Logistic Regression (with Feature Selection)', desc: 'Classifies outcomes using regularization (L1/L2) to discard irrelevant features during training. Ideal for high-dimensional data (e.g., text). Lasso forces weak coefficients to zero, simplifying the model.'},
+    svm: {label: 'Support Vector Machine', desc:'Finds the optimal hyperplane that maximally separates classes. Uses "support vectors" (critical data points) and kernels (e.g., RBF) for non-linear boundaries. Effective for clear-margin problems but slow on large datasets.'},
+    tree: {label:'Decision Tree', desc: 'Builds a flowchart-like structure by splitting data on feature values to minimize impurity (e.g., Gini index). Highly interpretable but prone to overfitting. Use for intuitive, non-linear decisions.'},
+    forest: {label: 'Random Forest', desc: 'Ensemble of decision trees trained on random data subsets/features. Averages results to reduce overfitting and boost accuracy. Robust and versatile but less interpretable than single trees.'},
+    knn: {label: 'K Nearest Neighbors', desc:'Classifies/regresses based on majority vote or average of the K closest data points. Simple and training-free but computationally heavy for large data. Sensitive to *k* and distance metrics.'},
+    gb: {label:'Gradient Boosting', desc:'Sequentially combines weak learners (usually trees), each correcting its predecessor’s errors. High accuracy for structured data but requires careful tuning. XGBoost/LightGBM are popular variants.'},
+    nn: {label:'Artificial Neural Network', desc: 'Universal function approximators. They mimics the brain’s neurons using interconnected layers (input/hidden/output). Learns complex patterns via forward passes and backpropagation.'},
+    nb: {label:'Naive Bayes Classifier', desc:'Classifies by applying Bayes’ theorem with strong independence assumptions. Fast and effective for text classification but assumes features are independent, which is often not true.'},
 }
 
 export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgorithmChange, problemType }) => {
@@ -75,8 +79,11 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
                 <InteractiveList items={filteredAlgorithms} onSelect={onChangeAlgorithm} selectedItems={[selectedAlgorithm]}/>
                 </div>
                 <div className='flex-1 flex flex-col border h-full p-2'>
-                    <div>Image</div>
-                    <div>Desc</div>
+                    {/* <div>{React.cloneElement(<SVM/>)}</div> */}
+                    <div className='flex flex-col gap-2 border-t'>
+                        <Typography.Title level={4}>{descriptions[selectedAlgorithm].label}</Typography.Title>
+                        <Typography.Text>{descriptions[selectedAlgorithm].desc}</Typography.Text>
+                    </div>
                 </div>
             </div>
         </div>
@@ -542,15 +549,17 @@ export interface TrainInterfaceProps {
     onClickTrain: (epochs: number) => void;
     state: 'training' | 'ready' | 'trained';
     trainingData?: ModelTrainingInfo | null;
+    modelType: string;
 }
 
-export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, state, trainingData}) => {
+export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, state, trainingData, modelType}) => {
     //const [progress, setProgress] = useState(0);
     const progress = useFakeProgress(state);
-    const [epochs, setEpochs] = useState<number>(1);
+    const [epochs, setEpochs] = useState<number>(100);
+    const showEpochs = state === 'ready' && (modelType === 'linear_simple' || modelType === 'linear_fs' || modelType === 'logistic_simple' || modelType === 'logistic_fs' || modelType === 'svm' || modelType === 'gb' || modelType === 'nn');
 
     return (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center p-10 gap-8">
             {state === 'training' && (
                 <CircularProgressBar
                 progress={progress}
@@ -570,17 +579,20 @@ export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, sta
                 size={250}
                 onClick={() => onClickTrain(epochs)}
                 />
-                <RangeSlider min={1} max={1000} step={1} value={epochs} onChange={(value) => setEpochs(value[0])} className="w-full" />
                 </div>
             )}
             {state === 'trained' && (
-                <>
+                <div className='flex flex-col items-center gap-4'>
                 <Typography.Title level={3} className="text-green-500">
                 Model Trained Successfully!
                 </Typography.Title>
                 {trainingData && <Typography.Text>{`Model trained in ${trainingData.trainingTime}ms`}</Typography.Text>}
-                </>
+                </div>
             )}
+            {showEpochs && <div className='flex flex-col items-center w-1/2'>
+                <Typography.Title level={5}>Epochs</Typography.Title>
+            <RangeSlider min={1} max={1000} step={1} value={epochs} onChange={(value) => setEpochs(value[0])} className="w-full" />
+            </div>}
             </div>
     );
 }
@@ -695,11 +707,33 @@ export const EvaluationInterface: React.FC<{trainingData:ModelTrainingInfo | nul
 }
 
 
-export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, workflow: Workflow | null}> = ({datasetData, workflow}) => {
+export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, workflow: Workflow | null, modelType: string}> = ({datasetData, workflow, modelType}) => {
     
     const [inputData, setInputData] = useState<Record<string, any>>({});
     const numericCols = datasetData?.columns.filter(col => datasetData?.columnTypes[col] === 'num') || [];
     const categoricalCols = datasetData?.columns.filter(col => datasetData?.columnTypes[col] === 'cat') || [];
+    const [prediction, setPrediction] = useState<any>(null);
+
+    useEffect(() => {
+        const result = {};
+        for (const col in datasetData?.columns){
+            if (datasetData?.columnTypes[col] === 'num' && !inputData[col]) {
+                result[col] = datasetData?.numericalInfo[col]?.min || 0;
+            }
+            else if (datasetData?.columnTypes[col] === 'cat' && !inputData[col]) {
+                result[col] = datasetData?.categoricalInfo[col]?.values[0] || '';
+            }
+        }
+        console.log('Initial Input Data:', result);
+/* 
+        const numInits = numericCols.map(col => ({
+            [col]: datasetData?.numericalInfo[col]?.min || 0
+        }));
+        const catInits = categoricalCols.map(col => ({
+            [col]: datasetData?.categoricalInfo[col]?.values[0] || ''
+        })); */
+        setInputData(result);
+    }, []);
     
     const catControls: SettingControl[] | undefined = categoricalCols.map((str) => ({
         id: str,
@@ -735,6 +769,30 @@ export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, 
 
     const settingControls = [...catControls, ...numControls];
 
+    const onMakeInference = () => {
+        console.log('Making inference with input data:', inputData);
+        const request = async () => {
+            try {
+                const body = {
+                    xPred: inputData,
+                    modelType: modelType,
+                    wfDir: workflow?.wfDir,
+                }
+                return await makeInference(body);
+            }
+            catch (error) {
+            }
+            
+        }
+        request().then((response) => {
+            setPrediction(response);
+            message.success('Inference made successfully!');
+        }).catch((error) => {
+            message.error('Failed to make inference. Please check your inputs and try again.');
+            setPrediction(null);
+        });
+    }
+
     return (
         <div className='flex-1 flex flex-row gap-4 p-0'>
             <div className='w-1/2 border-r overflow-y-hidden p-2 pb-8'>
@@ -742,8 +800,8 @@ export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, 
             {datasetData && workflow && settingControls ? <Settings controls={settingControls} className='gap-2' /> : <Typography.Title>Failed to Load App State</Typography.Title>}
             </div>
             <div className='flex-1 flex flex-col justify-center items-center gap-8'>
-                <Typography.Title>Value</Typography.Title>
-                <Button type='primary' size='large'>Infer</Button>
+                <Typography.Title>{prediction}</Typography.Title>
+                <Button type='primary' size='large' onClick={onMakeInference}>Infer</Button>
             </div>
         </div>
     );

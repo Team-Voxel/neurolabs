@@ -161,5 +161,5 @@ export async function makeInference(config: Record<string, any>): Promise<Infere
       },
     }
   );
-  return response.data;
+  return response.data['prediction'];
 }
