@@ -1,8 +1,8 @@
 import React from 'react';
-import { Tooltip } from 'antd';
+import { Tooltip, Typography } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { SettingControl as SettingControlType } from './types';
-import {SliderControl, SwitchControl, SelectControl, NumberControl} from './Controls';
+import {SliderControl, SwitchControl, SelectControl, NumberControl, ListControl, CheckboxControl, StringControl} from './Controls';
 
 interface SettingControlProps {
   control: SettingControlType;
@@ -21,6 +21,12 @@ const SettingControl: React.FC<SettingControlProps> = ({ control }) => {
         return <SelectControl control={control} />;
       case 'number':
         return <NumberControl control={control} />;
+      case 'list':
+        return <ListControl control={control} />;
+      case 'checkbox':
+        return <CheckboxControl control={control} />;
+      case 'string':
+        return <StringControl control={control} />
       default:
         return null;
     }
@@ -29,17 +35,19 @@ const SettingControl: React.FC<SettingControlProps> = ({ control }) => {
   return (
     <div 
       key={id} 
-      className="flex items-center justify-between p-3 border-b border-gray-200 last:border-0"
+      className="flex flex-col items-center justify-between p-3 border-b border-gray-200 last:border-0"
     >
-      <div className="flex items-center">
-        <div className="font-medium text-gray-800">{label}</div>
+      <div className="flex flex-row items-center justify-start w-full mb-1">
+        <Typography.Text className="font-medium text-gray-800">{label}</Typography.Text>
         {tooltip && (
           <Tooltip title={tooltip} placement="top">
             <InfoCircleOutlined className="ml-2 text-gray-400 hover:text-gray-600 transition-colors" />
           </Tooltip>
         )}
       </div>
+      <div className="w-full">
       {renderControl()}
+      </div>
     </div>
   );
 };

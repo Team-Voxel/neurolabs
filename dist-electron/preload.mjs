@@ -40,9 +40,22 @@ electron.contextBridge.exposeInMainWorld("fsAPI", {
 });
 electron.contextBridge.exposeInMainWorld("wfStore", {
   loadAll: () => electron.ipcRenderer.invoke("wf-load-all"),
+  saveAll: (wfs) => electron.ipcRenderer.invoke("wf-save-all", wfs),
   saveOne: (wf) => electron.ipcRenderer.invoke("wf-save-one", wf),
   deleteOne: (id) => electron.ipcRenderer.invoke("wf-delete-one", id),
-  loadModels: (name) => electron.ipcRenderer.invoke("wf-get-models", name),
-  getWfDir: (name) => electron.ipcRenderer.invoke("wf-get-workflow-dir", name),
-  getPCDFile: (name) => electron.ipcRenderer.invoke("wf-get-pcd-file", name)
+  getWfDir: (name2) => electron.ipcRenderer.invoke("wf-get-workflow-dir", name2),
+  getPCDFile: (name2) => electron.ipcRenderer.invoke("wf-get-pcd-file", name2),
+  getModelMetadata: (wf_name) => electron.ipcRenderer.invoke("wf-get-model-metadata", wf_name),
+  getDatasetMetadata: (wf_name) => electron.ipcRenderer.invoke("wf-get-dataset-metadata", wf_name)
+});
+electron.contextBridge.exposeInMainWorld("stateAPI", {
+  getAppState: () => electron.ipcRenderer.invoke("get-app-state"),
+  getDataPath: () => electron.ipcRenderer.invoke("get-data-path"),
+  copyDataFileToWFDir: (src, wfName) => electron.ipcRenderer.invoke("get-copy-file-to-wfdir", src, wfName),
+  getEDAData: () => electron.ipcRenderer.invoke("get-eda-data", name),
+  getDatasetMetadata: () => electron.ipcRenderer.invoke("get-dataset-metadata", name),
+  getModelMetadata: () => electron.ipcRenderer.invoke("get-model-metadata", name),
+  setCurrentWorkflow: (name2) => electron.ipcRenderer.invoke("set-current-workflow", name2),
+  addNewWorkflowAndSet: (name2, problemType, target) => electron.ipcRenderer.invoke("add-new-workflow-and-set", name2, problemType, target),
+  deleteWorkflow: (name2) => electron.ipcRenderer.invoke("delete-workflow", name2)
 });

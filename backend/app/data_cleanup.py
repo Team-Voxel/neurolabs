@@ -60,20 +60,12 @@ def basic_data_cleanup(df: pd.DataFrame) -> pd.DataFrame:
         # all missing values / empty column
         if ec == df.shape[0]:
             to_drop.append(col)
-            actions[col] = ["error", "Empty prediction column."]
-            """ if col != GLOBAL_PREDICTION_VECTOR:
-                actions[col].append(["drop", col, "Empty column."])
-            else:
-            continue
- """
+            actions[col] = ["drop", col, "Empty column."]
+
         # zero variability
         if nu == 1:
             to_drop.append(col)
-            actions[col] = ["error", "Empty prediction column."]
-            """ if col != GLOBAL_PREDICTION_VECTOR:
-                actions[col].append(["drop", col, "Column has zero variability."])
-            else:
-            continue """
+            actions[col] = ["drop", col, "Column has zero variability."]
 
     # ensure at least one feature besides prediction remains
     feature_count = len(df.columns) - len(to_drop) - 1

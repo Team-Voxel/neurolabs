@@ -1,66 +1,141 @@
 import React, {useState, useEffect} from "react";
-import {VisualModel} from "./VisualModel";
-import { ToggleButton, ToggleButtonGroup } from "@mui/material";
-import { DFOverviewModel } from "./DFOverviewModel";
-import { DistributionModel } from "./DistributionModel";
+import { HomeOutlined, ClusterOutlined, ShrinkOutlined, BoxPlotOutlined, BarChartOutlined } from "@ant-design/icons";
+import { Menu, MenuItem } from "../Menu";
+import { Workflow } from "../../AppState";
+import { message, Typography } from "antd";
+import { StatisticsModel } from "./StatisticsModel";
+import { EDAData, DatasetMetadata } from "../../backend_api/types";
+import { OverviewModel } from "./DFOverviewModel";
 import { RelationsModel } from "./RelationsModel";
-import type { EDAData, DFRelationship, DFStats } from "../../backend_api/types";
-import { useWorkflowStore } from "../../AppState";
+import { FeatureImportance } from "./FeatureImportance";
+import { NumericalDistributions } from "./DistributionModel";
 
+
+//type MenuItem = Required<MenuProps>['items'][number];
+
+const items: MenuItem[] = [
+    {
+      key: 'statistics',
+      label: 'Statistics',
+    },
+    {
+      key: 'overview',
+      label: 'Overview',
+      //icon: <HomeOutlined />,
+    },
+    {
+      key: 'distribution',
+      label: 'Distribution',
+      children: [
+        {
+          key: 'numeric',
+          label: 'Numeric',
+          //icon: <BoxPlotOutlined />,
+        },
+        {
+          key: 'categorical',
+          label: 'Categorical',
+          //icon: <BarChartOutlined />,
+        }
+      ]
+    },
+    {
+      key: 'relations',
+      label: 'Relations',
+      children: [
+        {
+          key: 'correlation',
+          label: 'Correlation',
+        },
+        {
+          key: 'feature-importance',
+          label: 'Feature Importance',
+          //icon: <ShrinkOutlined />,
+        },
+      ]
+    },
+]
 
 export const DataModel: React.FC = () => {
-    const [source, setSource] = useState<string>('generate');
-    const [overview, setOverview] = useState<string>('overview');
-    const [features, setFeatures] = useState<number>(1);
-    const [problem, setProblem] = useState<'regress' | 'classify'>('regress');
-    const [data, setData] = useState<EDAData | null>(null);
-
-    // Use the hook to subscribe to state changes
-    const wfStore = useWorkflowStore();
-
+    const [edaFile, setEdaFile] = useState<EDAData | null>(null);
+    const [datasetMetadata, setDatasetMetadata] = useState<DatasetMetadata | null>(null);
+    const [selected, setSelected] = useState<string>('statistics');
+    const [wfDir, setWfDir] = useState<string>('');
+    
     useEffect(() => {
-        const workflow = wfStore.current;
-        if (workflow) {
-            window.wfStore.getPCDFile(workflow.name).then((pcd) => {
-                setData(pcd);
-            });
+      window.stateAPI.getEDAData().then((data) => {
+        if(data){
+          setEdaFile(data);
         }
+        else{
+          message.error("Critical Error! No EDA file for the current project.");
+        }
+      }).catch((error) => {
+        message.error("Error fetching EDA data: " + error.message);
+      });
+
+      window.stateAPI.getDatasetMetadata().then((metadata) => {
+        if(metadata){
+          setDatasetMetadata(metadata);
+        }
+        else{
+          message.error("Critical Error! No dataset metadata for the current project.");
+        }
+      }).catch((error) => {
+        message.error("Error fetching dataset metadata: " + error.message);
+      });
+
+      window.stateAPI.getAppState().then(({workflows, current}) => {
+        setWfDir(current?.wfDir || '');
+      }).catch((error) => {
+        message.error("Error fetching app state: " + error.message);
+      });
     }, []);
 
-    const handleChange = (
-        event: React.MouseEvent<HTMLElement>,
-        newSource: string,
-    ) => {
-        setSource(newSource);
-    };
     return (
-        <div className="flex flex-col w-full h-full overflow-y-auto bg-white space-y-2">
-            <ToggleButtonGroup
-                color="primary"
-                value={source}
-                exclusive
-                onChange={handleChange}
-                aria-label="Platform"
-                size="small"
-                fullWidth
-            >
-                <ToggleButton fullWidth value={"ov"} aria-label="import">Overview</ToggleButton>
-                <ToggleButton fullWidth value={"dist"} aria-label="generate">Distributions</ToggleButton>
-                <ToggleButton fullWidth value={"rels"} aria-label="import">Relationships</ToggleButton>
-                <ToggleButton fullWidth value={"visual"} aria-label="import">Visualize</ToggleButton>
-            </ToggleButtonGroup>
-            {source === "ov" && (
-                <DFOverviewModel />
-            )}
-            {source === "dist" && (
-                <DistributionModel data={data!.distributions} />
-            )}
-            {source === "rels" && (
-                <RelationsModel />
-            )}
-            {source === "visual" && (
-                <VisualModel problem={problem} features={features} />
-            )}
+        <div className="flex flex-row h-full w-full">
+            <div className="flex flex-col h-full w-1/5">
+              <Menu 
+              items={items} 
+              defaultSelectedKey="statistics"
+              className="h-full w-full"
+              onSelect={(key, item) => {
+                console.log(key, item);
+                setSelected(key);
+              }}
+              />
+            </div>
+            <div className="flex flex-col h-full w-4/5 p-4">
+                {edaFile && (
+                    selected === 'statistics' && <StatisticsModel stats={edaFile.statistics} />
+                )}
+                {edaFile && (
+                    selected === 'overview' && (<div className='flex max-h-full w-full overflow-auto'>
+                              <OverviewModel datasetSummary={edaFile.summary} visible={true} />
+                                </div>)
+                )}
+                {edaFile && (
+                    selected === 'correlation' && (
+                        <div className='flex h-full w-full'>
+                            <RelationsModel rels={edaFile.relationships} cols={edaFile.statistics.columns} />
+                        </div>
+                    )
+                )}
+                {edaFile && (
+                    selected === 'feature-importance' && (
+                        <div className='flex h-full w-full'>
+                            <FeatureImportance relationships={edaFile.relationships} />
+                        </div>
+                    )
+                )}
+                {datasetMetadata && (
+                    selected === 'numeric' && (
+                        <div className='flex h-full w-full'>
+                            <NumericalDistributions dataset={datasetMetadata} wfDir={wfDir}/>
+                        </div>
+                    )
+                )}
+            </div>
         </div>
     );
 }

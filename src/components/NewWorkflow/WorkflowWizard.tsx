@@ -2,30 +2,31 @@ import React, { useState, ChangeEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
-import { Workflow, useWorkflowStore } from '../../AppState';
-import { Button, Splitter} from 'antd';
+import { Button, message, Splitter, Steps, Typography} from 'antd';
 import { ToggleButton, ToggleButtonGroup } from '@mui/material';
-import type { TableColumnsType, TableProps } from 'antd';
-import {generateSummaryFromFile} from '../../backend_api/data_api';
+import {generateSummaryFromFile, applyPreprocess} from '../../backend_api/data_api';
 import type { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
 import Papa, {ParseResult} from 'papaparse';
 import { FileImportFragment } from './FileImportFrag';
 import { FeatureOverview, TargetOverview } from './DatasetPreview';
 import { DataGeneration } from './GenerationUI';
 import { useWaitForComputationStore } from './WaitForComputation';
+import { PreprocessModal } from './Preprocess';
+import { Workflow } from '../../AppState';
 
 
 enum SetupSteps {
     Start = 0,
     SelectFile = 1,
-    Finish = 2
+    Finish = 2,
 }
 
 
 type ColumnHeaderItem = { value: string };
 
 export const WorkflowWizard: React.FC = () => {
-const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
+  const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   const [workflowName, setWorkflowName] = useState<string>('');
   const [nameError, setNameError] = useState<string>('Enter a name');
   const [csvFile, setCsvFile] = useState<File|null>(null);
@@ -36,12 +37,28 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   const [targetColumn, setTargetColumn] = useState<string | null>(null);
   const [problemType, setProblemType] = useState<string>('classify');
 
-  const [wfs, setWfs] = useState<Workflow[]>([]);
+  const [preprocessModalOpen, setPreprocessModalOpen] = useState<boolean>(false);
+  const [preprocessMissingImputation, setPreprocessMissingImputation] = useState<string>("none");
+  const [preprocessOutlierDetection, setPreprocessOutlierDetection] = useState<boolean>(false);
+  const [preprocessFeatureScaling, setPreprocessFeatureScaling] = useState<string>("standardize");
 
   const [doneComputingStats, setDoneComputingStats] = useState<boolean>(false);
+  
+  const handlePreprocess = (missingImputation: string, outlierDetection: boolean, featureScaling: string) => {
+    setPreprocessMissingImputation(missingImputation);
+    setPreprocessOutlierDetection(outlierDetection);
+    setPreprocessFeatureScaling(featureScaling);
+    setPreprocessModalOpen(false);
+    setStep(SetupSteps.Finish);
+  }
 
   useEffect(() => {
-    setWfs(useWorkflowStore.getState().workflows);
+    window.stateAPI.getAppState().then(({workflows, current}) => {
+      setWorkflows(workflows);
+      message.success('Loaded workflows.');
+    }).catch(error => {
+      message.error("Could't load workflows." + error);
+    })
   }, []);
 
   const navigate = useNavigate();
@@ -55,14 +72,12 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
 
   const handleNameChange = (e: ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
-    
     setWorkflowName(name);
-    wfs.forEach((wf) => {
-      if (wf.name === name) {
-        setNameError('Name already exists');
-        return;
-      }
-    });
+    
+    if (workflows.some(item => item.name === name)) {
+      setNameError('Name already exists');
+      return;
+    }
     if (name.length < 3) {
       setNameError('Name too short');
       return;
@@ -136,23 +151,23 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
   }
 
   const addNew = async () => {
-    const wfDir = await window.wfStore.getWfDir(workflowName);
     if (!targetColumn) {
-      throw new Error('Target column is required');
+      message.error('Target column is required');
+      return;
+    }
+    if (!problemType) {
+      message.error('Problem type is required');
+      return;
     }
 
-    const newWf: Workflow = {
-      name: workflowName,
-      description: '',
-      userModels: [],
-      wfDir: wfDir,
-      datafile: `${wfDir}//data.csv`,
-      dataType: 'CSV',
-      problemType: problemType,
-      target: targetColumn,
-    };
-    useWorkflowStore.getState().addNew(newWf);
-    useWorkflowStore.getState().setCurrentByName(workflowName);
+    /* window.stateAPI.addNewWorkflowAndSet(workflowName, problemType, targetColumn).then((wf) => {
+      message.success('Workflow created successfully');
+      setStep(SetupSteps.Finish);
+    }).catch(error => {
+      message.error('Error creating workflow: ' + error.message);
+    }) */
+
+    return;
   };
 
   const handleFinalization = () => {
@@ -165,45 +180,59 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
     }
 
     addNew();
+    let dataPath = '';
     if (dataSource === 'file'){
-        const ext = csvFile!.name.split('.').pop();
-        window.wfStore.getWfDir(workflowName).then((wfdir) => {
-            window.fsAPI.joinPath(wfdir, `data.${ext}`).then((newFileName) => {
-            window.fsAPI.copyFile(csvFile!.path, newFileName).then(() => {
-                console.log('File copied successfully');
-            }).catch((error) => {
-                console.error('Error copying file:', error);
-            });
-            });
-        });
+      if (!csvFile) {
+        message.error('No CSV file selected');
+        return;
+      }
+      dataPath = csvFile.path;
     }
     else {
-      // Read generated data from the temporary data file, copy it to the workflow directory
-      window.fsAPI.getTempDatasetPath().then((tempDataLoc) => {
-        window.wfStore.getWfDir(workflowName).then((wfdir) => {
-          window.fsAPI.joinPath(wfdir, `data.csv`).then((newFileName) => {
-            window.fsAPI.copyFile(tempDataLoc, newFileName).then(() => {
-              console.log('File copied successfully');
-            }).catch((error) => {
-              console.error('Error copying file:', error);
-            });
-          });
-        });
+      window.stateAPI.getDataPath().then(datapath => {
+        dataPath = datapath + 'tempdata.csv';
       });
     }
+    console.log("Data path: ", dataPath);
+    window.stateAPI.copyDataFileToWFDir(dataPath, workflowName).then(() => {
+      message.info('Generated data copied successfully');
+    }).catch((error) => {
+      message.error('Error copying generated data:', error);
+    });
+
+    // apply preprocessing
+    window.wfStore.getWfDir(workflowName).then((wfdir) => {
+      applyPreprocess({
+        impute: preprocessMissingImputation,
+        scale: preprocessFeatureScaling,
+        outlierAction: preprocessOutlierDetection,
+        outlierIndices: dataSummary?.outliers || [],
+        data_path: `${wfdir}\\data.csv`,
+        wfDir: wfdir,
+        target: targetColumn
+      });
+    });
     
     const waitStore = useWaitForComputationStore.getState();
     window.wfStore.getWfDir(workflowName).then((wfdir) => {
-      console.log('state vals: ', wfdir, problemType, targetColumn, `${wfdir}\\data.csv`);
-      waitStore.setAll(wfdir, problemType, targetColumn, `${wfdir}\\data.csv`);
+      waitStore.setAll(workflowName, wfdir, problemType, targetColumn, `${wfdir}\\data.csv`);
     });
 
     navigate('/wait-screen');
   };
 
+  const finalizeImport = () => {
+    if (!dataSummary?.issues.includes("none")) {
+      setPreprocessModalOpen(true);
+    }
+    else {
+      setStep(SetupSteps.Finish);
+    }
+  }
+
   return (
     // top most container
-    <div className="flex flex-col gap-20 h-full justify-center">
+    <div className="flex flex-col gap-4 h-full justify-center">
       {step === SetupSteps.Start && (
         <div>
           <div className='justify-center items-center flex flex-col gap-4'>
@@ -225,25 +254,10 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
         {/* Left side : Selections */}
         <Splitter.Panel min='32%' max='50%' defaultSize={'32%'}>
         <div className='w-full h-full flex flex-col border p-4'>
-          <div className='flex items-center'>
-            <ToggleButtonGroup
-              color="primary"
-              value={dataSource}
-              exclusive
-              onChange={(e, src) => setDataSource(src)}
-              aria-label="Platform"
-              size="small"
-              fullWidth
-            >
-              <ToggleButton fullWidth value="file" aria-label="file">Import</ToggleButton>
-              <ToggleButton fullWidth value="generate" aria-label="generate">Generate</ToggleButton>
-            </ToggleButtonGroup>
-          </div>
-      
           {/* Conditional sections */}
+          <Typography.Title level={2}>Import Data</Typography.Title>
           <div className='flex-grow h-full overflow-hidden'>
-            {dataSource === 'file' &&
-              <FileImportFragment
+           <FileImportFragment
                 datasetSummary={dataSummary}
                 targetColumn={targetColumn || ''}
                 problemType={problemType}
@@ -253,18 +267,8 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
                 onImport={onImportFile}
                 onSelectTargetColumn={(value) => setTargetColumn(value)}
                 onSelectProblemType={(value) => setProblemType(value)}
-                onNext={() => {setStep(SetupSteps.Finish)}}
+                onNext={() => {finalizeImport()}}
                 />
-            }
-      
-            {dataSource === 'generate' && (
-              <DataGeneration
-                onSendRequest={() => {setDoneComputingStats(false)}}
-                onGenerate={onDataGenerate}
-                onBack={handleBack}
-                onNext={() => {setStep(SetupSteps.Finish)}}
-                />
-            )}
           </div>
         </div>
         </Splitter.Panel>
@@ -283,14 +287,15 @@ const [step, setStep] = useState<SetupSteps>(SetupSteps.Start);
       </Splitter>
       )}
       {step === SetupSteps.Finish && (
-        <div className="h-full flex flex-col justify-center items-center">
-          <Box component="form" sx={{ '& > :not(style)': { m: 4, width: '25ch' } }} noValidate autoComplete="off">
-            <h1>Setup Complete!</h1>
+        <div className="h-full flex flex-col justify-center items-center gap-8">
+            <Typography.Title level={2}>Finalize Workflow</Typography.Title>
+            <div className="flex flex-row gap-4 w-full max-w-md">
             <Button block type="primary" onClick={handleBack}>Back</Button>
             <Button block type="primary" onClick={handleFinalization}>Finish</Button>
-          </Box>
+            </div>
         </div>
       )}
+      <PreprocessModal issues={dataSummary?.issues || []} open={preprocessModalOpen} onClose={() => setPreprocessModalOpen(false)} onOk={handlePreprocess} />
     </div>
   );
 }

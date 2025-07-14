@@ -1,4 +1,9 @@
+import os
+import json
+import joblib
+import scipy.stats
 import sklearn.cluster as skc
+import sklearn.compose as skcompose
 import sklearn.preprocessing as skp
 import sklearn.utils as sku
 import sklearn.decomposition as skd
@@ -12,9 +17,16 @@ import pandas as pd
 import numpy as np
 import umap
 from typing import Dict, List, Tuple
-import csv
-from io import StringIO
 from safe_csv import safe_read_csv
+from pandas.api.types import is_numeric_dtype
+
+
+def convert_correlation_dict(corr_dict):
+    result = []
+    for col_name, inner_dict in corr_dict.items():
+        data_points = [value for other_col, value in inner_dict.items()]
+        result.append(data_points)
+    return result
 
 
 def create_simplified_df_for_unsupervised_clustering(config : Dict):
@@ -26,8 +38,8 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
         raise ValueError("The DataFrame has no rows. Please check the data path and content.")
 
     # Apply dim-reduction if the feature count is greater than 2
-    fc = len(df.columns) - 1 # -1 for target column
-    df_viz : pd.DataFrame = df
+    # Deprecated: Dimensionality reduction is not applied any more, but kept for reference.
+    """ fc = len(df.columns) - 1 # -1 for target column
 
     if fc >= 3:
         from sklearn.pipeline import Pipeline
@@ -40,18 +52,17 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
 
         X = pipeline.fit_transform(df.drop(columns=[target_col]))
         df_viz = pd.DataFrame(X, columns=['PC1', 'PC2'], index=df.index)
-        df_viz[target_col] = df[target_col]
+        df_viz[target_col] = df[target_col] """
 
+    df_viz : pd.DataFrame = df.copy()
     # Re-Sample the dataframe to reduce size if necessary
     if config['problem_type'] == 'regression':
-        df_viz = sku.resample(df_viz, n_samples=config['n_samples'], random_state=config['random_state'])
+        df_viz = sku.resample(df_viz, n_samples=min(len(df_viz), config['n_samples']), random_state=config['random_state'])
     else:
-        df_viz, _ = train_test_split(df_viz, stratify=df[config['target']], train_size=config['n_samples'], random_state=config['random_state'])
+        df_viz, _ = train_test_split(df_viz, stratify=df[config['target']], train_size=min(len(df_viz) - 20, config['n_samples']), random_state=config['random_state'])
 
-    # Drop target column if it exists
-    df_viz: pd.DataFrame = df_viz.drop(columns=[config.get('target')], errors='ignore')
-
-    unsupervised_clustering_path = config.get('wfDir', '') + '\\data_usc.csv'
+    # The file is now called reduced_data.csv. (previously data_usc.csv)
+    unsupervised_clustering_path = config.get('wfDir', '') + '\\reduced_data.csv'
 
     df_viz.to_csv(unsupervised_clustering_path, index=False)
     return True
@@ -67,9 +78,9 @@ def create_a_sample_df(config : Dict):
 
     # Re-Sample the dataframe to reduce size if necessary
     if config['problem_type'] == 'regression':
-        df = df.sample(n=config['n_samples'], random_state=config['random_state'])
+        df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
     else:
-        df, _ = train_test_split(df, stratify=df[config['target']],train_size=config['n_samples'], random_state=config['random_state'])
+        df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
     
     # Drop target column if it exists
     df : pd.DataFrame = df.drop(columns=[config.get('target')], errors='ignore') 
@@ -93,11 +104,11 @@ def unsupervised_clustering(config : Dict):
     """
     Perform clustering on the data specified in config
     """
-    unsupervised_clustering_path = config.get('wfDir', '') + '\\data_usc.csv'
+    data_file = '\\data_usc.csv' if config.get('dim', 2) == 2 else '\\pca_2d.csv'
+    unsupervised_clustering_path = config.get('wfDir', '') + data_file
     df = safe_read_csv(unsupervised_clustering_path)
     if len(df) == 0:
         raise ValueError("The DataFrame has no rows. Please check the data path and content.")
-
 
     '''
     Method used to compute the unsupervised model.
@@ -145,9 +156,9 @@ def dimensionality_reduction(config : Dict, df : pd.DataFrame = None):
 
         # Re-Sample the dataframe to reduce size if necessary
         if config['problem_type'] == 'regression':
-            df = df.sample(n=config['n_samples'], random_state=config['random_state'])
+            df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
         else:
-            df, _ = train_test_split(df, stratify=df[config['target']],train_size=config['n_samples'], random_state=config['random_state'])
+            df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
         
         # Drop target column if it exists
         df : pd.DataFrame = df.drop(columns=[config.get('target')], errors='ignore') 
@@ -265,12 +276,15 @@ def compute_relationships(config : Dict):
     if target and target in df.columns:
         high_corr_features = corr_spearman[target][corr_spearman[target] >= 0.7].index.tolist()
     
+    if config.get('target') in high_corr_features:
+        high_corr_features.remove(config.get('target'))
+
     # Compute interactions between features (i.e. High correlation between features)
     interactions = []
     for i in range(len(corr_spearman.columns)):
         for j in range(i + 1, len(corr_spearman.columns)):
             if abs(corr_spearman.iloc[i, j]) >= 0.7 and (corr_spearman.columns[i] != target or corr_spearman.columns[j] != target):
-                msg = f'Feature {corr_spearman.columns[i]} and {corr_spearman.columns[j]} have high correlation: {corr_spearman.iloc[i, j]}'
+                msg = f'Features {corr_spearman.columns[i]} and {corr_spearman.columns[j]} have high correlation: {corr_spearman.iloc[i, j]}'
                 #interactions.append((corr_spearman.columns[i], corr_spearman.columns[j], float(corr_spearman.iloc[i, j])))
                 interactions.append(msg)
 
@@ -288,11 +302,11 @@ def compute_relationships(config : Dict):
     }).sort_values(by='importance', ascending=False).to_dict(orient='records')
 
     return {
-        'correlation_pearson': corr_pearson.to_dict(),
-        'correlation_spearman': corr_spearman.to_dict(),
-        'high_correlation_features': high_corr_features,
+        'correlationPearson': convert_correlation_dict(corr_pearson.to_dict()),
+        'correlationSpearman': convert_correlation_dict(corr_spearman.to_dict()),
+        'highCorrelationFeatures': high_corr_features,
         'interactions': interactions,
-        'feature_importance': importance_df
+        'featureImportance': importance_df
     }
 
 
@@ -339,6 +353,30 @@ def compute_distributions(config : Dict):
     return distributions
 
 
+def get_reduced_sample(config : Dict):
+    df = safe_read_csv(config['data_path'])
+
+    if config['problem_type'] == 'regression':
+        df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
+    else:
+        df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
+
+    reduced_sample = {}
+    for col in df.columns:
+        if df[col].nunique() >= 20:
+            reduced_sample[col] = {
+                'type': 'continuous',
+                'values': df[col].tolist()
+            }
+        else:
+            reduced_sample[col] = {
+                'type': 'discrete',
+                'values': df[col].tolist()
+            }
+    
+    return reduced_sample
+
+
 '''
 config_example = {
     'data_path': 'path/to/your/data.csv',
@@ -364,10 +402,23 @@ def compute_and_save_dataset_stats(config : Dict):
         import os
         os.makedirs(os.path.dirname(save_location), exist_ok=True)
 
+        from data_analysis import compute_feature_summaries, target_column_summary
+        df = safe_read_csv(config['data_path'])
+        feature_summaries, all_recs, outlier_list = compute_feature_summaries(df, config.get('target'))
+
+        summary = {
+            'featureSummaries': feature_summaries,
+            'problemType': 'classify', # WARNING
+            'recommendations': all_recs,
+            'outliers': outlier_list,
+        }
+
         json = json.dumps({
             'statistics': stats,
             'distributions': distributions,
-            'relationships': relations
+            'relationships': relations,
+            'summary': summary,
+            'reducedSample': get_reduced_sample(config)
         })
         with open(save_location, 'w') as f:
             f.write(json)
@@ -377,11 +428,13 @@ def compute_and_save_dataset_stats(config : Dict):
     except Exception as e:
         print(f"Error computing and saving dataset stats: {e}")
         return False
+    
 
 
 def compute_and_store_dim_redux(config : Dict):
 
-    methods = 'umap', 'pca', 'ica', 'isomap', 'lle', 'mds'
+    # This is now deprecated, but kept for consistency.
+    """ methods = 'umap', 'pca', 'ica', 'isomap', 'lle', 'mds'
     try:
         common_df = create_a_sample_df(config)
         for method in methods:
@@ -398,12 +451,10 @@ def compute_and_store_dim_redux(config : Dict):
                 json = json.dumps(embedding)
                 with open(save_location, 'w') as f:
                     f.write(json)
+    """
+    return True
 
-        return True
-
-    except Exception as e:
-        print(f"Error computing and storing dimensionality reduction: {e}")
-        return False
+    
     
 
 def compute_stats_and_dim_redux(config : Dict):
@@ -416,6 +467,207 @@ def compute_stats_and_dim_redux(config : Dict):
         return False
 
 
+def fill_missing_values(df : pd.DataFrame, method : str):
+    # Make a copy to avoid modifying the original DataFrame in-place
+    import sklearn.impute as skim
+    df_copy = df.copy()
+
+    if method == 'none':
+        return df_copy
+    
+    # Validate the method for numeric columns
+    numeric_imputer_strategy = None
+    if method == 'mean':
+        numeric_imputer_strategy = 'mean'
+    elif method == 'median':
+        numeric_imputer_strategy = 'median'
+    elif method == 'mode':
+        numeric_imputer_strategy = 'most_frequent'
+    else:
+        raise ValueError(f"Invalid method: '{method}'. Must be 'none', 'mean', 'median', or 'mode'.")
+
+    for col in df_copy.columns:
+        if is_numeric_dtype(df_copy[col]):
+            imputer = skim.SimpleImputer(strategy=numeric_imputer_strategy)
+            # Flatten the 2D output of fit_transform to 1D
+            df_copy[col] = imputer.fit_transform(df_copy[[col]]).ravel()
+            # Alternatively: df_copy[col] = imputer.fit_transform(df_copy[[col]])[:, 0]
+        elif df_copy[col].dtype == 'object' or df_copy[col].dtype == 'category' or df_copy[col].dtype == 'string':
+            imputer = skim.SimpleImputer(strategy='most_frequent')
+            # Flatten the 2D output of fit_transform to 1D
+            df_copy[col] = imputer.fit_transform(df_copy[[col]]).ravel()
+            # Alternatively: df_copy[col] = imputer.fit_transform(df_copy[[col]])[:, 0]
+            
+    return df_copy
+
+
+def apply_preprocess_to_dataset(config : Dict):
+    """
+    Apply preprocessing to the dataset.
+    Step1: Encode categorical columns if any
+    Step2: Store the dataset metadata
+    Step3: Fill missing values
+    Step4: Scale the dataset
+    Step5: Remove outliers and store the outlier indices
+    Step6: Store the preprocessed dataset
+    Step7: Create and store train-test split
+    """
+    df = safe_read_csv(config['data_path'])
+    if df.empty:
+        raise ValueError("The DataFrame is empty. Please check the data path and content.")
+    
+    scaling_strategy = config.get('scale', 'none')
+    df = fill_missing_values(df, config.get('impute', 'mean'))
+    preprocess_dataframe(df, config.get('target'), config.get('wfDir'), test_size=0.2, random_state=42, encoding_strategy='ordinal', scaling_strategy=scaling_strategy)
+
+    json.dump({}, open(config.get('wfDir', '') + '\\model_metadata.json', 'w'))
+    return True
+
+
+
+def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, random_state=42, encoding_strategy='ordinal', scaling_strategy='none'):
+    """
+    Splits a pandas DataFrame into train/test sets, separates numerical and categorical columns,
+    applies encoding to categorical columns, and scaling to numerical columns.
+
+    Args:
+        df (pd.DataFrame): The input pandas DataFrame.
+        target_column (str): The name of the target column.
+        test_size (float): The proportion of the dataset to include in the test split (default is 0.2).
+        random_state (int): Controls the shuffling applied to the data before applying the split (default is 42).
+        encoding_strategy (str): 'label' for LabelEncoder (for single columns) or 'ordinal' for OrdinalEncoder (for multiple columns).
+    """
+    
+    preprocessor_path = wfDir + '\\preprocessor.joblib'
+    target_encoder_path = wfDir + '\\target_encoder.joblib'
+
+    # 1. Split into train and test sets (2:8 ratio)
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
+
+    if y.nunique() < 20:
+        print(f"Stratifying the split based on target column '{target_column}' with {y.nunique()} unique values.")
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y, random_state=random_state)
+    else:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+
+    # 1.1 Encode the target variable
+    if df[target_column].dtype == 'object' or df[target_column].dtype == 'category' or df[target_column].dtype == 'string':
+        encode_target = True
+        target_encoder = skp.LabelEncoder()
+        y_train = target_encoder.fit_transform(y_train)
+        y_test = target_encoder.transform(y_test)
+        y = target_encoder.transform(y)
+    else:
+        encode_target = False
+
+    # 2. Separate categorical and numerical columns
+    categorical_features = X_train.select_dtypes(include=['object', 'category']).columns.tolist()
+    categorical_encoded_features = []
+    numerical_features = X_train.select_dtypes(include=np.number).columns.tolist()
+
+    for col in numerical_features:
+        if df[col].nunique() <= 20:
+            numerical_features.remove(col)
+            categorical_encoded_features.append(col)
+
+    # 3. Apply Label/Ordinal Encoder to categorical columns and Standard Scaler to numerical columns
+    transformers = []
+
+    if numerical_features:
+        if scaling_strategy == 'none':
+            pass
+        elif scaling_strategy == 'standardize':
+            transformers.append(('num', skp.StandardScaler(), numerical_features))
+        elif scaling_strategy == 'normalize':
+            transformers.append(('num', skp.MinMaxScaler(), numerical_features))
+        else:
+            raise ValueError(f"Unsupported scaling strategy: {scaling_strategy}. Supported strategies are 'none', 'standardize', 'normalize'.")
+
+    if categorical_features:
+        transformers.append(('cat', skp.OrdinalEncoder(handle_unknown='ignore'), categorical_features))
+
+    preprocessor = skcompose.ColumnTransformer(transformers=transformers, remainder='passthrough')
+
+    X_train_processed = preprocessor.fit_transform(X_train)
+    X_test_processed = preprocessor.transform(X_test)
+
+    df_processed = preprocessor.transform(X)
+
+    categorical_features.extend(categorical_encoded_features)
+
+    # Get the names of the transformed columns for DataFrame conversion
+    transformed_column_names = []
+    if numerical_features:
+        transformed_column_names.extend([f'{col}' for col in numerical_features])
+    if categorical_features:
+        transformed_column_names.extend([f'{col}' for col in categorical_features])
+        
+    X_train_processed = pd.DataFrame(X_train_processed, columns=transformed_column_names, index=X_train.index)
+    X_test_processed = pd.DataFrame(X_test_processed, columns=transformed_column_names, index=X_test.index)
+    y_train_processed = pd.Series(y_train, name='target', index=X_train.index)
+    y_test_processed = pd.Series(y_test, name='target', index=X_test.index)
+    df_processed = pd.DataFrame(df_processed, columns=transformed_column_names, index=df.index)
+    df_processed[target_column] = y
+
+    joblib.dump(preprocessor, preprocessor_path)
+    if encode_target:
+        joblib.dump(target_encoder, target_encoder_path)
+    
+    Xtrain_loc = wfDir + '\\Xtrain.csv'
+    Xtest_loc = wfDir + '\\Xtest.csv'
+    ytrain_loc = wfDir + '\\ytrain.csv'
+    ytest_loc = wfDir + '\\ytest.csv'
+    df_proc_loc = wfDir + '\\data.csv' # Replaces the original data
+    df_orig_loc = wfDir + '\\data_original.csv'
+
+    df.to_csv(df_orig_loc, index=False)
+    X_train_processed.to_csv(Xtrain_loc, index=False)
+    X_test_processed.to_csv(Xtest_loc, index=False)
+    y_train_processed.to_csv(ytrain_loc, index=False)
+    y_test_processed.to_csv(ytest_loc, index=False)
+    df_processed.to_csv(df_proc_loc, index=False)
+
+    dataset_metadata = {
+        'rows': df.shape[0],
+        'columns': transformed_column_names,
+        'columnTypes': {col: 'cat' if col in categorical_features else 'num' for col in transformed_column_names},
+        'numericalInfo': {col: {'min': df[col].min(), 'max': df[col].max()} for col in numerical_features},
+        'categoricalInfo': {col: {'values': df[col].unique().tolist()} for col in categorical_features},
+        'preprocessorPath': preprocessor_path,
+        'targetEncoderPath': target_encoder_path if encode_target else None
+    }
+
+    dataset_metadata_path = wfDir + '\\dataset_metadata.json'
+    os.makedirs(os.path.dirname(dataset_metadata_path), exist_ok=True)
+    with open(dataset_metadata_path, 'w') as f:
+        json.dump(dataset_metadata, f)
+
+    return True
+
+def create_store_train_test_split(config : Dict):
+    df = safe_read_csv(config['data_path'])
+    if df.empty:
+        raise ValueError("The DataFrame is empty. Please check the data path and content.")
+    
+    
+    X = df.drop(columns=[config.get('target')], errors='ignore')
+    y = df[config.get('target')]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    Xtrain_loc = config.get('wfDir', '') + '\\Xtrain.csv'
+    Xtest_loc = config.get('wfDir', '') + '\\Xtest.csv'
+    ytrain_loc = config.get('wfDir', '') + '\\ytrain.csv'
+    ytest_loc = config.get('wfDir', '') + '\\ytest.csv'
+
+    X_train.to_csv(Xtrain_loc, index=False)
+    X_test.to_csv(Xtest_loc, index=False)
+    y_train.to_csv(ytrain_loc, index=False)
+    y_test.to_csv(ytest_loc, index=False)
+
+    return True
+    
 
 """ 
 config_example = {

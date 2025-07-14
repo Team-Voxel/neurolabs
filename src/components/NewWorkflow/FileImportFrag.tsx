@@ -188,32 +188,6 @@ export const FileImportFragment: React.FC<FileImportFragmentProps> = (
                     />
                 </div>
             </div>
-
-            {datasetSummary && datasetSummary.recommendations.length > 0 && (
-            <div className='flex flex-col gap-4 w-full my-4 items-center justify-center border'>
-                <Space direction="vertical">
-                    <Radio.Group
-                        onChange={e => setValueForActions(e.target.value)}
-                        value={valueForActions}
-                    >
-                        <Space direction="vertical">
-                        {choices.map(opt => (
-                            <Popover
-                            key={opt.value}
-                            title={opt.title}
-                            content={opt.description}
-                            placement="rightTop"
-                            >
-                            <Radio.Button value={opt.value}>
-                                {opt.title}
-                            </Radio.Button>
-                            </Popover>
-                        ))}
-                        </Space>
-                    </Radio.Group>
-                </Space>
-            </div>
-            )}
             
             <div className='flex flex-row justify-items-stretch gap-4'>
                 <Button block type="primary" onClick={onBack}>Back</Button>

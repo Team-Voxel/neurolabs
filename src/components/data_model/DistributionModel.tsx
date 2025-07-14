@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Chart from "react-apexcharts";
-import type { ContinuousDistribution, DiscreteDistribution, ColumnDistributions } from "../../backend_api/types";
-import { Flex, Spin, Select, Typography } from "antd";
+import type { ContinuousDistribution, DiscreteDistribution, ColumnDistributions, DatasetMetadata } from "../../backend_api/types";
+import { Flex, Select, Typography } from "antd";
+import Papa, {ParseResult} from 'papaparse';
+import { PlotlyBoxplot } from "../plotting/BoxHeat";
 
 const chartOptions : any = {
   series: [44, 55, 13, 33],
@@ -184,4 +186,60 @@ export const DistributionModel: React.FC<DistributionModelProps> = ({data}) => {
             </Flex>
         </div>
     );
+}
+
+export interface NumericalDistributionsProps {
+  dataset: DatasetMetadata;
+  wfDir: string;
+}
+
+export const NumericalDistributions: React.FC<NumericalDistributionsProps> = ({dataset, wfDir}) => {
+  const [numDists, setNumDists] = useState<{ name: string; y: number[]; }[]>([]);
+ 
+  useEffect(() => {
+    const path = wfDir + '\\reduced_data.csv';
+    window.fsAPI.readFile(path).then((data) => {
+
+    Papa.parse(data, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: true,
+      complete: (results: ParseResult<unknown>) => {
+        console.log("Parsed CSV result:", results);
+        const records = results.data as Record<string, any>[];
+    
+        const columnData: Record<string, number[]> = {};
+    
+        for (const row of records) {
+          for (const [key, value] of Object.entries(row)) {
+            if (!columnData[key]) columnData[key] = [];
+    
+            if (dataset.columnTypes[key] === 'num')
+              columnData[key].push(value);
+          }
+        }
+    
+        const formatted = Object.entries(columnData).map(([key, values]) => ({
+          name: key,
+          y: values,
+        }));
+    
+        console.log("Formatted numerical distributions:", formatted);
+    
+        setNumDists(formatted);
+      },
+      error: (err: Error) => {
+        console.error("Error parsing CSV:", err);
+      },
+      });
+    }).catch((error) => {
+      console.error("Error reading file:", error);
+    });
+  }, []);
+
+  return (
+    <div className="flex-1">
+      <PlotlyBoxplot series={numDists} />
+    </div>
+  );
 }

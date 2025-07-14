@@ -2,12 +2,8 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { useWorkflowStore } from './AppState.ts'
 
 function Root() {
-  React.useEffect(() => {
-    useWorkflowStore.getState().loadAll()
-  }, [])
 
   return (
     <React.StrictMode>

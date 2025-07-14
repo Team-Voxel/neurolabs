@@ -1,7 +1,12 @@
-import { Workflow, UserModel } from './AppState';
-import { EDAData } from './backend_api/types';
+import { Workflow, AppState } from './AppState';
+import { EDAData, DatasetMetadata, ModelMetadata } from './backend_api/types';
+import { createWorkflowInstance } from './WorkflowFactory';
+import { app } from 'electron';
+import path from 'node:path'
 
 declare global {
+  var appState : AppState;
+
   interface Window {
     electronAPI: {
       /**
@@ -19,11 +24,14 @@ declare global {
     };
     wfStore: {
       loadAll(): Promise<Workflow[]>;
+      saveAll(wfs: Workflow[]): Promise<void>;
       saveOne(wf: Workflow): Promise<Workflow>;
       deleteOne(name: string): Promise<Workflow[]>;
       getModels(name: string): Promise<UserModel[]>;
       getWfDir: (name: string) => Promise<string>;
       getPCDFile: (name: string) => Promise<EDAData>;
+      getModelMetadata: (name: string) => Promise<Record<string,ModelMetadata>>;
+      getDatasetMetadata: (name: string) => Promise<DatasetMetadata>;
     };
     fsAPI: {
       readFile: (path: string) => Promise<string>;
@@ -35,6 +43,19 @@ declare global {
       getExtension: (file: string) => Promise<string>;
       getTempDatasetPath: () => Promise<string>;
     };
+    stateAPI: {
+      getAppState: () => Promise<{workflows: Workflow[], current: Workflow | undefined}>;
+      getDataPath: () => Promise<string>;
+      copyDataFileToWFDir: (src: string, wfName: string) => Promise<void>;
+      // Add fetch methods for EDA, Dataset Metadata, Model Metadata
+      getEDAData: () => Promise<EDAData>;
+      getDatasetMetadata: () => Promise<DatasetMetadata>;
+      getModelMetadata: () => Promise<Record<string, ModelMetadata>>;
+      // Add methods to manipulate workflows
+      setCurrentWorkflow: (name: string) => Promise<void>;
+      addNewWorkflowAndSet: (name: string, problemType: string, target: string) => Promise<Workflow>;
+      deleteWorkflow: (name: string) => Promise<void>;
+    }
   }
 } 
 export {};

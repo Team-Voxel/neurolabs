@@ -6,6 +6,7 @@ import numpy as np
 from scipy.stats import gaussian_kde
 from data_cleanup import basic_data_cleanup
 from safe_csv import safe_read_csv
+from pandas.api.types import is_numeric_dtype
 
 
 def get_outliers_as_list(df: pd.DataFrame) -> dict:
@@ -19,7 +20,7 @@ def get_outliers_as_list(df: pd.DataFrame) -> dict:
     
     cols_to_drop = []
     for col in df.columns:
-        if df[col].nunique() < 20:
+        if (is_numeric_dtype(df[col]) and df[col].nunique() < 20) or not is_numeric_dtype(df[col]):
             cols_to_drop.append(col)
     
     numeric_df = df.drop(columns=cols_to_drop)
@@ -46,7 +47,7 @@ def should_scale_data(df: pd.DataFrame) -> bool:
     
     cols_to_drop = []
     for col in df.columns:
-        if df[col].nunique() < 20:
+        if (is_numeric_dtype(df[col]) and df[col].nunique() < 20) or not is_numeric_dtype(df[col]):
             cols_to_drop.append(col)
     
     numeric_df = df.drop(columns=cols_to_drop)
@@ -82,14 +83,24 @@ def compute_feature_summaries(df : pd.DataFrame, target_column : str = None):
     outlier_list = get_outliers_as_list(df)
     should_scale = should_scale_data(df)
     if len(outlier_list) > 0:
-        all_recs.append('outliers')
+        all_recs.append(f'{len(outlier_list)} outliers detected')
     if should_scale:
-        all_recs.append('scale')
+        all_recs.append('Features with wide range of values detected')
 
     for column in df.columns:
 
         missing_percent = df[column].isnull().sum() * 100 / len(df)
-        if pd.api.types.is_numeric_dtype(df[column]) and df[column].nunique() >= 20:
+        if missing_percent > 0:
+            all_recs.append(f'{missing_percent:.2f}% missing values detected')
+
+        if is_numeric_dtype(df[column]) and df[column].nunique() >= 20:
+
+            if missing_percent > 0.0:
+                from sklearn.impute import SimpleImputer
+                imputer = SimpleImputer(strategy='mean')
+                df[column] = imputer.fit_transform(df[[column]])
+
+
             min = df[column].min()
             max = df[column].max()
 
@@ -213,7 +224,7 @@ def generate_file_summary_report(file_path : str, target_column : str, problem_t
     summary = {
         'featureSummaries': feature_summaries,
         'problemType': problem_type,
-        'recommendations': all_recs,
+        'issues': all_recs,
         'outliers': outlier_list,
     }
     
@@ -231,15 +242,14 @@ def generate_df_summary(df : pd.DataFrame, target_column : str, problem_type : s
     df, actions = basic_data_cleanup(df)
     
     # Compute feature summaries and target column summary
-    feature_summaries = compute_feature_summaries(df, target_column)
-    taget_sum, arg1, arg2 = target_column_summary(df, target_column, problem_type)
+    feature_summaries, all_recs, outlier_list = compute_feature_summaries(df, target_column)
+    problem_type = target_column_summary(df, target_column, problem_type)
 
     summary = {
         'featureSummaries': feature_summaries,
-        'targetSummary': taget_sum,
-        'targetKDEx': arg1,
-        'targetKDEy': arg2,
-        'treeMapData': arg1
+        'problemType': problem_type,
+        'recommendations': all_recs,
+        'outliers': outlier_list,
     }
     
     return summary

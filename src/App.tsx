@@ -1,15 +1,17 @@
 
-import { HashRouter, Routes, Route, useNavigate } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import React from 'react';
 import MainMenu from './components/main_menu/MainMenu';
 import { ProjectSelection } from './components/ProjectSelection';
-import ProjectSetupWizard from './newProjectMenu';
 import { WorkflowSelection } from './components/WorkflowSelection';
 import SortablePipeline from './components/SortablePipeline';
 import { WorkflowWizard } from './components/NewWorkflow/WorkflowWizard';
 import  MainNavigation from './components/MainNavigation';
 import WaitForComputation from './components/NewWorkflow/WaitForComputation';
 import { ChildWindowHost } from './components/ChildWindowHost';
+import { LearnInterface } from './components/learn/LearnInterface';
+import { ModelTrainingWindow } from './components/modelling/ModelTrainingWindow';
+import { ModelInterface } from './components/modelling/ModelInterface';
 
 /* // Extend the Window interface to include electronAPI
 declare global {
@@ -21,10 +23,8 @@ declare global {
 } */
 
 const componentMap: Record<string, React.FC<any>> = {
-  'ProjectSetupWizard': ProjectSetupWizard,
   'WorkflowWizard': WorkflowWizard,
   'MainNavigation': MainNavigation,
-  'WaitForComputation': WaitForComputation,
 };
 
 
@@ -43,6 +43,9 @@ return (
       <Route path="/settings" element={<div>Settings</div>} />
       <Route path="/wait-screen" element={<WaitForComputation/>} />
       <Route path="/child" element={<ChildWindowHost componentMap={componentMap} />} />
+      <Route path="/learn" element={<LearnInterface />} />
+      <Route path="/model-training" element={<ModelTrainingWindow />} />
+      <Route path="/model-interface" element={<ModelInterface />} />
     </Routes>
   </HashRouter>
 );

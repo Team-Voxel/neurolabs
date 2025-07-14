@@ -1,24 +1,5 @@
 import {create} from 'zustand';
-import type { EDAData } from './backend_api/types';
-
-export enum ModelType {
-  LINEAR_REG = 0,
-  NONL_REG,
-  SV_REG,
-  NN_REG,
-  SGD_REG,
-  DT_REG,
-  RF_REG,
-  GB_REG,
-  LOGS_CLASS,
-  SV_CLASS,
-  NN_CLASS,
-  SGD_CLASS,
-  DT_CLASS,
-  RF_CLASS,
-  GB_CLASS,
-  DNN,
-}
+import type { EDAData, ModelMetadata, DatasetMetadata } from './backend_api/types';
 
 export enum ModelState {
   TRAINED = 'trained',
@@ -27,43 +8,45 @@ export enum ModelState {
   ERROR = 'error',
 }
 
-export interface UserModel {
-  name: string;
-  state: ModelState;
-  type: ModelType;
-  params: Record<string, any>; // hyperparameters
-  architecture: string; // model architecture
-  date: string; // date of creation
-}
 
 export interface Workflow {
   name: string;
   problemType: string;
   target: string;
-  description: string;
-  userModels: UserModel[];
   wfDir: string; // path to the workflow directory
   datafile: string; // path to the data file
-  dataType: string; // type of data (e.g., CSV, JSON)
-  currentModel?: UserModel; // currently selected model
+  edaFile: string; // path to the EDA file
+  datasetMetadataFile: string; // metadata about the dataset
+  modelMetadataFile: string; // metadata about the models
+
+/*   getEDAFile: () => Promise<EDAData>;
+  getModelMetadata: () => Promise<ModelMetadataObject>;
+  getDatasetMetadata: () => Promise<DatasetMetadata>; */
 }
 
 export interface AppState {
-  workflows: Workflow[]
-  current?: Workflow
+  workflows: Workflow[];
+  current?: Workflow;
+  getCurrentEDA(): Promise<EDAData>;
+  getCurrentDatasetMetadata(): Promise<DatasetMetadata>;
+  getCurrentModelMetadata(): Promise<Record<string, ModelMetadata>>;
+
+  globalDataDirectory: string;
 
   // actions
-  addNew: (wf: Workflow) => void
-  update: (name: string, wf: Workflow) => void
-  loadAll: () => Promise<void>
-  save: (wf: Workflow) => Promise<void>
-  removeNyName: (id: string) => Promise<void>
-  setCurrent: (wf?: Workflow) => void
-  setCurrentByName: (name: string) => void
-  getByName: (name: string) => Workflow | undefined;
-  getPCDFile: () => Promise<EDAData>;
-}
+  hasWorkflowByName: (name: string) => boolean;
+  addNewWorkflow: (name: string, problemType: string, target: string) => Promise<Workflow>
+  deleteWorkflow: (name: string) => void
+  getWorkflowByName: (name: string) => Workflow | undefined;
+  loadFromDiskAsync: () => Promise<void>
+  saveToDiskAsync: () => Promise<void>
+  setCurrent: (wf: Workflow) => Promise<boolean>;
+  setCurrentByName: (name: string) => Promise<boolean>;
 
+  copyDataFileToWorkflowDirectory: (file: string, wf_name: string) => Promise<void>;
+  getTempDatasetPath: () => string;
+}
+/* 
 export const useWorkflowStore = create<AppState>((set, get) => ({
   workflows: [],
   current: undefined,
@@ -88,15 +71,15 @@ export const useWorkflowStore = create<AppState>((set, get) => ({
       get().loadAll()
     })
   },
-  // load from JSON file via Electron
-  loadAll: async () => {
-    const all = await window.wfStore.loadAll()
-    set({ workflows: all })
-    // if no current selected, pick first
-    if (all.length && !get().current) {
-      set({ current: all[0] })
-    }
-  },
+    loadAll: async () => {
+      const all = await window.wfStore.loadAll();
+      set({ workflows: all });
+  
+      const current = get().current;
+      if (!current && all.length > 0) {
+        set({ current: all[0] });
+      }
+    },
 
   // save or update a workflow
   save: async (wf) => {
@@ -129,10 +112,16 @@ export const useWorkflowStore = create<AppState>((set, get) => ({
     return get().workflows.find((w) => w.name === name);
   },
 
-  getPCDFile: (): Promise<EDAData> => {
+  getEDAFile: (): Promise<EDAData> => {
     return window.wfStore.getPCDFile(get().current!.name).then((file) => {
-      if (!file) throw new Error(`PCD file not found for workflow: ${get().current!.name}`);
+      if (!file) throw new Error(`EDA file not found for workflow: ${get().current!.name}`);
       return file;
     });
+  },
+
+  getModelMetadata: (name: string): Promise<ModelMetadataObject> => {
+    return window.wfStore.getModelMetadata(name).then((metadata) => {
+      return metadata;
+    });
   }
-}))
+})) */

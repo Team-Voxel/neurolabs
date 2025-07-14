@@ -10,6 +10,7 @@ import umap
 from data_analysis import generate_file_summary_report
 from data_generation import generate_and_save_data_return_stats
 from data_processing import *
+from unsupervised import cluster_data
 
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -24,47 +25,16 @@ origins = [
     "http://localhost",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "http://0.0.0.0:0"
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],  # or restrict to your frontend origin
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-class GenerateConfig(BaseModel):
-    n_samples: int
-    n_features: int
-    random_state: int = 42  # optional default
-
-@app.post("/generate")
-async def generate(config: Dict):
-    X, y = generate_classification(config)
-    feature_names = [f"feature_{i}" for i in range(1, config['n_features'] + 1)]
-    df = pd.DataFrame(X, columns=feature_names)
-    df['target'] = y
-
-    # --- For MUI DataGrid ---
-    rows = df.reset_index().rename(columns={"index": "id"}).to_dict(orient="records")
-    columns = [{"field": col, "headerName": col.replace("_", " ").title(), "flex": 1} for col in df.columns]
-
-
-    if config['n_features'] > 2:
-        reducer = umap.UMAP(n_components=2, random_state=42)
-        embedding = reducer.fit_transform(X)
-        scatter_data = [{"x": float(x), "y": float(y), "label": int(label)} for (x, y), label in zip(embedding, y)]
-    else:
-        scatter_data = [{"x": float(X[i][0]), "y": float(X[i][1]), "label": int(y[i])} for i in range(len(X))]
-
-    return JSONResponse(content={
-        "table": {
-            "columns": columns,
-            "rows": rows
-        },
-        "scatter": scatter_data
-    })
 
 
 @app.post("/generate_dataset_preview")
@@ -88,30 +58,80 @@ async def generate_summary_from_file(request : FilePathRequest):
         raise HTTPException(status_code=404, detail="File not found or empty")
     return JSONResponse(content=summary)
 
-
-@app.post("/unsupervised-output")
-async def unsupervised_output(config: Dict):
-    return JSONResponse(content=config)
-
-
-@app.post("/compute-stats")
-async def compute_stats(config: Dict):
-    create_simplified_df_for_unsupervised_clustering(config)
-    success = compute_and_save_dataset_stats(config)
+#---------------------------------------Data Processing---------------------------------------
+#---------------------------------------First Step: Preprocess---------------------------------------
+@app.post("/apply-preprocess")
+async def apply_preprocess(config: Dict):
+    from data_processing import apply_preprocess_to_dataset
+    success = apply_preprocess_to_dataset(config)
     return JSONResponse(content={'success': success})
 
 
+#---------------------------------------Second Step: Dim Redux---------------------------------------
 @app.post("/dim-redux")
 async def dim_redux(config: Dict):
     success = compute_and_store_dim_redux(config)
     return JSONResponse(content={'success': success})
 
 
+#---------------------------------------Third Step: Compute Stats---------------------------------------
 @app.post("/auto-eda")
 async def auto_eda(config: Dict):
     create_simplified_df_for_unsupervised_clustering(config)
     success = compute_and_save_dataset_stats(config)
     return JSONResponse(content={'success': success})
+
+
+
+#----------------------------------------Model Training----------------------------------------
+#----------------------------------------Unsupervised Output----------------------------------------
+@app.post("/unsupervised-output")
+async def unsupervised_output(config: Dict):
+    return JSONResponse(content=config)
+
+
+#----------------------------------------Create, Train and Save Model----------------------------------------
+@app.post("/create-train-save-model")
+async def create_train_save_model(config: Dict):
+    from models import create_train_save_model
+    data = create_train_save_model(config)
+    return JSONResponse(content=data)
+
+#----------------------------------------Inference API---------------------------------------------------
+@app.post("/inference")
+async def make_inference(config: Dict):
+    from models import load_model_and_infer
+    data = load_model_and_infer(config)
+    return JSONResponse(content=data)
+
+
+#========================================FOR SIMPLIFIED INTERFACE=========================================
+#----------------------------------------Create and Save Dataset----------------------------------------
+@app.post("/get-dataset-simple")
+async def get_dataset_simple(config: Dict):
+    from data_generation import generate_dataset
+    data = generate_dataset(config.get('difficulty', 'medium'), config.get('wfDir', 'generated_data.csv'))
+    return JSONResponse(content=data)
+
+
+#----------------------------------------Train Model----------------------------------------
+@app.post("/train-model-simple")
+async def train_model_simple(config: Dict):
+    from models import make_train_and_evaluate_model
+    data = make_train_and_evaluate_model(config)
+    return JSONResponse(content=data)
+
+#----------------------------------------Unsupervised Clustering----------------------------------------
+@app.post("/simple-clustering")
+async def simple_clustering(config: Dict):
+    """
+    Clusters data using the specified clustering algorithm from the config.
+    """
+    try:
+        data = cluster_data(config)
+        return JSONResponse(content=data)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 if __name__ == "__main__":

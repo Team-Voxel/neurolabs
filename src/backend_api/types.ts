@@ -12,24 +12,24 @@ export interface DataSummaryEntry {
   central : string;
   dispersion : string;
   range : string;
-  dist : Array<Record<string, string | number>>; // This can be a more complex type based on your distribution data
+  dist : Array<Record<string, string | number>>;
 }
 
 export interface DatasetSummary {
     featureSummaries : DataSummaryEntry[];
     problemType?: string;
-    recommendations: string[];
+    issues: string[];
     outliers: number[];
 }
 
 export interface DFStats {
-  rowCount: number;
-  columnCount: number;
+  row_count: number;
+  column_count: number;
   columns: string[];
-  dtypes: string[];
-  memoryUsage: string;
-  missingValues: { [key: string]: number };
-  sampleData: { [key: string]: number[] };
+  dtypes: Record<string, string>; // Maps column names to their data types
+  memory_usage: Record<string, number>;
+  missing_values: { [key: string]: number };
+  sample_data: Record<string, number>[]; // Maps column names to arrays of sample values
 }
 
 // Interface for the statistical properties of a continuous numeric column
@@ -67,16 +67,126 @@ export interface ColumnDistributions {
   [columnName: string]: ContinuousDistribution | DiscreteDistribution;
 }
 
+export interface FeatureImportanceData {
+  feature: string;
+  importance: number;
+}
+
 export interface DFRelationship {
-  correlationPearson: {[column: string]: any};
-  correlationSpearman: {[column: string]: any};
+  correlationPearson: number[][];
+  correlationSpearman: number[][];
   highCorrelationFeatures: string[];
   interactions: string[];
-  featureImportance: {[feature: string]: number};
+  featureImportance: FeatureImportanceData[];
+}
+
+export interface ColumnSample {
+  type: 'continuous' | 'discrete';
+  values: number[];
 }
 
 export interface EDAData {
   statistics : DFStats;
   distributions: ColumnDistributions;
   relationships: DFRelationship;
+  summary: DatasetSummary;
+  reducedSample: Record<string, ColumnSample>
 };
+
+export interface SimpleDataset {
+  X: number[][];
+  y: number[];
+}
+
+export interface LearningCurveData {
+  trainSizes: number[];
+  trainScoresMean: number[];
+  testScoresMean: number[];
+}
+
+export interface ModelTrainingInfo {
+
+  // classification metrics
+  accuracy: number;
+  precision: number;
+  recall: number;
+  f1Score: number;
+  confusionMatrix: number[][];
+  classes: string[];
+  baseAccuracy: number;
+
+  // classification metrics for probabilistic models
+  rocX: number[];
+  rocY: number[];
+  prX: number[];
+  prY: number[];
+  rocAuc: number;
+  averagePrecision: number;
+  
+  // decision boundary for classification models
+  decisionBoundary: number[][];
+  predictedClasses: number[];
+
+  // model specific metrics
+  trainedCoefficients: number[];
+  trainedIntercept: number;
+  trainedSupportVectors: number[][];
+
+  // regression metrics
+  r2: number;
+  mse: number;
+  rmse: number;
+  mae: number;
+  residuals: number[];
+  yTest: number[];
+  yPred: number[];
+
+  // common metrics
+  trainingTime: number; // in milli-seconds
+  learningCurve: LearningCurveData;
+
+  problemType: 'classify' | 'regress';
+}
+
+export interface UnsupervisedModelTrainingInfo {
+  X: number[][];
+  labels: number[];
+  actualLabels: number[]; // Used for comparison with ground truth if available
+  silhouette: number;
+  CHI: number;
+  explainedVariance: number | null;
+}
+
+export interface InferenceData {
+  prediction: string;
+}
+
+export interface ModelMetadata {
+  name: string;
+  type: string;
+  hyperparameters: Record<string, any>;
+  path: string;
+  metrics: Record<string, any>;
+  dateTrained: string;
+  lib: string;
+}
+
+export interface DatasetNumerics {
+  min: number;
+  max: number;
+}
+
+export interface DatasetCategorics {
+  values : string[];
+}
+
+
+export interface DatasetMetadata {
+  rows: number;
+  columns: string[];
+  columnTypes: Record<string, 'cat' | 'num'>;
+  numericalInfo: Record<string, DatasetNumerics>;
+  categoricalInfo: Record<string, DatasetCategorics>;
+  preprocessorPath: string;
+  targetEncoderPath?: string;
+}
