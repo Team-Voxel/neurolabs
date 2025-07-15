@@ -103,11 +103,12 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
     const handleTrainModel = () => {
         const request = async () => {
             try {
+                console.log('Training model with parameters:', trainingEpochs);
                 const response = await trainAndSaveModel({
                     modelType: algorithm,
                     problemType: problemType,
                     parameters: modelParameters,
-                    epochs: trainingEpochs,
+                    epochs: trainingEpochs || 100,
                     wfDir: wfDir,
                 });
                 setTrainingData(response);
@@ -129,7 +130,7 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
         {
             id: 'algorithm',
             title: 'Algorithm ',
-            content: <AlgorithmSelection onAlgorithmChange={setAlgorithm} problemType={problemType as 'classify' | 'regress'} />  
+            content: <AlgorithmSelection onAlgorithmChange={setAlgorithm} selectedAlgorithm={algorithm} problemType={problemType as 'classify' | 'regress'} />  
         },
         {
             id: 'parameters',

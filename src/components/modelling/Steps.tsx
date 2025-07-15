@@ -3,7 +3,8 @@ import { Typography, Card, Tooltip, message, Button } from 'antd';
 import { SettingControl } from '../settings/types';
 import Settings from '../settings/Settings';
 import { BrainCog } from 'lucide-react';
-import { CircularProgressBar } from '../ProgressBar';
+import { CircularProgressBar, CircularProgressBar2 } from '../ProgressBar';
+import { Box, CircularProgress } from '@mui/material';
 import { SquareButton } from '../IconButton';
 import { useFakeProgress } from '../../lib/fakeProgress';
 import InteractiveList from '../InteractiveList';
@@ -18,6 +19,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 
 
 export interface AlgorithmSelectionProps {
     onAlgorithmChange: (algorithm: string) => void;
+    selectedAlgorithm: string;
     problemType: 'classify' | 'regress';
 }
 
@@ -35,10 +37,8 @@ const descriptions: Record<string, any> = {
     nb: {label:'Naive Bayes Classifier', desc:'Classifies by applying Bayes’ theorem with strong independence assumptions. Fast and effective for text classification but assumes features are independent, which is often not true.'},
 }
 
-export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgorithmChange, problemType }) => {
-    const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>(problemType === 'regress' ? 'linear_simple' : 'logistic_simple');
+export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgorithmChange, selectedAlgorithm, problemType }) => {
     const onChangeAlgorithm = (algorithm: string) => {
-        setSelectedAlgorithm(algorithm);
         onAlgorithmChange(algorithm);
     }
 
@@ -538,7 +538,7 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
                 label: 'Variance Smoothing',
                 type: 'slider',
                 min: 1e-10,
-                max: 1e-1,
+                max: 1e-8,
                 step: 1e-10,
                 value: controls['nb']['varSmoothing'] || 1e-9,
                 onChange: (value) => setParam('nb', 'varSmoothing', value),
@@ -577,7 +577,7 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
                         <div className='flex flex-col'>
                         <Typography.Text>{`date: ${snapshot.date}`}</Typography.Text>
                         {Object.keys(snapshot.hyperParameters).map((key, i) => (
-                            <Typography.Text>{`${key}: ${snapshot.hyperParameters[key]}`}</Typography.Text>
+                            <div className='flex flex-row gap-1'><Typography.Text className='font-bold'>{`${key}:`}</Typography.Text><Typography.Text>{`  ${snapshot.hyperParameters[key]}`}</Typography.Text></div>
                         ))}
                         <Typography.Text>{snapshot.baseMetric}</Typography.Text>
                         </div>
@@ -602,19 +602,20 @@ export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, sta
     const progress = useFakeProgress(state);
     const [epochs, setEpochs] = useState<number>(100);
     const showEpochs = state === 'ready' && (modelType === 'linear_simple' || modelType === 'linear_fs' || modelType === 'logistic_simple' || modelType === 'logistic_fs' || modelType === 'svm' || modelType === 'gb' || modelType === 'nn');
-
+    console.log('progress: ' + progress);
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-10 gap-8">
+            {/* <CircularProgressBar
+            progress={progress}
+            size={250}
+            thickness={8}
+            className="text-blue-500"
+            showPercentage={true}
+            animate={true}
+            duration={50}
+            /> */}
             {state === 'training' && (
-                <CircularProgressBar
-                progress={progress}
-                size={250}
-                thickness={8}
-                className="text-blue-500"
-                showPercentage={true}
-                animate={true}
-                duration={500}
-                />
+                <CircularProgressBar2 progress={progress * 100} showPercentage={true}/>
             )}
             {state === 'ready' && (
                 <div className='flex flex-col gap-2'>

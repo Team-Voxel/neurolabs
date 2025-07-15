@@ -24,35 +24,18 @@ const items: MenuItem[] = [
       //icon: <HomeOutlined />,
     },
     {
-      key: 'distribution',
-      label: 'Distribution',
-      children: [
-        {
-          key: 'numeric',
-          label: 'Numeric',
-          //icon: <BoxPlotOutlined />,
-        },
-        {
-          key: 'categorical',
-          label: 'Categorical',
-          //icon: <BarChartOutlined />,
-        }
-      ]
+      key: 'numeric',
+      label: 'Numeric',
+      //icon: <BoxPlotOutlined />,
     },
     {
-      key: 'relations',
-      label: 'Relations',
-      children: [
-        {
-          key: 'correlation',
-          label: 'Correlation',
-        },
-        {
-          key: 'feature-importance',
-          label: 'Feature Importance',
-          //icon: <ShrinkOutlined />,
-        },
-      ]
+      key: 'correlation',
+      label: 'Correlation',
+    },
+    {
+      key: 'feature-importance',
+      label: 'Feature Importance',
+      //icon: <ShrinkOutlined />,
     },
 ]
 

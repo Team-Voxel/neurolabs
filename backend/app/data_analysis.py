@@ -20,7 +20,8 @@ def get_outliers_as_list(df: pd.DataFrame) -> dict:
     
     cols_to_drop = []
     for col in df.columns:
-        if (is_numeric_dtype(df[col]) and df[col].nunique() < 20) or not is_numeric_dtype(df[col]):
+        # Removed the aboslute dependancy on continuous variables 
+        if not is_numeric_dtype(df[col]):
             cols_to_drop.append(col)
     
     numeric_df = df.drop(columns=cols_to_drop)

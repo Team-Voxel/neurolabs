@@ -545,14 +545,16 @@ def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, 
     X = df.drop(columns=[target_column])
     y = df[target_column]
 
-    if y.nunique() < 20:
-        print(f"Stratifying the split based on target column '{target_column}' with {y.nunique()} unique values.")
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y, random_state=random_state)
-    else:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+    # if y has ints, it is a discrete column. Then we need to ensure that the y values go from 0 to n-1 (n = classes)
+    """ if pd.api.types.is_integer_dtype(y):
+    # Convert to zero-indexed class labels (e.g., 0 to n-1)
+        unique_classes = sorted(y.unique())
+        class_mapping = {old: new for new, old in enumerate(unique_classes)}
+        y = y.map(class_mapping) """
 
-    # 1.1 Encode the target variable
-    if df[target_column].dtype == 'object' or df[target_column].dtype == 'category' or df[target_column].dtype == 'string':
+
+    if y.nunique() < 20:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y, random_state=random_state)
         encode_target = True
         target_encoder = skp.LabelEncoder()
         y_train = target_encoder.fit_transform(y_train)
@@ -560,6 +562,12 @@ def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, 
         y = target_encoder.transform(y)
     else:
         encode_target = False
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+
+    # 1.1 Encode the target variable
+    """ if df[target_column].dtype == 'object' or df[target_column].dtype == 'category' or df[target_column].dtype == 'string':
+    else:
+        encode_target = False """
 
     # 2. Separate categorical and numerical columns
     categorical_features = X_train.select_dtypes(include=['object', 'category']).columns.tolist()
