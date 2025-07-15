@@ -114,7 +114,7 @@ const ListItem: React.FC<ListItemProps> = ({
       
       {/* Content */}
       <div className="flex items-center justify-between relative z-10">
-        <Typography.Title level={5}>{item.title}</Typography.Title>
+        <Typography.Title style={{userSelect:'none'}} level={5}>{item.title}</Typography.Title>
         
         {/* Selection indicator */}
         <div className={`

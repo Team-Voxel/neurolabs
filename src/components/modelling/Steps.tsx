@@ -16,6 +16,14 @@ import { Workflow } from '../../AppState';
 import { makeInference } from '../../backend_api/data_api';
 import { ReactComponent as KNN }from '../../assets/knn.svg';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import LINPNG from '../../assets/linear.png'
+import SVMPNG from '../../assets/svm.png'
+import NNPNG from '../../assets/nn.png'
+import NBPNG from '../../assets/nb.png'
+import GBPNG from '../../assets/gb.png'
+import KNNPNG from '../../assets/knn.png'
+import TREEPNG from '../../assets/tree.png'
+
 
 export interface AlgorithmSelectionProps {
     onAlgorithmChange: (algorithm: string) => void;
@@ -24,17 +32,61 @@ export interface AlgorithmSelectionProps {
 }
 
 const descriptions: Record<string, any> = {
-    linear_simple: {label:'Linear Regression', desc: 'Predicts continuous values using a linear relationship between features and target. It fits a straight line by minimizing the sum of squared errors between predictions and actual values. Best for simple, low-dimensional data but sensitive to outliers and irrelevant features.'},
-    linear_fs: {label:'Linear Regression (with Feature Selection)', desc: 'Adds regularization (Lasso/Ridge) to predict continuous values while automatically shrinking or eliminating unimportant features. Reduces overfitting in high-dimensional data. Lasso zeros weak features; Ridge handles correlated predictors.'},    
-    logistic_simple: {label:'Logistic Regression', desc:'Predicts class probabilities (e.g., spam/not-spam) by fitting an S-shaped curve (sigmoid) to linear feature relationships. Simple and interpretable but struggles with complex patterns. Requires scaled features.'},
-    logistic_fs: {label:'Logistic Regression (with Feature Selection)', desc: 'Classifies outcomes using regularization (L1/L2) to discard irrelevant features during training. Ideal for high-dimensional data (e.g., text). Lasso forces weak coefficients to zero, simplifying the model.'},
-    svm: {label: 'Support Vector Machine', desc:'Finds the optimal hyperplane that maximally separates classes. Uses "support vectors" (critical data points) and kernels (e.g., RBF) for non-linear boundaries. Effective for clear-margin problems but slow on large datasets.'},
-    tree: {label:'Decision Tree', desc: 'Builds a flowchart-like structure by splitting data on feature values to minimize impurity (e.g., Gini index). Highly interpretable but prone to overfitting. Use for intuitive, non-linear decisions.'},
-    forest: {label: 'Random Forest', desc: 'Ensemble of decision trees trained on random data subsets/features. Averages results to reduce overfitting and boost accuracy. Robust and versatile but less interpretable than single trees.'},
-    knn: {label: 'K Nearest Neighbors', desc:'Classifies/regresses based on majority vote or average of the K closest data points. Simple and training-free but computationally heavy for large data. Sensitive to *k* and distance metrics.'},
-    gb: {label:'Gradient Boosting', desc:'Sequentially combines weak learners (usually trees), each correcting its predecessor’s errors. High accuracy for structured data but requires careful tuning. XGBoost/LightGBM are popular variants.'},
-    nn: {label:'Artificial Neural Network', desc: 'Universal function approximators. They mimics the brain’s neurons using interconnected layers (input/hidden/output). Learns complex patterns via forward passes and backpropagation.'},
-    nb: {label:'Naive Bayes Classifier', desc:'Classifies by applying Bayes’ theorem with strong independence assumptions. Fast and effective for text classification but assumes features are independent, which is often not true.'},
+    linear_simple: {
+        label:'Linear Regression', 
+        desc: 'Predicts continuous values using a linear relationship between features and target. It fits a straight line by minimizing the sum of squared errors between predictions and actual values. Best for simple, low-dimensional data but sensitive to outliers and irrelevant features.',
+        img: LINPNG,
+    },
+    linear_fs: {
+        label:'Linear Regression (with Feature Selection)', 
+        desc: 'Adds regularization (Lasso/Ridge) to predict continuous values while automatically shrinking or eliminating unimportant features. Reduces overfitting in high-dimensional data. Lasso zeros weak features; Ridge handles correlated predictors.',
+        img: LINPNG,
+    },
+    logistic_simple: {
+        label:'Logistic Regression', 
+        desc:'Predicts class probabilities (e.g., spam/not-spam) by fitting an S-shaped curve (sigmoid) to linear feature relationships. Simple and interpretable but struggles with complex patterns. Requires scaled features.',
+        img: LINPNG,
+    },
+    logistic_fs: {
+        label:'Logistic Regression (with Feature Selection)', 
+        desc: 'Classifies outcomes using regularization (L1/L2) to discard irrelevant features during training. Ideal for high-dimensional data (e.g., text). Lasso forces weak coefficients to zero, simplifying the model.',
+        img: LINPNG,
+    },
+    svm: {
+        label: 'Support Vector Machine', 
+        desc:'Finds the optimal hyperplane that maximally separates classes. Uses "support vectors" (critical data points) and kernels (e.g., RBF) for non-linear boundaries. Effective for clear-margin problems but slow on large datasets.',
+        img: SVMPNG,
+    },
+    tree: {
+        label:'Decision Tree', 
+        desc: 'Builds a flowchart-like structure by splitting data on feature values to minimize impurity (e.g., Gini index). Highly interpretable but prone to overfitting. Use for intuitive, non-linear decisions.',
+        img: TREEPNG,
+    },
+    forest: {
+        label: 'Random Forest', 
+        desc: 'Ensemble of decision trees trained on random data subsets/features. Averages results to reduce overfitting and boost accuracy. Robust and versatile but less interpretable than single trees.',
+        img: TREEPNG,
+    },
+    knn: {
+        label: 'K Nearest Neighbors', 
+        desc:'Classifies/regresses based on majority vote or average of the K closest data points. Simple and training-free but computationally heavy for large data. Sensitive to *k* and distance metrics.',
+        img: KNNPNG,
+    },
+    gb: {
+        label:'Gradient Boosting', 
+        desc:'Sequentially combines weak learners (usually trees), each correcting its predecessor’s errors. High accuracy for structured data but requires careful tuning. XGBoost/LightGBM are popular variants.',
+        img: GBPNG,
+    },
+    nn: {
+        label:'Artificial Neural Network', 
+        desc: 'Universal function approximators. They mimics the brain’s neurons using interconnected layers (input/hidden/output). Learns complex patterns via forward passes and backpropagation.',
+        img: NNPNG,
+    },
+    nb: {
+        label:'Naive Bayes Classifier', 
+        desc:'Classifies by applying Bayes’ theorem with strong independence assumptions. Fast and effective for text classification but assumes features are independent, which is often not true.',
+        img: NBPNG,
+    },
 }
 
 export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgorithmChange, selectedAlgorithm, problemType }) => {
@@ -78,7 +130,7 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
                 <InteractiveList items={filteredAlgorithms} onSelect={onChangeAlgorithm} selectedItems={[selectedAlgorithm]}/>
                 </div>
                 <div className='flex-1 flex flex-col h-full p-2'>
-                    <div><KNN/>     </div>
+                    <div className='flex h-1/2'><img src={descriptions[selectedAlgorithm].img}/></div>
                     <div className='flex flex-col gap-2 border-t'>
                         <Typography.Title level={4}>{descriptions[selectedAlgorithm].label}</Typography.Title>
                         <Typography.Text>{descriptions[selectedAlgorithm].desc}</Typography.Text>
