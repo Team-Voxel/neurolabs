@@ -56,7 +56,7 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
 
     df_viz : pd.DataFrame = df.copy()
     # Re-Sample the dataframe to reduce size if necessary
-    if config['problem_type'] == 'regression':
+    if config['problem_type'] == 'regress':
         df_viz = sku.resample(df_viz, n_samples=min(len(df_viz), config['n_samples']), random_state=config['random_state'])
     else:
         df_viz, _ = train_test_split(df_viz, stratify=df[config['target']], train_size=min(len(df_viz) - 20, config['n_samples']), random_state=config['random_state'])
@@ -77,7 +77,7 @@ def create_a_sample_df(config : Dict):
         raise ValueError("The DataFrame has no rows. Please check the data path and content.")
 
     # Re-Sample the dataframe to reduce size if necessary
-    if config['problem_type'] == 'regression':
+    if config['problem_type'] == 'regress':
         df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
     else:
         df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
@@ -155,7 +155,7 @@ def dimensionality_reduction(config : Dict, df : pd.DataFrame = None):
             raise ValueError("The DataFrame has no rows. Please check the data path and content.")
 
         # Re-Sample the dataframe to reduce size if necessary
-        if config['problem_type'] == 'regression':
+        if config['problem_type'] == 'regress':
             df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
         else:
             df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
@@ -289,7 +289,7 @@ def compute_relationships(config : Dict):
                 interactions.append(msg)
 
     # Compute MDI for feature importance
-    if config['problem_type'] == 'regression':
+    if config['problem_type'] == 'regress':
         model = RandomForestRegressor(random_state=config['random_state'])
     else:
         model = RandomForestClassifier(random_state=config['random_state'])
@@ -356,7 +356,7 @@ def compute_distributions(config : Dict):
 def get_reduced_sample(config : Dict):
     df = safe_read_csv(config['data_path'])
 
-    if config['problem_type'] == 'regression':
+    if config['problem_type'] == 'regress':
         df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
     else:
         df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
@@ -585,7 +585,7 @@ def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, 
             raise ValueError(f"Unsupported scaling strategy: {scaling_strategy}. Supported strategies are 'none', 'standardize', 'normalize'.")
 
     if categorical_features:
-        transformers.append(('cat', skp.OrdinalEncoder(handle_unknown='ignore'), categorical_features))
+        transformers.append(('cat', skp.OrdinalEncoder(handle_unknown='error'), categorical_features))
 
     preprocessor = skcompose.ColumnTransformer(transformers=transformers, remainder='passthrough')
 
