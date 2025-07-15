@@ -48,10 +48,6 @@ export const VerticalStepper: React.FC<VerticalStepperProps> = ({
     }
   };
 
-  const getStepIndex = (stepId: string) => {
-    return steps.findIndex(step => step.id === stepId);
-  };
-
   const isStepActive = (stepId: string) => stepId === currentStep;
   const isStepCompleted = (stepId: string) => {
     const step = steps.find(s => s.id === stepId);

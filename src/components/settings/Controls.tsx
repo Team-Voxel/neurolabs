@@ -11,7 +11,6 @@ import {
 } from './types';
 import { CSSProperties } from 'react';
 import { PlusOutlined } from '@ant-design/icons';
-import { on } from 'node:process';
 
 export const styles: Record<string, CSSProperties> = {
   container: {
@@ -88,14 +87,6 @@ export const SliderControl: React.FC<SliderControlProps> = ({ control }) => {
       if (isLogarithmic) {
         const t = (value - min) / (max - min);
         return min + (max - min) * ((Math.pow(base, t) - 1) / (base - 1));
-      }
-      return value;
-    }
-
-    const invTransform = (value: number) => {
-      if (isLogarithmic) {
-        const t = (value - min) / (max - min);
-        return min + (max - min) * (Math.log(t * (base - 1) + 1) / Math.log(base))
       }
       return value;
     }

@@ -48,7 +48,7 @@ export const UnsupervisedModel: React.FC<{model: string}> = ({model = 'kmeans'})
     const [param1, setParam1] = useState<any>(undefined);
     const [param2, setParam2] = useState<any>(' ');
     const [tempDataFile, setTempDataFile] = useState<string>('');
-    const [modelName, setModelName] = useState<string>(model);
+    const [_modelName, setModelName] = useState<string>(model);
     const [realTimeUpdate, setRealTimeUpdate] = useState<boolean>(false);
 
     useEffect(() => {
@@ -188,7 +188,7 @@ export const UnsupervisedModel: React.FC<{model: string}> = ({model = 'kmeans'})
                 <Typography.Title level={4} className="mt-2 mb-4 text-center">Parameters</Typography.Title>
                 <div className="flex flex-row gap-8 w-full ml-3">
                     <Typography.Title level={5}>Update Realtime</Typography.Title>
-                    <Checkbox checked={realTimeUpdate} onChange={(e) => setRealTimeUpdate(!realTimeUpdate)}/>
+                    <Checkbox checked={realTimeUpdate} onChange={(_e) => setRealTimeUpdate(!realTimeUpdate)}/>
                 </div>
                 <div>
                 <Settings controls={trainingParameters} />

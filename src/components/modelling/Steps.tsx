@@ -3,8 +3,7 @@ import { Typography, Card, Tooltip, message, Button } from 'antd';
 import { SettingControl } from '../settings/types';
 import Settings from '../settings/Settings';
 import { BrainCog } from 'lucide-react';
-import { CircularProgressBar, CircularProgressBar2 } from '../ProgressBar';
-import { Box, CircularProgress } from '@mui/material';
+import { CircularProgressBar2 } from '../ProgressBar';
 import { SquareButton } from '../IconButton';
 import { useFakeProgress } from '../../lib/fakeProgress';
 import InteractiveList from '../InteractiveList';
@@ -14,7 +13,6 @@ import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import {LineAreaChart} from '../plotting/LineAreaChart';
 import { Workflow } from '../../AppState';
 import { makeInference } from '../../backend_api/data_api';
-import { ReactComponent as KNN }from '../../assets/knn.svg';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts';
 import LINPNG from '../../assets/linear.png'
 import SVMPNG from '../../assets/svm.png'
@@ -628,7 +626,7 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
                     <Card key={index} className='mb-2'>
                         <div className='flex flex-col'>
                         <Typography.Text>{`date: ${snapshot.date}`}</Typography.Text>
-                        {Object.keys(snapshot.hyperParameters).map((key, i) => (
+                        {Object.keys(snapshot.hyperParameters).map((key) => (
                             <div className='flex flex-row gap-1'><Typography.Text className='font-bold'>{`${key}:`}</Typography.Text><Typography.Text>{`  ${snapshot.hyperParameters[key]}`}</Typography.Text></div>
                         ))}
                         <Typography.Text>{snapshot.baseMetric}</Typography.Text>
@@ -654,7 +652,7 @@ export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, sta
     const progress = useFakeProgress(state);
     const [epochs, setEpochs] = useState<number>(100);
     const showEpochs = state === 'ready' && (modelType === 'linear_simple' || modelType === 'linear_fs' || modelType === 'logistic_simple' || modelType === 'logistic_fs' || modelType === 'svm' || modelType === 'gb' || modelType === 'nn');
-    console.log('progress: ' + progress);
+    
     return (
         <div className="flex-1 flex flex-col items-center justify-center p-10 gap-8">
             {/* <CircularProgressBar
@@ -912,7 +910,7 @@ export const InferenceInterface: React.FC<InferenceInterfaceProps> = ({
             } else {
                 setPrediction(null);
             }
-        }).catch((error) => {
+        }).catch((_error) => {
             message.error('Failed to make inference. Please check your inputs and try again.');
             setPrediction(null);
         });

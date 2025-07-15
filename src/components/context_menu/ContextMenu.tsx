@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { ContextMenuProps, MenuItem } from './types';
+import { ContextMenuProps } from './types';
 import SearchBar from './SearchBar';
 import Category from './Category';
 import { groupByCategory } from './utils';
@@ -37,14 +37,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ items, onItemClick }) => {
   // Handle clear search
   const handleClearSearch = useCallback(() => {
     setSearchTerm('');
-  }, []);
-  
-  // Toggle category expansion
-  const toggleCategory = useCallback((category: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [category]: !prev[category]
-    }));
   }, []);
   
   // Setup keyboard navigation

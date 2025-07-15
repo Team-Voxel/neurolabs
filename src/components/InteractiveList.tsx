@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, ReactNode } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Check } from 'lucide-react';
 import { Typography } from 'antd';
 
@@ -150,7 +150,6 @@ const InteractiveList: React.FC<InteractiveListProps> = ({
   onSelect,
   onSelectionChange,
   onHover,
-  className = ''
 }) => {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 

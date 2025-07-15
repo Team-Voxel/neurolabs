@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { DFStats } from '../../backend_api/types';
 import { Typography, Card, Table, message } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { error } from 'node:console';
 
 export interface StatisticsModelProps {
     stats: DFStats;
@@ -47,12 +45,12 @@ export const StatisticsModel: React.FC<StatisticsModelProps> = ({stats}) => {
 
     useEffect(() => {
         let memoryUsage = 0; 
-        Object.entries(stats.memory_usage).forEach(([key, value]) => {
+        Object.entries(stats.memory_usage).forEach(([_key, value]) => {
             memoryUsage += value;
         });
         setSize(memoryUsage / (1024)); // Convert bytes to MB
         if (stats && stats.columns) {
-            const cols = stats.columns.map((col, index) => ({
+            const cols = stats.columns.map((col, _index) => ({
                 title: col,
                 dataIndex: col,
                 key: col,
@@ -66,7 +64,7 @@ export const StatisticsModel: React.FC<StatisticsModelProps> = ({stats}) => {
               }));
             setDataSource(data);
         }
-        window.stateAPI.getAppState().then(({workflows, current}) => {
+        window.stateAPI.getAppState().then(({current}) => {
             console.log('Current workflow:', current);
             setProjectName(current?.name || 'Unknown Project');
         }).catch((error) => {message.error("Couldn't fetch app state: " + error)});

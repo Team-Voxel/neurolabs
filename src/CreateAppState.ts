@@ -7,7 +7,6 @@ import { DatasetMetadata, EDAData, ModelMetadata } from './backend_api/types';
 
 const APP_DATA_DIR = app.getPath('userData');
 const DATA_PATH = path.join(APP_DATA_DIR, 'workflows.json');
-const TEMP_DATASET_PATH = path.join(APP_DATA_DIR, 'tempdata.csv');
 
 async function ensureStore() {
   try {
