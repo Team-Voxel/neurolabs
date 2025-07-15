@@ -1,42 +1,96 @@
-import React, { useReducer, useState } from 'react';
-import { Typography, Card, Tooltip, Flex, Button } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Typography, Card, Tooltip, message, Button } from 'antd';
 import { SettingControl } from '../settings/types';
 import Settings from '../settings/Settings';
 import { BrainCog } from 'lucide-react';
-import { CircularProgressBar } from '../ProgressBar';
+import { CircularProgressBar, CircularProgressBar2 } from '../ProgressBar';
+import { Box, CircularProgress } from '@mui/material';
 import { SquareButton } from '../IconButton';
 import { useFakeProgress } from '../../lib/fakeProgress';
 import InteractiveList from '../InteractiveList';
-import {Slider} from '../StyledSlider';
-import { DatasetMetadata, ModelTrainingInfo } from '../../backend_api/types';
+import { DatasetMetadata, ModelMetadataDict, ModelPrediction, ModelTrainingInfo } from '../../backend_api/types';
 import { Slider as RangeSlider, Statistic} from 'antd';
 import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import {LineAreaChart} from '../plotting/LineAreaChart';
 import { Workflow } from '../../AppState';
+import { makeInference } from '../../backend_api/data_api';
+import { ReactComponent as KNN }from '../../assets/knn.svg';
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import LINPNG from '../../assets/linear.png'
+import SVMPNG from '../../assets/svm.png'
+import NNPNG from '../../assets/nn.png'
+import NBPNG from '../../assets/nb.png'
+import GBPNG from '../../assets/gb.png'
+import KNNPNG from '../../assets/knn.png'
+import TREEPNG from '../../assets/tree.png'
+
 
 export interface AlgorithmSelectionProps {
     onAlgorithmChange: (algorithm: string) => void;
+    selectedAlgorithm: string;
     problemType: 'classify' | 'regress';
 }
 
-const descriptions: Record<string, string> = {
-    'linear_simple': 'Predicts continuous values using a linear relationship between features and target. It fits a straight line by minimizing the sum of squared errors between predictions and actual values. Best for simple, low-dimensional data but sensitive to outliers and irrelevant features.',
-    'linear_fs': 'Adds regularization (Lasso/Ridge) to predict continuous values while automatically shrinking or eliminating unimportant features. Reduces overfitting in high-dimensional data. Lasso zeros weak features; Ridge handles correlated predictors.',    
-    'logistic_simple': 'Predicts class probabilities (e.g., spam/not-spam) by fitting an S-shaped curve (sigmoid) to linear feature relationships. Simple and interpretable but struggles with complex patterns. Requires scaled features.',
-    'logistic_fs': 'Classifies outcomes using regularization (L1/L2) to discard irrelevant features during training. Ideal for high-dimensional data (e.g., text). Lasso forces weak coefficients to zero, simplifying the model.',
-    'svm': 'Finds the optimal hyperplane that maximally separates classes. Uses "support vectors" (critical data points) and kernels (e.g., RBF) for non-linear boundaries. Effective for clear-margin problems but slow on large datasets.',
-    'tree': 'Builds a flowchart-like structure by splitting data on feature values to minimize impurity (e.g., Gini index). Highly interpretable but prone to overfitting. Use for intuitive, non-linear decisions.',
-    'forest': 'Ensemble of decision trees trained on random data subsets/features. Averages results to reduce overfitting and boost accuracy. Robust and versatile but less interpretable than single trees.',
-    'knn': 'Classifies/regresses based on majority vote or average of the K closest data points. Simple and training-free but computationally heavy for large data. Sensitive to *k* and distance metrics.',
-    'gb': 'Sequentially combines weak learners (usually trees), each correcting its predecessor’s errors. High accuracy for structured data but requires careful tuning. XGBoost/LightGBM are popular variants.',
-    'nn': 'Universal function approximators. They mimics the brain’s neurons using interconnected layers (input/hidden/output). Learns complex patterns via forward passes and backpropagation.',
-    'nb': 'Classifies by applying Bayes’ theorem with strong independence assumptions. Fast and effective for text classification but assumes features are independent, which is often not true.',
+const descriptions: Record<string, any> = {
+    linear_simple: {
+        label:'Linear Regression', 
+        desc: 'Predicts continuous values using a linear relationship between features and target. It fits a straight line by minimizing the sum of squared errors between predictions and actual values. Best for simple, low-dimensional data but sensitive to outliers and irrelevant features.',
+        img: LINPNG,
+    },
+    linear_fs: {
+        label:'Linear Regression (with Feature Selection)', 
+        desc: 'Adds regularization (Lasso/Ridge) to predict continuous values while automatically shrinking or eliminating unimportant features. Reduces overfitting in high-dimensional data. Lasso zeros weak features; Ridge handles correlated predictors.',
+        img: LINPNG,
+    },
+    logistic_simple: {
+        label:'Logistic Regression', 
+        desc:'Predicts class probabilities (e.g., spam/not-spam) by fitting an S-shaped curve (sigmoid) to linear feature relationships. Simple and interpretable but struggles with complex patterns. Requires scaled features.',
+        img: LINPNG,
+    },
+    logistic_fs: {
+        label:'Logistic Regression (with Feature Selection)', 
+        desc: 'Classifies outcomes using regularization (L1/L2) to discard irrelevant features during training. Ideal for high-dimensional data (e.g., text). Lasso forces weak coefficients to zero, simplifying the model.',
+        img: LINPNG,
+    },
+    svm: {
+        label: 'Support Vector Machine', 
+        desc:'Finds the optimal hyperplane that maximally separates classes. Uses "support vectors" (critical data points) and kernels (e.g., RBF) for non-linear boundaries. Effective for clear-margin problems but slow on large datasets.',
+        img: SVMPNG,
+    },
+    tree: {
+        label:'Decision Tree', 
+        desc: 'Builds a flowchart-like structure by splitting data on feature values to minimize impurity (e.g., Gini index). Highly interpretable but prone to overfitting. Use for intuitive, non-linear decisions.',
+        img: TREEPNG,
+    },
+    forest: {
+        label: 'Random Forest', 
+        desc: 'Ensemble of decision trees trained on random data subsets/features. Averages results to reduce overfitting and boost accuracy. Robust and versatile but less interpretable than single trees.',
+        img: TREEPNG,
+    },
+    knn: {
+        label: 'K Nearest Neighbors', 
+        desc:'Classifies/regresses based on majority vote or average of the K closest data points. Simple and training-free but computationally heavy for large data. Sensitive to *k* and distance metrics.',
+        img: KNNPNG,
+    },
+    gb: {
+        label:'Gradient Boosting', 
+        desc:'Sequentially combines weak learners (usually trees), each correcting its predecessor’s errors. High accuracy for structured data but requires careful tuning. XGBoost/LightGBM are popular variants.',
+        img: GBPNG,
+    },
+    nn: {
+        label:'Artificial Neural Network', 
+        desc: 'Universal function approximators. They mimics the brain’s neurons using interconnected layers (input/hidden/output). Learns complex patterns via forward passes and backpropagation.',
+        img: NNPNG,
+    },
+    nb: {
+        label:'Naive Bayes Classifier', 
+        desc:'Classifies by applying Bayes’ theorem with strong independence assumptions. Fast and effective for text classification but assumes features are independent, which is often not true.',
+        img: NBPNG,
+    },
 }
 
-export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgorithmChange, problemType }) => {
-    const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>('svm');
+export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgorithmChange, selectedAlgorithm, problemType }) => {
     const onChangeAlgorithm = (algorithm: string) => {
-        setSelectedAlgorithm(algorithm);
         onAlgorithmChange(algorithm);
     }
 
@@ -50,7 +104,8 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
         { id: 'forest', title: 'Random Forest' },
         { id: 'knn', title: 'K-Nearest Neighbors' },
         { id: 'gb', title: 'Gradient Boosting' },
-        { id: 'nn', title: 'Neural Network' }
+        { id: 'nn', title: 'Neural Network' },
+        { id: 'nb', title: 'Naive Bayes Classifier'}
     ];
 
 
@@ -59,7 +114,7 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
             return algo.id !== 'linear_simple' && algo.id !== 'linear_fs';
         }
         else if (problemType === 'regress') {
-            return algo.id !== 'logistic_simple' && algo.id !== 'logistic_fs';
+            return algo.id !== 'logistic_simple' && algo.id !== 'logistic_fs' && algo.id !== 'nb';
         }
         return true;
     });
@@ -71,12 +126,15 @@ export const AlgorithmSelection: React.FC<AlgorithmSelectionProps> = ({ onAlgori
             </div>
                 
             <div className='flex-1 flex flex-row items-center justify-between w-full h-full'>
-                <div className='flex h-full p-2'>
+                <div className='flex h-full p-2 border-r'>
                 <InteractiveList items={filteredAlgorithms} onSelect={onChangeAlgorithm} selectedItems={[selectedAlgorithm]}/>
                 </div>
-                <div className='flex-1 flex flex-col border h-full p-2'>
-                    <div>Image</div>
-                    <div>Desc</div>
+                <div className='flex-1 flex flex-col h-full p-2'>
+                    <div className='flex h-1/2'><img src={descriptions[selectedAlgorithm].img}/></div>
+                    <div className='flex flex-col gap-2 border-t'>
+                        <Typography.Title level={4}>{descriptions[selectedAlgorithm].label}</Typography.Title>
+                        <Typography.Text>{descriptions[selectedAlgorithm].desc}</Typography.Text>
+                    </div>
                 </div>
             </div>
         </div>
@@ -96,14 +154,12 @@ const modelParameterInitialState: Record<string, Record<string, any>> = {
         useSGD: false,
     },
     logistic_fs: {
-        epochs: 1000,
         regularization: 'none',
         alpha: 1,
     },
     svm: {
         kernel: 'rbf',
         C: 1,
-        epochs: 1000
     },
     tree: {
         criterion: 'gini',
@@ -131,14 +187,28 @@ const modelParameterInitialState: Record<string, Record<string, any>> = {
         activation: 'relu',
         optimizer: 'adam',
         learningRate: 0.001,
-        epochs: 1000,
         batchSize: 32
+    },
+    nb: {
+        varSmoothing: 1e-9, // Smoothing parameter for Naive Bayes
+        alpha: 1.0, // Laplace smoothing parameter for Bernoulli Naive Bayes
+        distribution: 'gaussian' // Distribution type for Naive Bayes
     }
 };
 
 export const ParameterInterface : React.FC<{ model_type: string, onChange: (parameters: Record<string, any>) => void }> = ({model_type, onChange}) => {
     
     const [controls, setControls] = useState<Record<string, Record<string, any>>>(modelParameterInitialState);
+    const [modelMetadataDict, setModelMetadataDict] = useState<ModelMetadataDict>({});
+
+    const fetchModelMetadata = () => {
+            window.stateAPI.getModelMetadata().then((metadata) => {
+                setModelMetadataDict(metadata);
+            }).catch((error) => {
+                message.error('Failed to load model metadata: ' + error.message);
+            });
+        }
+
     const setParam = (model: string, param: string, value: any) => {
         setControls(prev => ({
             ...prev,
@@ -152,6 +222,11 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
     const getParam = (model: string, param: string) => {
         return controls[model] ? controls[model][param] : undefined;
     }
+
+    useEffect(() => {
+        onChange(controls[model_type]);
+        fetchModelMetadata();
+    }, []);
 
     const modelParameters : Record<string, SettingControl[]> = {
         linear_simple: [
@@ -278,17 +353,6 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
                 onChange: (value) => setParam('svm', 'C', value),
                 tooltip: 'Regularization parameter (C) for SVM'
             },
-            {
-                id: 'epochs',
-                label: 'Epochs',
-                type: 'number',
-                min: 1,
-                max: 10000,
-                step: 100,
-                value: controls['svm']['epochs'] || 1000,
-                onChange: (value) => setParam('svm', 'epochs', value),
-                tooltip: 'Number of training epochs (1000 by default)',
-            }
         ],
         tree: [
             {
@@ -496,17 +560,6 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
                 tooltip: 'Learning rate for the optimizer (0.001 by default)',
             },
             {
-                id: 'epochs',
-                label: 'Epochs',
-                type: 'number',
-                min: 1,
-                max: 10000,
-                step: 100,
-                value: controls['nn']['epochs'] || 1000,
-                onChange: (value) => setParam('nn', 'epochs', value),
-                tooltip: 'Number of training epochs (1000 by default)',
-            },
-            {
                 id: 'batchSize',
                 label: 'Batch Size',
                 type: 'number',
@@ -517,6 +570,44 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
                 onChange: (value) => setParam('nn', 'batchSize', value),
                 tooltip: 'Batch size for training the neural network (32 by default)',
             }
+        ],
+        nb: [
+            {
+                id: 'distribution',
+                label: 'Distribution Type',
+                type: 'select',
+                options: [
+                    {value: 'gaussian', label: 'Gaussian'},
+                    {value: 'bernoulli', label: 'Bernoulli'},
+                    {value: 'multinomial', label: 'Multinomial'},
+                ],
+                value: controls['nb']['distribution'],
+                onChange: (value) => setParam('nb', 'distribution', value),
+                tooltip: 'Distribution type for Naive Bayes'
+            },
+            {
+                id: 'varSmoothing',
+                label: 'Variance Smoothing',
+                type: 'slider',
+                min: 1e-10,
+                max: 1e-8,
+                step: 1e-10,
+                value: controls['nb']['varSmoothing'] || 1e-9,
+                onChange: (value) => setParam('nb', 'varSmoothing', value),
+                tooltip: 'Variance smoothing parameter for Gaussian Naive Bayes (1e-9 by default)',
+                visible: getParam('nb', 'distribution') === 'gaussian'
+            },
+            {
+                id: 'alpha',
+                label: 'Laplace Smoothing',
+                type: 'slider',
+                min: 0.01,
+                max: 10,
+                step: 0.01,
+                value: controls['nb']['alpha'] || 1.0,
+                onChange: (value) => setParam('nb', 'alpha', value),
+                tooltip: 'Laplace smoothing parameter for Bernoulli Naive Bayes (1.0 by default)',
+            },
         ]
     }
 
@@ -532,6 +623,19 @@ export const ParameterInterface : React.FC<{ model_type: string, onChange: (para
             </div>
             <div className='flex flex-col w-2/3 gap-2'>
                 <Typography.Title level={3} className='text-gray-800'>Training History</Typography.Title>
+                <div className='grid grid-cols-2 gap-2 overflow-y-auto'>
+                {modelMetadataDict && modelMetadataDict[model_type] && modelMetadataDict[model_type].snapshots.map((snapshot, index) => (
+                    <Card key={index} className='mb-2'>
+                        <div className='flex flex-col'>
+                        <Typography.Text>{`date: ${snapshot.date}`}</Typography.Text>
+                        {Object.keys(snapshot.hyperParameters).map((key, i) => (
+                            <div className='flex flex-row gap-1'><Typography.Text className='font-bold'>{`${key}:`}</Typography.Text><Typography.Text>{`  ${snapshot.hyperParameters[key]}`}</Typography.Text></div>
+                        ))}
+                        <Typography.Text>{snapshot.baseMetric}</Typography.Text>
+                        </div>
+                    </Card>
+                ))}
+                </div>
             </div>
         </div>
     );
@@ -542,25 +646,28 @@ export interface TrainInterfaceProps {
     onClickTrain: (epochs: number) => void;
     state: 'training' | 'ready' | 'trained';
     trainingData?: ModelTrainingInfo | null;
+    modelType: string;
 }
 
-export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, state, trainingData}) => {
+export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, state, trainingData, modelType}) => {
     //const [progress, setProgress] = useState(0);
     const progress = useFakeProgress(state);
-    const [epochs, setEpochs] = useState<number>(1);
-
+    const [epochs, setEpochs] = useState<number>(100);
+    const showEpochs = state === 'ready' && (modelType === 'linear_simple' || modelType === 'linear_fs' || modelType === 'logistic_simple' || modelType === 'logistic_fs' || modelType === 'svm' || modelType === 'gb' || modelType === 'nn');
+    console.log('progress: ' + progress);
     return (
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex flex-col items-center justify-center p-10 gap-8">
+            {/* <CircularProgressBar
+            progress={progress}
+            size={250}
+            thickness={8}
+            className="text-blue-500"
+            showPercentage={true}
+            animate={true}
+            duration={50}
+            /> */}
             {state === 'training' && (
-                <CircularProgressBar
-                progress={progress}
-                size={250}
-                thickness={8}
-                className="text-blue-500"
-                showPercentage={true}
-                animate={true}
-                duration={500}
-                />
+                <CircularProgressBar2 progress={progress * 100} showPercentage={true}/>
             )}
             {state === 'ready' && (
                 <div className='flex flex-col gap-2'>
@@ -570,17 +677,20 @@ export const TrainInterface: React.FC<TrainInterfaceProps> = ({onClickTrain, sta
                 size={250}
                 onClick={() => onClickTrain(epochs)}
                 />
-                <RangeSlider min={1} max={1000} step={1} value={epochs} onChange={(value) => setEpochs(value[0])} className="w-full" />
                 </div>
             )}
             {state === 'trained' && (
-                <>
+                <div className='flex flex-col items-center gap-4'>
                 <Typography.Title level={3} className="text-green-500">
                 Model Trained Successfully!
                 </Typography.Title>
                 {trainingData && <Typography.Text>{`Model trained in ${trainingData.trainingTime}ms`}</Typography.Text>}
-                </>
+                </div>
             )}
+            {showEpochs && <div className='flex flex-col items-center w-1/2'>
+                <Typography.Title level={5}>Epochs</Typography.Title>
+            <RangeSlider min={1} max={1000} step={1} value={epochs} onChange={(value) => setEpochs(value[0])} className="w-full" />
+            </div>}
             </div>
     );
 }
@@ -694,16 +804,53 @@ export const EvaluationInterface: React.FC<{trainingData:ModelTrainingInfo | nul
     );
 }
 
+export interface InferenceInterfaceProps {
+    datasetData: DatasetMetadata | null;
+    workflow: Workflow | null;
+    modelType: string;
+    featureImportances: Record<string, number>;
+}
 
-export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, workflow: Workflow | null}> = ({datasetData, workflow}) => {
+export const InferenceInterface: React.FC<InferenceInterfaceProps> = ({
+    datasetData, 
+    workflow, 
+    modelType, 
+    featureImportances
+}) => {
     
     const [inputData, setInputData] = useState<Record<string, any>>({});
     const numericCols = datasetData?.columns.filter(col => datasetData?.columnTypes[col] === 'num') || [];
     const categoricalCols = datasetData?.columns.filter(col => datasetData?.columnTypes[col] === 'cat') || [];
+    const [prediction, setPrediction] = useState<ModelPrediction | null>(null);
+    const [probas, setProbas] = useState<{ class: string; probability: number; }[]>([]);
+    const [modelMetadataDict, setModelMetadataDict] = useState<ModelMetadataDict>({});
+
+    const fetchModelMetadata = () => {
+            window.stateAPI.getModelMetadata().then((metadata) => {
+                setModelMetadataDict(metadata);
+            }).catch((error) => {
+                message.error('Failed to load model metadata: ' + error.message);
+            });
+        }
+
+    useEffect(() => {
+        const result: Record<string, any> = {};
+        for (const col of datasetData?.columns || []) {
+            if (datasetData?.columnTypes[col] === 'num' && !inputData[col]) {
+                result[col] = datasetData?.numericalInfo[col]?.min ?? 0;
+            } else if (datasetData?.columnTypes[col] === 'cat' && !inputData[col]) {
+                result[col] = datasetData?.categoricalInfo[col]?.values[0] ?? '';
+            }
+        }
+        console.log('Initial Input Data:', result);
+        setInputData(result);
+
+        fetchModelMetadata();
+    }, []);
     
     const catControls: SettingControl[] | undefined = categoricalCols.map((str) => ({
         id: str,
-        label: str.charAt(0).toUpperCase() + str.slice(1), // Capitalize first letter
+        label: `${str.charAt(0).toUpperCase() + str.slice(1)} (Contribution: ${(featureImportances[str] * 100).toFixed(2)}%)`, // Capitalize first letter
         type: 'select',
         value: inputData[str],
         options: datasetData?.categoricalInfo[str]?.values.map(cat => ({ value: cat, label: cat })) || [],
@@ -718,7 +865,7 @@ export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, 
 
     const numControls: SettingControl[] | undefined = numericCols.map((str) => ({
     id: str,
-    label: str.charAt(0).toUpperCase() + str.slice(1), // Capitalize first letter
+    label: `${str.charAt(0).toUpperCase() + str.slice(1)} (Contribution: ${(featureImportances[str] * 100).toFixed(2)}%)`, // Capitalize first letter
     type: 'slider',
     min: datasetData?.numericalInfo[str]?.min || 0,
     max: datasetData?.numericalInfo[str]?.max || 100,
@@ -730,21 +877,84 @@ export const InferenceInterface: React.FC<{datasetData: DatasetMetadata | null, 
             [str]: value
         }));
     },
-    tooltip: `Enter value for ${str}`,
+    tooltip: `Select value for ${str}`,
     }));
 
     const settingControls = [...catControls, ...numControls];
+    const request = async () => {
+        try {
+            const body = {
+                xPred: inputData,
+                modelType: modelType,
+                wfDir: workflow?.wfDir,
+            }
+            return await makeInference(body);
+        }
+        catch (error) {
+            console.error('Error making inference:', error);
+        }
+        return null;
+    }
+
+    const onMakeInference = () => {
+        console.log('Making inference with input data:', inputData);
+        
+        request().then((response) => {
+            if (response) {
+                setPrediction(response);
+                if(response.probas){
+                    // Convert every key value pair in the probas array to an array of {class: string, probability: number}
+                    const probasArray = Object.entries(response.probas).map(([key, value]) => ({ class: key, probability: value }));
+                    setProbas(probasArray);
+                    console.log('Probas:', probasArray);
+                }
+                message.success('Inference made successfully!');
+            } else {
+                setPrediction(null);
+            }
+        }).catch((error) => {
+            message.error('Failed to make inference. Please check your inputs and try again.');
+            setPrediction(null);
+        });
+    }
 
     return (
         <div className='flex-1 flex flex-row gap-4 p-0'>
-            <div className='w-1/2 border-r overflow-y-hidden p-2 pb-8'>
-            <Typography.Title level={3}>Enter Inputs</Typography.Title>
-            {datasetData && workflow && settingControls ? <Settings controls={settingControls} className='gap-2' /> : <Typography.Title>Failed to Load App State</Typography.Title>}
-            </div>
+
+            {modelMetadataDict && modelMetadataDict[modelType] && modelMetadataDict[modelType].snapshots.length > 0 ? (
+            <>
+                <div className='w-1/3 border-r overflow-y-hidden p-2 pb-8'>
+                <div className='flex flex-row justify-between gap-4 px-4'>
+                    <Typography.Title level={3}>Enter Inputs</Typography.Title>
+                    <Button type='primary' onClick={onMakeInference} disabled={!workflow || !datasetData || !settingControls}>Predict</Button>
+                </div>
+                    {datasetData && workflow && settingControls ? <Settings controls={settingControls} className='gap-2 p-4' /> : <Typography.Title>Failed to Load App State</Typography.Title>}
+                </div>
+                <div className='flex-1 flex flex-col justify-center items-start'>
+                    <div className='flex flex-row items-start justify-start py-2 mt-2'>
+                    <Card variant='outlined' size='default'>
+                    <Statistic title='Predicted Value' value={prediction?.prediction} precision={3} className='text-2xl font-bold'/> 
+                    </Card>
+                    </div>
+                    {probas.length !== 0 && <div className='flex-1 flex flex-col w-full h-full gap-2 border rounded-sm mb-2'>
+                        <Typography.Title level={4} className='text-gray-800 pl-4 pt-2'>Class Probabilities</Typography.Title>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={probas} margin={{ top: 20, right: 30, left: 20, bottom: 10}}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis angle={-45} textAnchor="end" height={100} dataKey="class" />
+                                <YAxis />
+                                <Tooltip />
+                                <Bar dataKey="probability" fill="#8884d8" />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>}
+                </div>
+            </>
+            ) : (
             <div className='flex-1 flex flex-col justify-center items-center gap-8'>
-                <Typography.Title>Value</Typography.Title>
-                <Button type='primary' size='large'>Infer</Button>
-            </div>
+                <Typography.Title level={3} className='text-gray-500'>Model not trained yet</Typography.Title>
+                <Typography.Text>Please train the model first to make inferences.</Typography.Text>
+            </div>)}
         </div>
     );
 }

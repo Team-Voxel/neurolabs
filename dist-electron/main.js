@@ -13,7 +13,7 @@ function createWorkflowInstance(name, problemType, target, wfDirectory) {
     datafile: path.join(wfDirectory, "data.csv"),
     edaFile: path.join(wfDirectory, "edadata.json"),
     datasetMetadataFile: path.join(wfDirectory, "dataset_metadata.json"),
-    modelMetadataFile: path.join(wfDirectory, "model_metadata.json")
+    modelMetadataFile: path.join(wfDirectory, "metadata.json")
     /* async getEDAFile() {
           const data = await readFile(this.edaFile, 'utf-8');
           return JSON.parse(data);
@@ -59,7 +59,7 @@ function createAppStateInstance() {
       return JSON.parse(bytes);
     },
     getCurrentModelMetadata: async () => {
-      const modelMetadataPath = path$1.join(appState.current.wfDir, "model_metadata.json");
+      const modelMetadataPath = path$1.join(appState.current.wfDir, "metadata.json");
       const bytes = await fs.readFile(modelMetadataPath, "utf-8");
       return JSON.parse(bytes);
     },
@@ -359,7 +359,7 @@ ipcMain.handle("wf-get-model-metadata", async (_e, wf_name) => {
   const all = JSON.parse(raw);
   const wf = all.find((x) => x.name === wf_name);
   if (wf) {
-    const metadata_path = path$1.join(app.getPath("userData"), wf.name, "model_metadata.json");
+    const metadata_path = path$1.join(app.getPath("userData"), wf.name, "metadata.json");
     const raw_bytes = await fs.readFile(metadata_path, "utf-8");
     const data = JSON.parse(raw_bytes);
     return data;

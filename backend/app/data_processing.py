@@ -56,7 +56,7 @@ def create_simplified_df_for_unsupervised_clustering(config : Dict):
 
     df_viz : pd.DataFrame = df.copy()
     # Re-Sample the dataframe to reduce size if necessary
-    if config['problem_type'] == 'regression':
+    if config['problem_type'] == 'regress':
         df_viz = sku.resample(df_viz, n_samples=min(len(df_viz), config['n_samples']), random_state=config['random_state'])
     else:
         df_viz, _ = train_test_split(df_viz, stratify=df[config['target']], train_size=min(len(df_viz) - 20, config['n_samples']), random_state=config['random_state'])
@@ -77,7 +77,7 @@ def create_a_sample_df(config : Dict):
         raise ValueError("The DataFrame has no rows. Please check the data path and content.")
 
     # Re-Sample the dataframe to reduce size if necessary
-    if config['problem_type'] == 'regression':
+    if config['problem_type'] == 'regress':
         df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
     else:
         df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
@@ -155,7 +155,7 @@ def dimensionality_reduction(config : Dict, df : pd.DataFrame = None):
             raise ValueError("The DataFrame has no rows. Please check the data path and content.")
 
         # Re-Sample the dataframe to reduce size if necessary
-        if config['problem_type'] == 'regression':
+        if config['problem_type'] == 'regress':
             df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
         else:
             df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
@@ -289,7 +289,7 @@ def compute_relationships(config : Dict):
                 interactions.append(msg)
 
     # Compute MDI for feature importance
-    if config['problem_type'] == 'regression':
+    if config['problem_type'] == 'regress':
         model = RandomForestRegressor(random_state=config['random_state'])
     else:
         model = RandomForestClassifier(random_state=config['random_state'])
@@ -356,7 +356,7 @@ def compute_distributions(config : Dict):
 def get_reduced_sample(config : Dict):
     df = safe_read_csv(config['data_path'])
 
-    if config['problem_type'] == 'regression':
+    if config['problem_type'] == 'regress':
         df = df.sample(n=min(len(df), config['n_samples']), random_state=config['random_state'])
     else:
         df, _ = train_test_split(df, stratify=df[config['target']], train_size=min(len(df) - 20, config['n_samples']), random_state=config['random_state'])
@@ -520,7 +520,7 @@ def apply_preprocess_to_dataset(config : Dict):
     df = fill_missing_values(df, config.get('impute', 'mean'))
     preprocess_dataframe(df, config.get('target'), config.get('wfDir'), test_size=0.2, random_state=42, encoding_strategy='ordinal', scaling_strategy=scaling_strategy)
 
-    json.dump({}, open(config.get('wfDir', '') + '\\model_metadata.json', 'w'))
+    json.dump({}, open(config.get('wfDir', '') + '\\metadata.json', 'w'))
     return True
 
 
@@ -545,14 +545,16 @@ def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, 
     X = df.drop(columns=[target_column])
     y = df[target_column]
 
-    if y.nunique() < 20:
-        print(f"Stratifying the split based on target column '{target_column}' with {y.nunique()} unique values.")
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y, random_state=random_state)
-    else:
-        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+    # if y has ints, it is a discrete column. Then we need to ensure that the y values go from 0 to n-1 (n = classes)
+    """ if pd.api.types.is_integer_dtype(y):
+    # Convert to zero-indexed class labels (e.g., 0 to n-1)
+        unique_classes = sorted(y.unique())
+        class_mapping = {old: new for new, old in enumerate(unique_classes)}
+        y = y.map(class_mapping) """
 
-    # 1.1 Encode the target variable
-    if df[target_column].dtype == 'object' or df[target_column].dtype == 'category' or df[target_column].dtype == 'string':
+
+    if y.nunique() < 20:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y, random_state=random_state)
         encode_target = True
         target_encoder = skp.LabelEncoder()
         y_train = target_encoder.fit_transform(y_train)
@@ -560,6 +562,12 @@ def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, 
         y = target_encoder.transform(y)
     else:
         encode_target = False
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+
+    # 1.1 Encode the target variable
+    """ if df[target_column].dtype == 'object' or df[target_column].dtype == 'category' or df[target_column].dtype == 'string':
+    else:
+        encode_target = False """
 
     # 2. Separate categorical and numerical columns
     categorical_features = X_train.select_dtypes(include=['object', 'category']).columns.tolist()
@@ -585,7 +593,7 @@ def preprocess_dataframe(df: pd.DataFrame, target_column, wfDir, test_size=0.2, 
             raise ValueError(f"Unsupported scaling strategy: {scaling_strategy}. Supported strategies are 'none', 'standardize', 'normalize'.")
 
     if categorical_features:
-        transformers.append(('cat', skp.OrdinalEncoder(handle_unknown='ignore'), categorical_features))
+        transformers.append(('cat', skp.OrdinalEncoder(handle_unknown='error'), categorical_features))
 
     preprocessor = skcompose.ColumnTransformer(transformers=transformers, remainder='passthrough')
 

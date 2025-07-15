@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import { Typography, Card, Tooltip, Flex, message } from 'antd';
 
-import Stepper, { Step } from '../HorizontalStepper';
+import Stepper, { Step, HorizontalStepper } from '../HorizontalStepper';
 import { AlgorithmSelection, EvaluationInterface, ParameterInterface, TrainInterface, InferenceInterface } from './Steps';
-import { DatasetMetadata, ModelTrainingInfo } from '../../backend_api/types';
+import { DatasetMetadata, ModelMetadata, ModelMetadataDict, ModelTrainingInfo } from '../../backend_api/types';
 import { trainAndSaveModel } from '../../backend_api/data_api';
 import { Workflow } from '../../AppState';
 
@@ -15,11 +15,39 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
     const [trainingData, setTrainingData] = React.useState<ModelTrainingInfo | null>(null);
     const [datasetMeta, setDatasetMeta] = React.useState<DatasetMetadata | null>(null);
     const [currentStep, setCurrentStep] = React.useState(0);
-    const [algorithm, setAlgorithm] = React.useState<string>('svm');
+    const [algorithm, setAlgorithm] = React.useState<string>(currentWf?.problemType === 'regress' ? 'linear_simple' : 'logistic_simple');
     const [problemType, setProblemType] = React.useState<string>('classify');
     const [modelParameters, setModelParameters] = React.useState<Record<string, any>>({});
     const [trainingEpochs, setTrainingEpochs] = React.useState<number>(100);
+    const [modelMetadataDict, setModelMetadataDict] = React.useState<ModelMetadataDict>({});
+    const [featureImportances, setFeatureImportances] = React.useState<Record<string, number>>({});
     const [wfDir, setWfDir] = React.useState<string>('');
+
+    const fetchModelMetadata = () => {
+        window.stateAPI.getModelMetadata().then((metadata) => {
+            setModelMetadataDict(metadata);
+        }).catch((error) => {
+            message.error('Failed to load model metadata: ' + error.message);
+        });
+    }
+
+    useEffect(() => {
+        
+        fetchModelMetadata();
+        
+        window.stateAPI.getEDAData().then((data) => {
+            if (data) {
+                data.relationships.featureImportance.map((item) => {
+                    setFeatureImportances((prev) => ({
+                        ...prev,
+                        [item.feature]: item.importance
+                    }));
+                });
+            }
+        }).catch((error) => {
+            message.error('Failed to load EDA data: ' + error.message);
+        });
+    }, []);
 
     const onStepChange = (stepIndex: number) => {
         setCurrentStep(stepIndex);
@@ -35,6 +63,7 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
         setTrainingEpochs(epochs);
         setState('training');
         handleTrainModel();
+        fetchModelMetadata();
     }
 
     const onParametersChange = (parameters: Record<string, any>) => {
@@ -67,16 +96,19 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
             setTrainingData(parsedData);
             message.success('Loaded latest training data for the selected algorithm.');
         }).catch(() => {});
+
+        fetchModelMetadata();
     }, [algorithm]);
 
     const handleTrainModel = () => {
         const request = async () => {
             try {
+                console.log('Training model with parameters:', trainingEpochs);
                 const response = await trainAndSaveModel({
                     modelType: algorithm,
                     problemType: problemType,
                     parameters: modelParameters,
-                    epochs: trainingEpochs,
+                    epochs: trainingEpochs || 100,
                     wfDir: wfDir,
                 });
                 setTrainingData(response);
@@ -92,12 +124,13 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
             message.error('An error occurred while training the model.' + error.message);
         });
     }
-
+    
+    const canPredict = modelMetadataDict[algorithm] && modelMetadataDict[algorithm].snapshots.length > 0;
     const steps : Step[] = [
         {
             id: 'algorithm',
             title: 'Algorithm ',
-            content: <AlgorithmSelection onAlgorithmChange={setAlgorithm} problemType={problemType as 'classify' | 'regress'} />  
+            content: <AlgorithmSelection onAlgorithmChange={setAlgorithm} selectedAlgorithm={algorithm} problemType={problemType as 'classify' | 'regress'} />  
         },
         {
             id: 'parameters',
@@ -107,7 +140,7 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
         {
             id: 'training',
             title: 'Training',
-            content: <TrainInterface onClickTrain={onClickTrain} state={state} trainingData={trainingData} />
+            content: <TrainInterface onClickTrain={onClickTrain} state={state} trainingData={trainingData} modelType={algorithm}/>
         },
         {
             id: 'evaluation',
@@ -117,13 +150,19 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
         {
             id: 'inference',
             title: 'Make Predictions',
-            content: <InferenceInterface datasetData={datasetMeta} workflow={currentWf} />
+            content: <InferenceInterface 
+                datasetData={datasetMeta} 
+                workflow={currentWf} 
+                modelType={algorithm}
+                featureImportances={featureImportances}
+            />,
         }
     ];
     
+
     return (
         <div className='flex h-screen w-screen'>
-            <Stepper currentStep={currentStep} steps={steps} onStepChange={(value) => onStepChange(value)}/>
+            <HorizontalStepper currentStep={currentStep} steps={steps} onStepChange={(value) => onStepChange(value)}/>
         </div>
     );
 };

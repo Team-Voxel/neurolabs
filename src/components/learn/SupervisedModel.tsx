@@ -332,11 +332,6 @@ export const SupervisedModel: React.FC<ModelProps> = ({type}) => {
                                     label: 'Confusion Matrix',
                                     key: 'confusion',
                                     children: <div className='h-full w-full p-2'><ConfusionMatrix type={type} modelInfo={modelInfo} /></div>
-                                },
-                                {
-                                    label: 'Precision-Recall Curve',
-                                    key: 'precision-recall',
-                                    children: <div className='h-full w-full p-2'><PrecisionRecallCurve type={type} modelInfo={modelInfo} /></div>
                                 }
                             ]}
                         />

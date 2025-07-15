@@ -297,7 +297,7 @@ ipcMain.handle('wf-get-model-metadata', async (_e, wf_name: string) => {
   const all: Workflow[] = JSON.parse(raw);
   const wf = all.find(x => x.name === wf_name);
   if (wf) {
-    const metadata_path = path.join(app.getPath('userData'), wf.name, 'model_metadata.json');
+    const metadata_path = path.join(app.getPath('userData'), wf.name, 'metadata.json');
     const raw_bytes = await fs.readFile(metadata_path, 'utf-8');
     const data : Record<string, ModelMetadata> = JSON.parse(raw_bytes);
     return data;

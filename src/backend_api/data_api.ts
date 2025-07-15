@@ -1,5 +1,5 @@
 import axios from "axios";
-import {DatasetSummary, UnsupervisedModelTrainingInfo, ModelTrainingInfo, SimpleDataset, InferenceData} from "./types";
+import {DatasetSummary, UnsupervisedModelTrainingInfo, ModelTrainingInfo, SimpleDataset, ModelPrediction} from "./types";
 import { DatasetResponse } from "../components/data_model/types";
 
 
@@ -151,7 +151,7 @@ export async function trainAndSaveModel(config: Record<string, any>): Promise<Mo
   return response.data;
 }
 
-export async function makeInference(config: Record<string, any>): Promise<InferenceData> {
+export async function makeInference(config: Record<string, any>): Promise<ModelPrediction> {
   const response = await axios.post(
     "http://localhost:8000/inference",
     config,
