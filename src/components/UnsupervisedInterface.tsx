@@ -29,7 +29,7 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
     const [requireDimensionReduction, setRequireDimensionReduction] = useState<boolean>(false);
     const [dimReductionMethod, setDimensionReductionMethod] = useState<string>('pca');
     const [findOptimalClusters, setFindOptimalClusters] = useState<boolean>(false);
-    const [optimalClusterMethod, setOptimalClusterMethod] = useState<string>('elbow');
+    const [optimalClusterMethod, setOptimalClusterMethod] = useState<string>('silhouette');
 
     const [clusters, _setClusters] = useState<string>('predicted');
 
