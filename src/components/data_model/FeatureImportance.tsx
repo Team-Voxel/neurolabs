@@ -1,7 +1,7 @@
 import React, {useState, useEffect} from 'react';
 import { DFRelationship, FeatureImportanceData } from '../../backend_api/types';
 import { Typography } from 'antd';
-import { BarChart, Bar, Rectangle, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export interface FeatureImportanceProps {
     relationships: DFRelationship;

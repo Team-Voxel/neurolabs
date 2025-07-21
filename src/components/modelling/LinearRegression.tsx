@@ -2,7 +2,7 @@ import React, {useState} from "react";
 import { Typography } from "antd";
 import { Sankey, Tooltip, ResponsiveContainer } from "recharts";
 import 'katex/dist/katex.min.css';
-import { BlockMath, InlineMath } from 'react-katex';
+import { BlockMath } from 'react-katex';
 
 const CustomNode = (props) => {
     const { x, y, width, height, index, payload } = props;
@@ -34,7 +34,7 @@ const CustomNode = (props) => {
 };
 
 export const LinearRegression: React.FC = () => {
-    const [linConn, setLinConn] = useState(
+    const [linConn, _setLinConn] = useState(
     {
         nodes:[{name: "Target"}, {name: "X1"}, {name: "X2"}, {name: "X3"}, {name: "X4"}, {name: "X5"}],
         links:

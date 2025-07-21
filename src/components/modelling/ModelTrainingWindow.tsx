@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sidebar } from '../Sidebar';
-import { ArrowBigLeft, Scaling, Variable, Gauge, SquareFunction, ScanSearch, BookOpenText, History } from 'lucide-react';
-import { Fa1, Fa2, Fa3, Fa4 } from "react-icons/fa6";
+import { ArrowBigLeft,BookOpenText, History } from 'lucide-react';
+import { Fa1, Fa2, Fa3 } from "react-icons/fa6";
 
 function string_to_number(str: string): number {
     switch (str) {
@@ -22,7 +22,6 @@ export const ModelTrainingWindow: React.FC = () => {
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
     const startTab = queryParams.get('startTab') || 'preprocessing';
-    const model = queryParams.get('model') || 'logistic';
 
     const [selectedTab, setSelectedTab] = useState<string>(startTab);
     const navigate = useNavigate();

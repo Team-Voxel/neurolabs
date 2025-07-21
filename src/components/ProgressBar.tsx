@@ -1,5 +1,5 @@
 import { Typography } from 'antd';
-import React, { useState } from 'react';
+import React from 'react';
 
 export interface CircularProgressBarProps {
     progress: number;

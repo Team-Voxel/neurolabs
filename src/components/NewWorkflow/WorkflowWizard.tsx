@@ -2,14 +2,12 @@ import React, { useState, ChangeEvent, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Box from '@mui/material/Box';
 import TextField from '@mui/material/TextField';
-import { Button, message, Splitter, Steps, Typography} from 'antd';
-import { ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Button, message, Splitter, Typography} from 'antd';
 import {generateSummaryFromFile, applyPreprocess} from '../../backend_api/data_api';
-import type { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
+import type { DatasetSummary} from '../../backend_api/types';
 import Papa, {ParseResult} from 'papaparse';
 import { FileImportFragment } from './FileImportFrag';
-import { FeatureOverview, TargetOverview } from './DatasetPreview';
-import { DataGeneration } from './GenerationUI';
+import { FeatureOverview} from './DatasetPreview';
 import { useWaitForComputationStore } from './WaitForComputation';
 import { PreprocessModal } from './Preprocess';
 import { Workflow } from '../../AppState';
@@ -30,10 +28,10 @@ export const WorkflowWizard: React.FC = () => {
   const [workflowName, setWorkflowName] = useState<string>('');
   const [nameError, setNameError] = useState<string>('Enter a name');
   const [csvFile, setCsvFile] = useState<File|null>(null);
-  const [dataSource, setDataSource] = useState<'file'|'generate'>('file');
+  const [dataSource, _setDataSource] = useState<'file'|'generate'>('file');
   const [dataSummary, setDataSummary] = useState<DatasetSummary | null>(null);
   const [columnHeaders, setColumnHeaders] = useState<ColumnHeaderItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [targetColumn, setTargetColumn] = useState<string | null>(null);
   const [problemType, setProblemType] = useState<string>('classify');
 
@@ -53,7 +51,7 @@ export const WorkflowWizard: React.FC = () => {
   }
 
   useEffect(() => {
-    window.stateAPI.getAppState().then(({workflows, current}) => {
+    window.stateAPI.getAppState().then(({workflows}) => {
       setWorkflows(workflows);
       message.success('Loaded workflows.');
     }).catch(error => {
@@ -144,11 +142,6 @@ export const WorkflowWizard: React.FC = () => {
       sendSummaryRequest();
     }
   };
-
-  const onDataGenerate = (data : DatasetSummary) => {
-    setDataSummary(data);
-    setDoneComputingStats(true);
-  }
 
   const addNew = async () => {
     if (!targetColumn) {

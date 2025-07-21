@@ -1,8 +1,6 @@
 import React, {useState, useEffect} from "react";
-import { HomeOutlined, ClusterOutlined, ShrinkOutlined, BoxPlotOutlined, BarChartOutlined } from "@ant-design/icons";
 import { Menu, MenuItem } from "../Menu";
-import { Workflow } from "../../AppState";
-import { message, Typography } from "antd";
+import { message } from "antd";
 import { StatisticsModel } from "./StatisticsModel";
 import { EDAData, DatasetMetadata } from "../../backend_api/types";
 import { OverviewModel } from "./DFOverviewModel";
@@ -68,7 +66,7 @@ export const DataModel: React.FC = () => {
         message.error("Error fetching dataset metadata: " + error.message);
       });
 
-      window.stateAPI.getAppState().then(({workflows, current}) => {
+      window.stateAPI.getAppState().then(({current}) => {
         setWfDir(current?.wfDir || '');
       }).catch((error) => {
         message.error("Error fetching app state: " + error.message);

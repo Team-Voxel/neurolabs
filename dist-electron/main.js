@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path$1 from "node:path";
 import path from "path";
+import { spawn } from "child_process";
 function createWorkflowInstance(name, problemType, target, wfDirectory) {
   const workflow = {
     name,
@@ -33,7 +34,6 @@ function createWorkflowInstance(name, problemType, target, wfDirectory) {
 }
 const APP_DATA_DIR = app.getPath("userData");
 const DATA_PATH$1 = path$1.join(APP_DATA_DIR, "workflows.json");
-path$1.join(APP_DATA_DIR, "tempdata.csv");
 async function ensureStore$1() {
   try {
     await fs.stat(DATA_PATH$1);
@@ -148,6 +148,7 @@ function createAppStateInstance() {
 const require2 = createRequire(import.meta.url);
 const __dirname = path$1.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path$1.join(__dirname, "..");
+let backendProcess;
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 const MAIN_DIST = path$1.join(process.env.APP_ROOT, "dist-electron");
 const RENDERER_DIST = path$1.join(process.env.APP_ROOT, "dist");
@@ -201,6 +202,19 @@ async function startApp() {
     await ensureStore();
     global.appState = await createAppStateInstance();
     await global.appState.loadFromDiskAsync();
+    const isDev = !app.isPackaged;
+    const venvPython = isDev ? path$1.join(__dirname, "..", "backend", ".venv", "Scripts", "python.exe") : path$1.join(process.resourcesPath, "backend", ".venv", "Scripts", "python.exe");
+    const scriptPath = isDev ? path$1.join(__dirname, "..", "backend", "app", "main.py") : path$1.join(process.resourcesPath, "backend", "app", "main.py");
+    backendProcess = spawn(venvPython, [scriptPath]);
+    backendProcess.stdout.on("data", (data) => {
+      console.log(`Backend: ${data}`);
+    });
+    backendProcess.stderr.on("data", (data) => {
+      console.error(`Backend error: ${data}`);
+    });
+    backendProcess.on("close", (code) => {
+      console.log(`Backend exited with code ${code}`);
+    });
   } catch (err) {
     console.error("Failed to load workflows:", err);
   }
@@ -261,7 +275,7 @@ ipcMain.handle("get-file-name", async (_e, file) => {
   const name = path$1.basename(file, path$1.extname(file));
   return name;
 });
-ipcMain.handle("dialog:openFile", async (event) => {
+ipcMain.handle("dialog:openFile", async (_e) => {
   const { dialog } = require2("electron");
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],

@@ -1,8 +1,7 @@
 
-import React, {useState} from 'react';
+import React from 'react';
 import { type Node, type NodeProps, Handle, Position } from '@xyflow/react';
 import { type LayerDefinition } from './blockLayers';
-import DynamicForm from '../dynamic_form/DynamicForm';
 
 type LayerNodeData = Node<LayerDefinition, 'data'>;
 
@@ -99,8 +98,6 @@ export const CustomLayerNode: React.FC<NodeProps<LayerNodeData>> = ({ data, sele
       }}>
         <div className="font-medium">{data.name}</div>
       </div>
-
-      <DynamicForm controls={data.controls!} onChange={(values) => console.log(values)}></DynamicForm>
 
     </div>
     </>

@@ -1,5 +1,4 @@
 import { Workflow } from './AppState';
-import { readFile } from 'fs/promises';
 import path from 'path';
 
 export function createWorkflowInstance(name: string, problemType: string, target: string, wfDirectory: string): Workflow {

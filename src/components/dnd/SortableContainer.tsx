@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   DndContext,
   closestCenter,
@@ -40,7 +40,6 @@ export const SortableContainer: React.FC<SortableContainerProps> = ({
   className = '',
   containerClassName = '',
   isLoading = false,
-  dragHandleSelector,
   onDragStart,
   onDragEnd,
   onDragOver,

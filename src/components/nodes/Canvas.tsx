@@ -2,7 +2,6 @@ import React, {useState, useRef, useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import {
   ReactFlow,
-  addEdge,
   reconnectEdge,
   Controls,
   useReactFlow,
@@ -19,7 +18,6 @@ import useStore from './store';
 import { type AppState } from './types';
 import InputNode, {OutputNode, CustomLayerNode} from './CustomNodes'
 import CustomSmoothStepEdge, {CustomConnectionLine} from './CustomEdges';
-import useMousePosition from '../../GetMousePosition';
 
 import { layerMenuItems } from './blockLayers';
 import { ContextMenu } from '../context_menu';
@@ -57,14 +55,13 @@ const Canvas : React.FC = () => {
     const reactFlowWrapper = useRef(null);
     const edgeReconnectSuccessful = useRef(true);
     
-    const { nodes, edges, selectedElements, onNodesChange, onEdgesChange, onConnect, addNewNode, setNodes, setEdges, setSelectedElements, deleteSelectedElements } = useStore(
+    const { nodes, edges, onNodesChange, onEdgesChange, onConnect, addNewNode, setEdges, setSelectedElements, deleteSelectedElements } = useStore(
         useShallow(selector),
     );
     const { screenToFlowPosition } = useReactFlow();
     const [nodeIdx, setNodeIdx] = useState(0);
     const contextMenuRef = useRef<HTMLDivElement>(null);
     
-    const [isCurrentConnectionValid, setIsCurrentConnectionValid] = useState(true);
     const [mousePosCanvas, setMousePosCanvas] = useState<XYPosition>({x: 0, y: 0});
     const [showContextMenu, setShowContextMenu] = useState<boolean>(false);
     const [connectionState, setConnectionState] = useState<FinalConnectionState>();
@@ -151,14 +148,6 @@ const Canvas : React.FC = () => {
       return () => window.removeEventListener('keydown', handleKeyDown);
     }, [screenToFlowPosition]);
 
-    const onConnectValidate = useCallback((connection: Connection) => {
-      if (isValidConnection(connection)) {
-        setEdges((eds) => addEdge(connection, eds));
-      } else {
-        console.log("Error");
-      }
-    }, []);
-
     const onReconnectStart = useCallback(() => {
       console.log('onReconnect', edges);
       edgeReconnectSuccessful.current = false;
@@ -188,7 +177,7 @@ const Canvas : React.FC = () => {
     };
     
     const onConnectEnd = useCallback(
-      (event, connectionState) => {
+      (_event, connectionState) => {
         setConnectionState(connectionState);
 
         // when a connection is dropped on the pane it's not valid
@@ -209,7 +198,6 @@ const Canvas : React.FC = () => {
       if (!sourceNode || !targetNode) return false;
       if (sourceNode == targetNode) return false; // recursion not allowed
       const source_type = sourceNode.data.layer_type;
-      const target_type = targetNode.data.layer_type;
 
       if(targetNode.data.compatible.find(t => t == source_type)) return true;
       
