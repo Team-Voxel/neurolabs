@@ -2,11 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 
 type TrainingState = 'ready' | 'training' | 'trained';
 
-interface FakeProgressProps {
-  state: TrainingState;
-  onComplete?: () => void; // optional callback when it hits 100%
-}
-
 export function useFakeProgress(state: TrainingState, onComplete?: () => void) {
   const [progress, setProgress] = useState(0);
   const frameRef = useRef<number | null>(null);

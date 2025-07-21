@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { Typography, Card, Tooltip, Flex, message } from 'antd';
+import {message } from 'antd';
 
-import Stepper, { Step, HorizontalStepper } from '../HorizontalStepper';
+import { Step, HorizontalStepper } from '../HorizontalStepper';
 import { AlgorithmSelection, EvaluationInterface, ParameterInterface, TrainInterface, InferenceInterface } from './Steps';
-import { DatasetMetadata, ModelMetadata, ModelMetadataDict, ModelTrainingInfo } from '../../backend_api/types';
+import { DatasetMetadata, ModelTrainingInfo } from '../../backend_api/types';
 import { trainAndSaveModel } from '../../backend_api/data_api';
 import { Workflow } from '../../AppState';
 
@@ -19,21 +19,10 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
     const [problemType, setProblemType] = React.useState<string>('classify');
     const [modelParameters, setModelParameters] = React.useState<Record<string, any>>({});
     const [trainingEpochs, setTrainingEpochs] = React.useState<number>(100);
-    const [modelMetadataDict, setModelMetadataDict] = React.useState<ModelMetadataDict>({});
     const [featureImportances, setFeatureImportances] = React.useState<Record<string, number>>({});
     const [wfDir, setWfDir] = React.useState<string>('');
 
-    const fetchModelMetadata = () => {
-        window.stateAPI.getModelMetadata().then((metadata) => {
-            setModelMetadataDict(metadata);
-        }).catch((error) => {
-            message.error('Failed to load model metadata: ' + error.message);
-        });
-    }
-
     useEffect(() => {
-        
-        fetchModelMetadata();
         
         window.stateAPI.getEDAData().then((data) => {
             if (data) {
@@ -53,17 +42,10 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
         setCurrentStep(stepIndex);
     };
 
-    const onAlgorithmChange = (newAlgorithm: string) => {
-        setAlgorithm(newAlgorithm);
-        setModelParameters({}); // Reset parameters when algorithm changes
-        setCurrentStep(1);
-    };
-
     const onClickTrain = (epochs: number) => {
         setTrainingEpochs(epochs);
         setState('training');
         handleTrainModel();
-        fetchModelMetadata();
     }
 
     const onParametersChange = (parameters: Record<string, any>) => {
@@ -87,7 +69,7 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
 
         window.stateAPI.getDatasetMetadata().then((meta) => {
             setDatasetMeta(meta);
-        }).catch(error => {
+        }).catch(_error => {
             message.error('Failed to load dataset metadata.');
         })
 
@@ -97,7 +79,6 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
             message.success('Loaded latest training data for the selected algorithm.');
         }).catch(() => {});
 
-        fetchModelMetadata();
     }, [algorithm]);
 
     const handleTrainModel = () => {
@@ -125,7 +106,6 @@ export const ModelInterface: React.FC<ModelInterfaceProps> = () => {
         });
     }
     
-    const canPredict = modelMetadataDict[algorithm] && modelMetadataDict[algorithm].snapshots.length > 0;
     const steps : Step[] = [
         {
             id: 'algorithm',

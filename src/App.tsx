@@ -4,7 +4,6 @@ import React from 'react';
 import MainMenu from './components/main_menu/MainMenu';
 import { ProjectSelection } from './components/ProjectSelection';
 import { WorkflowSelection } from './components/WorkflowSelection';
-import SortablePipeline from './components/SortablePipeline';
 import { WorkflowWizard } from './components/NewWorkflow/WorkflowWizard';
 import  MainNavigation from './components/MainNavigation';
 import WaitForComputation from './components/NewWorkflow/WaitForComputation';
@@ -37,7 +36,6 @@ return (
       <Route path="/project-selection" element={<ProjectSelection />} />
       <Route path="/new-workflow" element={<WorkflowWizard />} />
       <Route path="/workflow-selection" element={<WorkflowSelection/>} />
-      <Route path="/nodes" element={<SortablePipeline />} />
       <Route path="/sandbox" element={<MainNavigation/>} />
       <Route path="/explore" element={<div>Explore</div>} />
       <Route path="/settings" element={<div>Settings</div>} />

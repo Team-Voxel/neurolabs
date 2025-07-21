@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
-import ContourPlot from '../plotting/ContourPlot';
-import { Splitter, Flex, Typography, Switch, Checkbox, Slider, Button, Tabs, TabsProps, Divider, Statistic, Card, Popover, Segmented, message} from 'antd';
+import { Splitter, Typography, Button, Tabs, Statistic, Card, Popover, message} from 'antd';
 import type { ModelTrainingInfo } from '../../backend_api/types';
 import Settings from '../settings/Settings';
-import { SettingControl as SettingControlType, SelectOption } from '../settings/types';
+import { SettingControl as SettingControlType } from '../settings/types';
 import { trainModelSimple } from '../../backend_api/data_api';
 import { PlotlyHeatmap } from '../plotting/BoxHeat';
 import { PiQuestionBold } from 'react-icons/pi';
@@ -385,7 +384,7 @@ export const PerformanceMetrics: React.FC<{type: string, modelInfo: ModelTrainin
     )
 }
 
-export const ConfusionMatrix: React.FC<{type: string, modelInfo: ModelTrainingInfo}> = ({type, modelInfo}) => {
+export const ConfusionMatrix: React.FC<{type: string, modelInfo: ModelTrainingInfo}> = ({modelInfo}) => {
 
 
     return (

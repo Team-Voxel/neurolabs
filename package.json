@@ -88,5 +88,26 @@
     "vite-plugin-electron": "^0.28.6",
     "vite-plugin-electron-renderer": "^0.14.5"
   },
-  "main": "dist-electron/main.js"
+  "main": "dist-electron/main.js",
+  "build": {
+    "appId": "com.neurolabs.app",
+    "productName": "NeuroLabs",
+    "files": [
+      "dist-electron/**/*",    
+      "dist/**/*",             
+      "node_modules/**/*",     
+      "package.json"           
+    ],
+    "extraFiles": [
+      {
+        "from": "backend/",
+        "to": "backend/",
+        "filter": ["**/*"]
+      }
+    ],
+    "directories": {
+      "buildResources": "public"
+    },
+    "asar": false
+  }
 }

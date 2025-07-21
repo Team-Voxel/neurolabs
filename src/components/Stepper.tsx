@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ArrowBigLeft, Check, History } from 'lucide-react';
-import { Button, Tooltip, Typography } from 'antd';
+import { Tooltip, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
 export interface StepperStep {
@@ -187,7 +187,7 @@ export const Stepper: React.FC<StepperProps> = ({
         <div className="h-full p-8">
           {/* Content with smooth transitions */}
           <div className="relative h-full">
-            {steps.map((step, index) => (
+            {steps.map((step) => (
               <div
                 key={step.id}
                 className={`

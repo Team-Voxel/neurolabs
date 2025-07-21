@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Database, Brain, Cpu, ChartScatter, ScatterChart, ArrowBigLeft } from 'lucide-react';
+import { Database, Brain, ScatterChart, ArrowBigLeft } from 'lucide-react';
 import { DataModel } from './data_model/DataModel';
 import { SquareButton } from './IconButton';
-import { ModelContext } from './modelling/ModelContext';
 import { Sidebar } from './Sidebar';
 import { UnsupervisedInterface } from './UnsupervisedInterface';
-import { FloatButton } from 'antd';
-import { ArrowLeftOutlined, HomeOutlined } from '@ant-design/icons';
 import { ModelInterface } from './modelling/ModelInterface';
 
 const MainNavigation: React.FC = () => {
@@ -20,9 +17,6 @@ const MainNavigation: React.FC = () => {
   const [reducedDataPath, setReducedDataPath] = useState<string>('');
   const [targetColumn, setTargetColumn] = useState<string>('');
   const navigate = useNavigate();
-  const handleHomeClick = () => {
-    navigate('/');
-  };
 
   useEffect(() => {
     window.stateAPI.getAppState().then(({ current }) => {
@@ -38,24 +32,6 @@ const MainNavigation: React.FC = () => {
   }
   , [navigate]);
 
-  const getContent = () => {
-    switch (selectedTab) {
-      case 0:
-        return (
-            <>
-              <DataModel/>
-            </>
-        );
-      case 1:
-        return (
-            <ModelInterface/>
-        );
-      case 2:
-        return <UnsupervisedInterface dataSrc={reducedDataPath} targetColumn={targetColumn}/>;
-      default:
-        return <div className="p-6"><h1 className="text-2xl font-bold">Select a tab</h1></div>;
-    }
-  };
 
   const handleBackClick = () => {
     if (selectedTab > -1) {

@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
-import { Typography, Card, Tooltip, Flex} from 'antd';
+import React from 'react';
+import { Typography , Tooltip, Flex} from 'antd';
 import {PiNetwork } from 'react-icons/pi';
-import Meta from 'antd/es/card/Meta';
-import { SettingOutlined, EllipsisOutlined } from '@ant-design/icons';
-import { Trash2, RotateCcw, Play, BarChart3, Zap } from 'lucide-react';
+import { Trash2, RotateCcw } from 'lucide-react';
 
 
 export interface ModelCardProps {
@@ -34,7 +32,6 @@ export const ModelCard: React.FC<ModelCardProps> = ({
     modelType,
     isSelected,
     height = 100,
-    width = 100,
     onSelect,
     onRetrain,
     onDelete
@@ -159,25 +156,12 @@ export const ModelCard: React.FC<ModelCardProps> = ({
   export const ActionCard: React.FC<ActionCardProps> = ({
     icon,
     title,
-    description,
     isTrained,
     onTrain,
-    onMetrics,
-    onInfer
   }) => {
     const handleTrain = (e: React.MouseEvent) => {
       e.stopPropagation();
       onTrain();
-    };
-  
-    const handleMetrics = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onMetrics();
-    };
-  
-    const handleInfer = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      onInfer();
     };
 
     const iconSize = 64; // Default icon size, can be adjusted as needed
