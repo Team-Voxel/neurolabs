@@ -1,35 +1,52 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/electron-vite.animate.svg'
-import './App.css'
+
+import { HashRouter, Routes, Route } from 'react-router-dom';
+import React from 'react';
+import MainMenu from './components/main_menu/MainMenu';
+import { ProjectSelection } from './components/ProjectSelection';
+import { WorkflowSelection } from './components/WorkflowSelection';
+import { WorkflowWizard } from './components/NewWorkflow/WorkflowWizard';
+import  MainNavigation from './components/MainNavigation';
+import WaitForComputation from './components/NewWorkflow/WaitForComputation';
+import { ChildWindowHost } from './components/ChildWindowHost';
+import { LearnInterface } from './components/learn/LearnInterface';
+import { ModelTrainingWindow } from './components/modelling/ModelTrainingWindow';
+import { ModelInterface } from './components/modelling/ModelInterface';
+
+/* // Extend the Window interface to include electronAPI
+declare global {
+  interface Window {
+    electronAPI: {
+      openFileDialog: () => void;
+    };
+  }
+} */
+
+const componentMap: Record<string, React.FC<any>> = {
+  'WorkflowWizard': WorkflowWizard,
+  'MainNavigation': MainNavigation,
+};
+
 
 function App() {
-  const [count, setCount] = useState(0)
 
-  return (
-    <>
-      <div>
-        <a href="https://electron-vite.github.io" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+return (
+  <HashRouter>
+    <Routes>
+      <Route path="/" element={<MainMenu />} />
+      <Route path="/project-selection" element={<ProjectSelection />} />
+      <Route path="/new-workflow" element={<WorkflowWizard />} />
+      <Route path="/workflow-selection" element={<WorkflowSelection/>} />
+      <Route path="/sandbox" element={<MainNavigation/>} />
+      <Route path="/explore" element={<div>Explore</div>} />
+      <Route path="/settings" element={<div>Settings</div>} />
+      <Route path="/wait-screen" element={<WaitForComputation/>} />
+      <Route path="/child" element={<ChildWindowHost componentMap={componentMap} />} />
+      <Route path="/learn" element={<LearnInterface />} />
+      <Route path="/model-training" element={<ModelTrainingWindow />} />
+      <Route path="/model-interface" element={<ModelInterface />} />
+    </Routes>
+  </HashRouter>
+);
 }
 
-export default App
+export default App;

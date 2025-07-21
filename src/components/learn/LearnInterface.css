@@ -1,0 +1,19 @@
+.ant-tabs {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.ant-tabs-content {
+    height: 100%;
+    flex: 1;
+}
+
+.ant-tabs-tabpane {
+    height: 100%;
+}
+
+.ant-tabs-content-holder {
+    flex: 1;
+    overflow: auto;
+} 
