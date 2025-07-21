@@ -1,0 +1,9 @@
+
+            {dataSource === 'generate' && (
+              <DataGeneration
+                onSendRequest={() => {setDoneComputingStats(false)}}
+                onGenerate={onDataGenerate}
+                onBack={handleBack}
+                onNext={() => {setStep(SetupSteps.Finish)}}
+                />
+            )}
