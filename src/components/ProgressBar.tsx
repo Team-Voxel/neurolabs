@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { Typography } from 'antd';
+import React from 'react';
 
 export interface CircularProgressBarProps {
     progress: number;
@@ -134,6 +135,89 @@ export interface CircularProgressBarProps {
               filter: 'blur(2px)'
             }}
           />
+        )}
+      </div>
+    );
+  };
+
+
+
+  export interface CircularProgressBar2Props {
+    progress: number; // 0 to 100
+    size?: number; // diameter in pixels
+    thickness?: number; // stroke width in pixels
+    color?: string; // progress bar color
+    backgroundColor?: string; // background circle color
+    textColor?: string; // percentage text color
+    showPercentage?: boolean; // whether to show percentage text
+  }
+  
+  export const CircularProgressBar2: React.FC<CircularProgressBar2Props> = ({
+    progress,
+    size = 120,
+    thickness = 8,
+    color = '#3b82f6', // blue-500
+    backgroundColor = '#e5e7eb', // gray-200
+    textColor = '#374151', // gray-700
+    showPercentage = true
+  }) => {
+    // Ensure progress is between 0 and 100
+    const normalizedProgress = Math.min(Math.max(progress, 0), 100);
+    
+    // Calculate the radius (account for stroke width)
+    const radius = (size - thickness) / 2;
+    
+    // Calculate the circumference
+    const circumference = 2 * Math.PI * radius;
+    
+    // Calculate the stroke dash offset based on progress
+    const strokeDashoffset = circumference - (normalizedProgress / 100) * circumference;
+    
+    // Center coordinates
+    const center = size / 2;
+    
+    return (
+      <div className="relative inline-flex items-center justify-center">
+        <svg
+          width={size}
+          height={size}
+          className="transform -rotate-90"
+        >
+          {/* Background circle */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            stroke={backgroundColor}
+            strokeWidth={thickness}
+            fill="transparent"
+          />
+          
+          {/* Progress circle */}
+          <circle
+            cx={center}
+            cy={center}
+            r={radius}
+            stroke={color}
+            strokeWidth={thickness}
+            fill="transparent"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+        </svg>
+        
+        {/* Percentage text */}
+        {showPercentage && (
+          <div
+            className="absolute inset-0 flex items-center justify-center font-semibold"
+            style={{ 
+              color: textColor,
+              fontSize: `${size * 0.15}px` // Dynamic font size based on circle size
+            }}
+          >
+            <Typography.Title level={4}>{Math.round(normalizedProgress)}%</Typography.Title> 
+          </div>
         )}
       </div>
     );

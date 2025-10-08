@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { useDrop, useDrag, DropTargetMonitor } from 'react-dnd';
 import { NetworkLayersProps, DragItem, ActiveNetworkElement } from './types';
-import NetworkItem from './NetworkItem';
 import { ItemTypes } from './ItemTypes';
 import { Layers } from 'lucide-react';
 
@@ -113,7 +112,7 @@ const NetworkLayers: React.FC<NetworkLayersProps> = ({
         console.log(idSet);
       }
     });
-    const newLayers = layers.filter((layerId, layer_index) => layer_index !== index);
+    const newLayers = layers.filter((_layerId, layer_index) => layer_index !== index);
     onLayersChange(newLayers);
   };
 
@@ -184,7 +183,7 @@ const LayerItem = React.forwardRef<HTMLDivElement, LayerItemProps>(
 
     const [, drop] = useDrop(() => ({
       accept: ItemTypes.LAYER_ITEM,
-      hover: (item: DragItem, monitor) => {
+      hover: (item: DragItem, _monitor) => {
         if (!ref) return;
         const dragIndex = item.index;
         const hoverIndex = index;

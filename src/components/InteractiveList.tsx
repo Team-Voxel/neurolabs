@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, ReactNode } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Check } from 'lucide-react';
 import { Typography } from 'antd';
 
@@ -114,7 +114,7 @@ const ListItem: React.FC<ListItemProps> = ({
       
       {/* Content */}
       <div className="flex items-center justify-between relative z-10">
-        <Typography.Title level={5}>{item.title}</Typography.Title>
+        <Typography.Title style={{userSelect:'none'}} level={5}>{item.title}</Typography.Title>
         
         {/* Selection indicator */}
         <div className={`
@@ -150,7 +150,6 @@ const InteractiveList: React.FC<InteractiveListProps> = ({
   onSelect,
   onSelectionChange,
   onHover,
-  className = ''
 }) => {
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 

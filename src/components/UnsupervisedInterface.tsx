@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MulticlassScatterPlot } from './plotting/MulticlassScatter';
 import { trainUnsupervisedSimple } from './../backend_api/data_api';
 import { UnsupervisedModelTrainingInfo } from './../backend_api/types';
-import { Typography, Button, Checkbox, Card, Popover, Statistic, message } from 'antd';
+import { Typography, Button, Card, Popover, Statistic, message } from 'antd';
 import Settings from './settings/Settings';
 import { SettingControl as SettingControlType } from './settings/types';
 import Papa, {ParseResult} from 'papaparse';
@@ -29,9 +29,9 @@ export const UnsupervisedInterface: React.FC<UnsupervisedInterfaceProps> = ({ da
     const [requireDimensionReduction, setRequireDimensionReduction] = useState<boolean>(false);
     const [dimReductionMethod, setDimensionReductionMethod] = useState<string>('pca');
     const [findOptimalClusters, setFindOptimalClusters] = useState<boolean>(false);
-    const [optimalClusterMethod, setOptimalClusterMethod] = useState<string>('elbow');
+    const [optimalClusterMethod, setOptimalClusterMethod] = useState<string>('silhouette');
 
-    const [clusters, setClusters] = useState<string>('predicted');
+    const [clusters, _setClusters] = useState<string>('predicted');
 
     window.fsAPI.readFile(dataSrc).then((data) => {
         if (data) {

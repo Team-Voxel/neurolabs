@@ -1,6 +1,6 @@
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react';
-import { Button, Typography } from 'antd';
+import { Check } from 'lucide-react';
+import { Typography } from 'antd';
 
 export interface Step {
   id: string;

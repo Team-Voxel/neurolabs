@@ -5,35 +5,6 @@ import { Flex, Select, Typography } from "antd";
 import Papa, {ParseResult} from 'papaparse';
 import { PlotlyBoxplot } from "../plotting/BoxHeat";
 
-const chartOptions : any = {
-  series: [44, 55, 13, 33],
-  options: {
-    labels: ["Comedy", "Action", "SciFi", "Drama"],
-    chart: {
-      width: 380,
-      type: 'donut',
-    },
-    dataLabels: {
-      enabled: true
-    },
-    responsive: [{
-      breakpoint: 480,
-      options: {
-        chart: {
-          width: 200
-        },
-        legend: {
-          show: true
-        }
-      }
-    }],
-    legend: {
-      position: 'right',
-      offsetY: 0,
-      height: 230,
-    }
-  },
-};
 
 const generateBoxPlotData = (data: ColumnDistributions): {[key: string]: any} => {
     console.log("Generating box plot data with:", data);

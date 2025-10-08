@@ -1,10 +1,9 @@
 import React from "react";
-import { Card, Table, TableColumnsType, Tooltip, Typography } from 'antd';
+import { Table, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import type { DatasetSummary, DataSummaryEntry } from '../../backend_api/types';
-import { Area, BarChart, CartesianGrid, Legend, ResponsiveContainer, XAxis, YAxis } from 'recharts';
-import { AreaChart, Treemap, Bar } from 'recharts';
-import { X } from 'lucide-react';
+import { Area, BarChart, ResponsiveContainer, XAxis, YAxis } from 'recharts';
+import { AreaChart, Bar } from 'recharts';
 
 export interface DFOverviewModelProps {
     datasetSummary: DatasetSummary;
@@ -75,14 +74,6 @@ export function getColumns(): ColumnsType<DataSummaryEntry> {
 
 export const OverviewModel: React.FC<DFOverviewModelProps> = ({ 
     datasetSummary,
-    onRowSelectionChange,
-    selectedRowKeys,
-    rowSelection = {
-        selectedRowKeys,
-        onChange: (selectedRowKeys: React.Key[]) => {
-            onRowSelectionChange!(selectedRowKeys);
-        },
-    },
     visible
  }) => 
 {

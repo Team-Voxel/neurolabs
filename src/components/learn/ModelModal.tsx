@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Modal, Button, Select, message, Segmented, Form, Typography } from 'antd';
-import { ModelTrainingInfo } from '../../backend_api/types';
+import { Modal, message, Segmented, Form, Typography } from 'antd';
 import { SegmentedLabeledOption } from 'antd/es/segmented';
 import ReactPlayer from 'react-player';
 // Import videos
@@ -16,7 +15,7 @@ interface ModelModalProps {
 const ModelModal: React.FC<ModelModalProps> = ({ visible, onClose, onSelect }) => {
     const [form] = Form.useForm();
     const [selectedModel, setSelectedModel] = useState<string>('logistic');
-    const [isVideoReady, setIsVideoReady] = useState(false);
+    const [_isVideoReady, setIsVideoReady] = useState(false);
 
     const options : SegmentedLabeledOption[] = [
         {
@@ -49,7 +48,7 @@ const ModelModal: React.FC<ModelModalProps> = ({ visible, onClose, onSelect }) =
         },
     ];
     const handleOk = () => {
-        form.validateFields().then((values) => {
+        form.validateFields().then((_values) => {
             onSelect(selectedModel);
             onClose();
         });
