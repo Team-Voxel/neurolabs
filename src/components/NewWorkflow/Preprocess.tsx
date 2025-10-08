@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from "react";
-import { Button, Typography, Modal, Divider, Select, Checkbox} from 'antd'
-import { CheckCircleOutlined, ExclamationCircleOutlined, CloseOutlined } from '@ant-design/icons'
+import { Typography, Modal, Divider} from 'antd'
+import {  ExclamationCircleOutlined, CloseOutlined } from '@ant-design/icons'
 import Settings from '../settings/Settings';
 import { SettingControl as SettingControlType } from '../settings/types';
 

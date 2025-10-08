@@ -3,10 +3,10 @@ import fs from 'fs/promises';
 import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import { exit } from 'node:process'
-import { Workflow, AppState } from '../src/AppState'
+import { Workflow } from '../src/AppState'
 import { DatasetMetadata, EDAData, ModelMetadata } from '../src/backend_api/types';
 import { createAppStateInstance } from '../src/CreateAppState';
+import { spawn } from 'child_process';
 
 const require = createRequire(import.meta.url)
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -21,6 +21,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // │ │ └── preload.mjs
 // │
 process.env.APP_ROOT = path.join(__dirname, '..')
+let backendProcess;
 
 // 🚧 Use ['ENV_NAME'] avoid vite:define plugin - Vite@2.x
 export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
@@ -99,11 +100,40 @@ app.whenReady().then(startApp).catch(err => {
   console.error('Failed to start app:', err);
 });
 
+
+
 async function startApp() {
   try {
     await ensureStore();
     global.appState = await createAppStateInstance();
     await global.appState.loadFromDiskAsync();
+
+    // Backend startup
+    const isDev = !app.isPackaged;
+
+    const venvPython = isDev
+      ? path.join(__dirname, '..', 'backend', '.venv', 'Scripts', 'python.exe')
+      : path.join(process.resourcesPath, 'backend', '.venv', 'Scripts', 'python.exe');
+
+    const scriptPath = isDev
+      ? path.join(__dirname, '..', 'backend', 'app', 'main.py')
+      : path.join(process.resourcesPath, 'backend', 'app', 'main.py');
+
+    backendProcess = spawn(venvPython, [scriptPath]);
+
+    backendProcess.stdout.on('data', (data) => {
+      console.log(`Backend: ${data}`);
+    });
+
+    backendProcess.stderr.on('data', (data) => {
+      console.error(`Backend error: ${data}`);
+    });
+
+    backendProcess.on('close', (code) => {
+      console.log(`Backend exited with code ${code}`);
+    });
+
+
   } catch (err) {
     console.error('Failed to load workflows:', err);
   }
@@ -176,7 +206,7 @@ ipcMain.handle('get-file-name', async (_e, file) => {
   return name;
 });
 
-ipcMain.handle('dialog:openFile', async (event) => {
+ipcMain.handle('dialog:openFile', async (_e) => {
   const { dialog } = require('electron');
   const result = await dialog.showOpenDialog({
     properties: ['openFile'],

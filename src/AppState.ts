@@ -1,4 +1,3 @@
-import {create} from 'zustand';
 import type { EDAData, ModelMetadata, DatasetMetadata } from './backend_api/types';
 
 export enum ModelState {

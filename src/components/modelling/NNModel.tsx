@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import NetworkCreator from '../network_creator/NetworkCreator';
 import { DraggableItem, ActiveNetworkElement} from '../network_creator/types';
-import { Network, Server, Database, Globe, Cpu, Laptop, HardDrive, Wifi } from 'lucide-react';
 
 // Sample network elements
 const networkElements: DraggableItem[] = [
@@ -47,8 +45,8 @@ const networkElements: DraggableItem[] = [
 
 export const NNModel: React.FC = () => {
 
-  const [selectedElement, setSelectedElement] = useState<number | null>(null);
-  const [layers, setLayers] = useState<ActiveNetworkElement[]>([]);
+  const [_selectedElement, setSelectedElement] = useState<number | null>(null);
+  const [_layers, setLayers] = useState<ActiveNetworkElement[]>([]);
 
   const handleElementSelect = (elementId: number) => {
     setSelectedElement(elementId);

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useDrag } from 'react-dnd';
-import { DraggableItem, NetworkItemProps } from './types';
+import { NetworkItemProps } from './types';
 import { ItemTypes } from './ItemTypes';
 
 const NetworkItem: React.FC<NetworkItemProps> = ({ 

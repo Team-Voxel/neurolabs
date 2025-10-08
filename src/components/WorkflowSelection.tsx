@@ -1,10 +1,9 @@
-import React, {useState, useEffect, useCallback} from "react";
+import React, {useState, useEffect} from "react";
 import { useNavigate } from "react-router-dom";
-import Button from "./CreateNewButton";
 import {Card} from "./Card";
 import { Workflow } from "../AppState";
 import { message, Typography } from "antd";
-import { PackagePlus, HomeIcon, Home } from "lucide-react";
+import { PackagePlus} from "lucide-react";
 import { Sidebar } from "./Sidebar";
 
 // Show workflow selection screen
@@ -28,7 +27,7 @@ export const WorkflowSelection : React.FC = () => {
     const deleteWorkflow = (name: string) => {
       window.stateAPI.deleteWorkflow(name).then(() => {
         message.success('Workflow deleted successfully');
-        window.stateAPI.getAppState().then(({ workflows, current }) => {
+        window.stateAPI.getAppState().then(({ workflows }) => {
           setWfs(workflows);
         }).catch((error) => {
           message.error('Error fetching app state after deletion: ' + error.message);
@@ -40,7 +39,7 @@ export const WorkflowSelection : React.FC = () => {
     }
 
     useEffect(() => {
-      window.stateAPI.getAppState().then(({ workflows, current }) => {
+      window.stateAPI.getAppState().then(({ workflows }) => {
         setWfs(workflows);
         message.success('App state fetched successfully');
       }).catch((error) => {

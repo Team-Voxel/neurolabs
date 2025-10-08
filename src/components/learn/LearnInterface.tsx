@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MulticlassScatterPlot } from '../plotting/MulticlassScatter';
 import { Flex, Typography, Button, Tabs, TabsProps, Select} from 'antd';
-import type { ModelTrainingInfo, SimpleDataset } from '../../backend_api/types';
+import type { SimpleDataset } from '../../backend_api/types';
 import { SupervisedModel } from './SupervisedModel';
 import { getDatasetSimple } from '../../backend_api/data_api';
 import ModelModal from './ModelModal';
 import './LearnInterface.css';
 import { Sidebar } from '../Sidebar';
 import { Brain, ScatterChart } from 'lucide-react';
-import { UnsupervisedModel } from './UnsupervisedModel';
 import { UnsupervisedInterface } from '../UnsupervisedInterface';
 
 
@@ -28,7 +27,7 @@ const modelMap : Record<string, string> = {
 export const SupervisedInterface = () => {
     const [models, setModels] = useState<TabsProps['items']>([]);
     const [activeKey, setActiveKey] = useState('1');
-    const [selectedModel, setSelectedModel] = useState<string>('None');
+    const [_selectedModel, setSelectedModel] = useState<string>('None');
     const [modelModal, setModelModal] = useState<boolean>(false);
     
     const onAddNew = (model: string) => {
@@ -93,7 +92,7 @@ export const SupervisedInterface = () => {
         </div>
     )
 }
-const models : TabsProps['items'] = [
+/* const models : TabsProps['items'] = [
     {
         key: 'kmeans',
         label: 'K-Means',
@@ -124,7 +123,7 @@ const models : TabsProps['items'] = [
         label: 'OPTICS',
         children: <UnsupervisedModel model='optics' />
     }
-];
+]; */
 
 export const LearnInterface: React.FC = () => {
     const [mode, setMode] = useState<number>(0);

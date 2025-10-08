@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { requestAutoEDA, requestDimRedux } from '../../backend_api/data_api';
 import { create } from 'zustand';
-import { Spin, Typography, message} from 'antd';
+import { Typography, message} from 'antd';
 import Particles from "react-tsparticles";
 import { loadSlim } from "tsparticles-slim";
 import type { Container, Engine } from "tsparticles-engine";
@@ -69,7 +69,7 @@ const AnimatedText: React.FC<{ text: string }> = ({ text }) => {
             
             const typingInterval = setInterval(() => {
                 if (currentIndex < text.length) {
-                    setDisplayText((prev) => text.slice(0, currentIndex + 1));
+                    setDisplayText((_prev) => text.slice(0, currentIndex + 1));
                     currentIndex++;
                 } else {
                     clearInterval(typingInterval);
@@ -111,7 +111,7 @@ const WaitForComputation : React.FC = () => {
         await loadSlim(engine);
     }, []);
 
-    const particlesLoaded = useCallback(async (container: Container | undefined) => {
+    const particlesLoaded = useCallback(async (_container: Container | undefined) => {
     }, []);
 
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -302,8 +302,8 @@ const WaitForComputation : React.FC = () => {
             <div className="relative z-10"> {/* Add z-index to ensure content is above particles */}
                 {completed ? (
                     <div className='flex flex-col items-center justify-center h-full w-full gap-8'>
-                        <Typography.Title level={2}>Computations Completed!</Typography.Title>
-                        <Typography.Title level={3}>Navigating to Sandbox...</Typography.Title>
+                        <Typography.Title style={{ color: '#eeeeee', textShadow: '0 0 10px #000' }} level={2}>Computations Completed!</Typography.Title>
+                        <Typography.Title style={{ color: '#eeeeee', textShadow: '0 0 10px #000' }} level={3}>Navigating to Sandbox...</Typography.Title>
                     </div>
                 ) : (
                     <div className='flex flex-col items-center justify-center h-full w-full gap-8'>

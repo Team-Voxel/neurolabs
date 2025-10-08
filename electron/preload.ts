@@ -1,5 +1,5 @@
 import { ipcRenderer, contextBridge } from 'electron'
-import { Workflow, AppState } from '../src/AppState'
+import { Workflow } from '../src/AppState'
 import { DatasetMetadata, EDAData, ModelMetadata } from '../src/backend_api/types'
 
 

@@ -1,16 +1,12 @@
-import { Modal, Button, Input, Tooltip, Typography, Segmented, message } from "antd";
-import { useEffect, useState } from "react";
+import { Modal, Button, Input, Typography, message } from "antd";
+import { useState } from "react";
 import ReactPlayer from "react-player";
-import papa from "papaparse";
-import { ModelType } from "./ModelContext";
 import VerticalSelector, {SelectionOption} from "../VerticalList";
 import Settings from "../settings/Settings";
 import { Workflow } from "../../AppState";
 
-import LogisticVideo from "../../assets/videos/logistic.mp4";
 import SVMVideo from "../../assets/videos/svm.mp4";
 import { SettingControl } from "../settings/types";
-import { error } from "console";
 
 
 /* const modelTypes = {
@@ -32,7 +28,6 @@ import { error } from "console";
 
 export interface ModelInfo {
     name: string;
-    type: ModelType;
     description: string;
     imageUrl: string;
     value: string;
@@ -244,10 +239,10 @@ interface AddNewModelProps {
     open : boolean;
     type : 'reg' | 'class';
     onCancel: () => void;
-    onConfirm: (model: ModelType, name : string) => void;
+    onConfirm: (name : string) => void;
 }
 
-export const AddNewModel : React.FC<AddNewModelProps> = ({currentWF, open, onCancel, onConfirm}) => {
+export const AddNewModel : React.FC<AddNewModelProps> = ({currentWF, open, onCancel}) => {
     const [isVideoReady, setIsVideoReady] = useState<boolean>(false);
     const [name, setName] = useState<string>('');
     const [step, setStep] = useState<number>(1);
@@ -269,16 +264,8 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({currentWF, open, onCan
     const [activation, setActivation] = useState<string>('relu');
     const [optimizer, setOptimizer] = useState<string>('adam');
 
-    const [datasetSize, setDatasetSize] = useState<number>(0);
+    const [datasetSize, _setDatasetSize] = useState<number>(0);
     
-    const confirmValidation = (model: ModelType, name : string) => {
-        if (name.trim() === '') {
-            alert('Please enter a name for the model');
-            return false;
-        }
-        onConfirm(model, name);
-    } 
-
 
     const trainingParams: SettingControl[] = [
         {
@@ -480,10 +467,6 @@ export const AddNewModel : React.FC<AddNewModelProps> = ({currentWF, open, onCan
             visible: type === 'nn',
         }
     ];
-
-    const handleModelTraining = () => {
-
-    }
 
     const footer1 = [
         <Button key="back" onClick={onCancel}>
